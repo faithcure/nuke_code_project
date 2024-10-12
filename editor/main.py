@@ -1,6 +1,6 @@
 
 """
-Project Name    : Nuke Python IDE
+Project Name    : Nuke Python IDE(SuchAs)
 Description     : This file serves as the main component for developing a Python IDE within the Nuke environment,
                   utilizing PySide2 to create a code editor for Nuke.
 
