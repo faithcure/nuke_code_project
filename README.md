@@ -1,7 +1,5 @@
 # Nuke Python IDE
 
-**⚠️ Development Stage: This project is currently under development and may not work as expected!**
-
 A Python IDE built specifically for the Nuke environment, using PySide2 to create a robust and user-friendly code editor for developing scripts and plugins in Nuke.
 
 ## Table of Contents
