@@ -1,6 +1,7 @@
-from PySide2.QtWidgets import *
-from PySide2.QtCore import Qt, QEvent, QRegExp, QStringListModel, QSize, QRect
+from PySide2.QtCore import Qt, QRegExp, QSize
 from PySide2.QtGui import QFont, QColor, QSyntaxHighlighter, QTextCharFormat
+from PySide2.QtWidgets import *
+
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
@@ -12,6 +13,7 @@ class LineNumberArea(QWidget):
 
     def paintEvent(self, event):
         self.code_editor.line_number_area_paint_event(event)
+
 
 class PythonHighlighter(QSyntaxHighlighter):
     def __init__(self, document):
@@ -93,6 +95,7 @@ class PythonHighlighter(QSyntaxHighlighter):
                 length = expression.matchedLength()
                 self.setFormat(index, length, format)
                 index = expression.indexIn(text, index + length)
+
 
 class OutputCatcher:
     def __init__(self, output_widget):

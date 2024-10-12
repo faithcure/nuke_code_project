@@ -1,15 +1,17 @@
-import os
-import sys
-import json
-import shutil
 import ast
+import json
+import os
+import shutil
+import sys
 import webbrowser
 from functools import partial
+
+from PySide2.QtCore import Qt, QStringListModel, QSize
+from PySide2.QtGui import QIcon, QFont, QBrush, QColor, QTextCharFormat, QTextCursor, QGuiApplication
 from PySide2.QtWidgets import *
-from PySide2.QtGui import QIcon, QFont, QBrush, QColor, QSyntaxHighlighter, QTextCharFormat, QPainter, QTextFormat, QTextCursor, QGuiApplication
-from PySide2.QtCore import Qt, QEvent, QRegExp, QStringListModel, QSize, QRect
-from code_editor import CodeEditor
-from core import PythonHighlighter, OutputCatcher
+
+from editor.code_editor import CodeEditor
+from editor.core import PythonHighlighter, OutputCatcher
 
 
 class EditorApp(QMainWindow):
@@ -17,8 +19,8 @@ class EditorApp(QMainWindow):
         super().__init__()
 
         # Window başlık değişkeni
-        self.empty_project_win_title = "Nuke Code Editor: " # Boş ise bu isim döner
-        self.setWindowTitle("Nuke Code Editor: Empty Project**") # Open ve New project'den isim çeker
+        self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
+        self.setWindowTitle("Nuke Code Editor: Empty Project**")  # Open ve New project'den isim çeker
         self.setGeometry(100, 100, 1200, 800)
         qr = self.frameGeometry()
         screen = QGuiApplication.primaryScreen()
@@ -41,7 +43,7 @@ class EditorApp(QMainWindow):
 
         # Renkleri kaydetmek için bir dictionary
         self.item_colors = {}
-        self.color_settings_path = os.path.join(os.getcwd(),"assets", "item_colors.json")
+        self.color_settings_path = os.path.join(os.getcwd(), "assets", "item_colors.json")
 
         # Sekmeli düzenleyici (Tab Widget) oluşturma
         self.tab_widget = QTabWidget()
@@ -72,7 +74,7 @@ class EditorApp(QMainWindow):
         # Son açılan projeler bu listeye JSON olarak atanır
         # Recent Projects ile ilgili değişkenler
         self.recent_projects_list = []  # Projeleri listelemek için boş bir liste
-        self.recent_projects_path = os.path.join(os.getcwd(),"assets", "recent_projects.json")  # Dosya yolu
+        self.recent_projects_path = os.path.join(os.getcwd(), "assets", "recent_projects.json")  # Dosya yolu
         # Program başlarken recent projects listesini yükleyelim
         self.load_recent_projects()
         self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
@@ -541,7 +543,7 @@ class EditorApp(QMainWindow):
 
     def new_project(self):
         """Yeni bir proje dizini seçer ve doğrudan dosya sistemine yansıtır."""
-        #self.project_dir = QFileDialog.getExistingDirectory(self, "Proje Dizini Seç")
+        # self.project_dir = QFileDialog.getExistingDirectory(self, "Proje Dizini Seç")
         if self.project_dir:
             self.populate_workplace(self.project_dir)
 
@@ -774,7 +776,7 @@ class EditorApp(QMainWindow):
         create_button.clicked.connect(lambda: self.create_file(file_name_input.text(), dialog))
         cancel_button.clicked.connect(dialog.close)
         info_button.clicked.connect(
-        self.show_python_naming_info)  # Info butonuna show_python_naming_info fonksiyonunu bağlıyoruz
+            self.show_python_naming_info)  # Info butonuna show_python_naming_info fonksiyonunu bağlıyoruz
 
         dialog.exec_()
 
@@ -932,7 +934,8 @@ class EditorApp(QMainWindow):
     def save_file(self):
         """Save the current file."""
         if self.project_dir is None:
-            QMessageBox.warning(self, "Save projects", "Please create and save the python file.\nThere is no opened project currently this project is empty\nIf you want to do nothing please discard.")
+            QMessageBox.warning(self, "Save projects",
+                                "Please create and save the python file.\nThere is no opened project currently this project is empty\nIf you want to do nothing please discard.")
             return
 
         current_editor = self.tab_widget.currentWidget()
@@ -949,7 +952,8 @@ class EditorApp(QMainWindow):
         """Dosyayı farklı bir yola kaydeder."""
         current_editor = self.tab_widget.currentWidget()
         if current_editor:
-            file_name, _ = QFileDialog.getSaveFileName(self, "Dosya Kaydet", "", "Python Dosyaları (*.py);;Tüm Dosyalar (*)")
+            file_name, _ = QFileDialog.getSaveFileName(self, "Dosya Kaydet", "",
+                                                       "Python Dosyaları (*.py);;Tüm Dosyalar (*)")
             if file_name:
                 with open(file_name, 'w') as file:
                     file.write(current_editor.toPlainText())
@@ -1059,7 +1063,8 @@ class EditorApp(QMainWindow):
 
     def close_app(self):
         """Programı kapatır."""
-        reply = QMessageBox.question(self, 'Çıkış', "Kaydedilmemiş değişiklikler mevcut. Yine de çıkmak istiyor musunuz?",
+        reply = QMessageBox.question(self, 'Çıkış',
+                                     "Kaydedilmemiş değişiklikler mevcut. Yine de çıkmak istiyor musunuz?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             QApplication.quit()
@@ -1127,8 +1132,6 @@ class EditorApp(QMainWindow):
 
         # Öğeye tıklama sinyalini bağla
         self.header_tree.itemClicked.connect(self.go_to_line_from_header)  # Bu satırı burada ekliyoruz
-
-    import ast
 
     def update_header_tree(self):
         """QPlainTextEdit içindeki metni analiz edip sınıf ve fonksiyonları HEADER'a ekler."""
@@ -1295,7 +1298,7 @@ class EditorApp(QMainWindow):
         if not name.isidentifier():
             return False
         return True
- 
+
     def show_python_naming_info(self):
         QMessageBox.information(self, "Python Naming Info",
                                 "Python file names must:\n- Start with a letter or underscore\n- Contain only letters, numbers, or underscores\n- Not be a reserved keyword")

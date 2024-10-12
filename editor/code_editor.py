@@ -1,8 +1,10 @@
 import jedi
+from PySide2.QtCore import Qt, QEvent, QStringListModel, QRect
+from PySide2.QtGui import QColor, QTextCharFormat, QPainter, QTextFormat, \
+    QTextCursor
 from PySide2.QtWidgets import *
-from PySide2.QtGui import QIcon, QFont, QBrush, QColor, QSyntaxHighlighter, QTextCharFormat, QPainter, QTextFormat, QTextCursor, QGuiApplication
-from PySide2.QtCore import Qt, QEvent, QRegExp, QStringListModel, QSize, QRect
-from core import LineNumberArea
+
+from editor.core import LineNumberArea
 
 
 class CodeEditor(QPlainTextEdit):
@@ -108,14 +110,12 @@ class CodeEditor(QPlainTextEdit):
 
             # Diğer tuş işlemleri için varsayılan davranış
 
-
         # Eğer Ctrl+H kombinasyonuna basıldıysa replace diyalogunu aç
         if event.key() == Qt.Key_H and event.modifiers() == Qt.ControlModifier:
             main_window = self.get_main_window()
             if main_window:
                 main_window.trigger_replace_in_active_editor()
             return
-
 
         # Otomatik kapanan karakterler için kontrol
         if event.key() in (Qt.Key_ParenLeft, Qt.Key_BraceLeft, Qt.Key_BracketLeft,
@@ -367,7 +367,8 @@ class CodeEditor(QPlainTextEdit):
             if block.isVisible() and bottom >= event.rect().top():
                 number = str(block_number + 1)
                 painter.setPen(Qt.black)
-                painter.drawText(0, top, self.line_number_area.width(), self.fontMetrics().height(), Qt.AlignRight, number)
+                painter.drawText(0, top, self.line_number_area.width(), self.fontMetrics().height(), Qt.AlignRight,
+                                 number)
 
             block = block.next()
             top = bottom
