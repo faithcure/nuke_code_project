@@ -6,17 +6,15 @@ import os
 import re
 import webbrowser
 from functools import partial
-from PySide2.QtCore import QStringListModel, QSize
-from PySide2.QtGui import QBrush, QTextCharFormat, QTextCursor, QGuiApplication
+from PySide2.QtCore import QStringListModel
+from PySide2.QtGui import  QTextCharFormat, QTextCursor, QGuiApplication
 from PySide2.QtGui import  QFont
 from PySide2.QtWidgets import *
 from editor.code_editor import CodeEditor
 from editor.core import PythonHighlighter, OutputCatcher
-from PySide2.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
+from PySide2.QtCore import  QPropertyAnimation, QEasingCurve, Qt, QSize, QRect
 from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QGraphicsDropShadowEffect, QFrame
-from PySide2.QtGui import QPixmap, QIcon, QColor
-from PySide2.QtGui import QPixmap, QPainter, QPainterPath, QBrush
-from PySide2.QtCore import Qt, QSize, QRect
+from PySide2.QtGui import  QIcon, QColor, QPixmap, QPainter, QPainterPath, QBrush
 
 class EditorApp(QMainWindow):
     def __init__(self):
