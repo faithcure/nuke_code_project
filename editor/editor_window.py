@@ -1,22 +1,30 @@
 import ast
 import json
-import os
 import shutil
 import sys
+import os
+import re
 import webbrowser
 from functools import partial
-
-from PySide2.QtCore import Qt, QStringListModel, QSize
-from PySide2.QtGui import QIcon, QFont, QBrush, QColor, QTextCharFormat, QTextCursor, QGuiApplication
+from PySide2.QtCore import QStringListModel, QSize
+from PySide2.QtGui import QBrush, QTextCharFormat, QTextCursor, QGuiApplication
+from PySide2.QtGui import  QFont
 from PySide2.QtWidgets import *
-
 from editor.code_editor import CodeEditor
 from editor.core import PythonHighlighter, OutputCatcher
-
+from PySide2.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
+from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QGraphicsDropShadowEffect, QFrame
+from PySide2.QtGui import QPixmap, QIcon, QColor
+from PySide2.QtGui import QPixmap, QPainter, QPainterPath, QBrush
+from PySide2.QtCore import Qt, QSize, QRect
 
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        # Proje kök dizinini bulmak (relative path)
+        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Bir üst dizine çıkıyoruz
+        self.icons_path = os.path.join(self.project_root, 'ui', 'icons')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
+        self.json_path = os.path.join(self.project_root, 'assets')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
 
         # Window başlık değişkeni
         self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
@@ -68,13 +76,12 @@ class EditorApp(QMainWindow):
 
         # Başlangıçta boş bir "untitled.py" sekmesi açılıyor
         self.add_new_tab("untitled.py", initial_content="import nuke\nimport nukescripts")
-
         # Program başlarken renkleri yükle
         self.load_colors_from_file()
         # Son açılan projeler bu listeye JSON olarak atanır
         # Recent Projects ile ilgili değişkenler
         self.recent_projects_list = []  # Projeleri listelemek için boş bir liste
-        self.recent_projects_path = os.path.join(os.getcwd(), "assets", "recent_projects.json")  # Dosya yolu
+        self.recent_projects_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "./",  "assets", "recent_projects.json")  # Dosya yolu
         # Program başlarken recent projects listesini yükleyelim
         self.load_recent_projects()
         self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
@@ -115,26 +122,23 @@ class EditorApp(QMainWindow):
         toolbar = self.addToolBar("Main Toolbar")
 
         # İkon boyutunu 60x60 piksel olarak ayarlıyoruz
-        toolbar.setIconSize(QSize(35, 35))
+        toolbar.setIconSize(QSize(25, 25))
 
-        # Proje kök dizinini bulmak (relative path)
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Bir üst dizine çıkıyoruz
-        icons_path = os.path.join(project_root, 'ui', 'icons')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
 
         # 1. RUN Butonu (Kod çalıştırmak için)
-        run_action = QAction(QIcon(os.path.join(icons_path, 'play.png')), '', self)  # İkon ile boş bir buton
+        run_action = QAction(QIcon(os.path.join(self.icons_path, 'play.png')), '', self)  # İkon ile boş bir buton
         run_action.setToolTip("Run Current Code")  # Butona tooltip ekliyoruz
         run_action.triggered.connect(self.run_code)  # Fonksiyon bağlama
         toolbar.addAction(run_action)  # Butonu toolbara ekle
 
         # 2. SAVE Butonu (Kod kaydetmek için)
-        save_action = QAction(QIcon(os.path.join(icons_path, 'save.png')), '', self)  # İkon ile boş bir buton
+        save_action = QAction(QIcon(os.path.join(self.icons_path, 'save.png')), '', self)  # İkon ile boş bir buton
         save_action.setToolTip("Save Current File")  # Tooltip ekliyoruz
         save_action.triggered.connect(self.save_file)  # Fonksiyon bağlama
         toolbar.addAction(save_action)  # Butonu toolbara ekle
 
         # 3. ARAMA Butonu (Kod içinde arama yapmak için)
-        search_action = QAction(QIcon(os.path.join(icons_path, 'search.png')), '', self)  # İkon ile boş bir buton
+        search_action = QAction(QIcon(os.path.join(self.icons_path, 'search.png')), '', self)  # İkon ile boş bir buton
         search_action.setToolTip("Search in Code")  # Tooltip ekliyoruz
         search_action.triggered.connect(self.show_search_dialog)  # Fonksiyon bağlama
         toolbar.addAction(search_action)  # Butonu toolbara ekle
@@ -145,13 +149,13 @@ class EditorApp(QMainWindow):
         toolbar.addWidget(spacer)
 
         # 4. CLEAR Butonu (Output panelini temizlemek için)
-        clear_action = QAction(QIcon(os.path.join(icons_path, 'clear.png')), '', self)  # İkon ile boş bir buton
+        clear_action = QAction(QIcon(os.path.join(self.icons_path, 'clear.png')), '', self)  # İkon ile boş bir buton
         clear_action.setToolTip("Clear Output")  # Tooltip ekliyoruz
         clear_action.triggered.connect(self.clear_output)  # Fonksiyon bağlama
         toolbar.addAction(clear_action)  # Butonu toolbara ekle
 
         # 5. SETTINGS Butonu (Ayarlar menüsüne erişim)
-        settings_action = QAction(QIcon(os.path.join(icons_path, 'settings.png')), '', self)  # İkon ile boş bir buton
+        settings_action = QAction(QIcon(os.path.join(self.icons_path, 'settings.png')), '', self)  # İkon ile boş bir buton
         settings_action.setToolTip("Settings")  # Tooltip ekliyoruz
         settings_action.triggered.connect(self.show_settings_dialog)  # Fonksiyon bağlama
         toolbar.addAction(settings_action)  # Butonu toolbara ekle
@@ -292,7 +296,7 @@ class EditorApp(QMainWindow):
         file_menu = menubar.addMenu('File')
         # Recent Projects menüsünü tanımla ve File menüsüne ekle
 
-        new_project_action = QAction(QIcon('icons/new_project.png'), 'New Project', self)
+        self.new_project_action = QAction(QIcon('icons/new_project.png'), 'New Project', self)
         open_project_action = QAction(QIcon('icons/new_project.png'), 'Open Project', self)
         new_file_action = QAction(QIcon('icons/new_file.png'), 'New File', self)
         open_action = QAction(QIcon('icons/open.png'), 'Open File', self)
@@ -300,7 +304,7 @@ class EditorApp(QMainWindow):
         save_as_action = QAction(QIcon('icons/save_as.png'), 'Save As', self)
         exit_action = QAction(QIcon('icons/exit.png'), 'Exit', self)
 
-        file_menu.addAction(new_project_action)
+        file_menu.addAction(self.new_project_action)
         file_menu.addAction(open_project_action)
         file_menu.addSeparator()
         file_menu.addAction(new_file_action)
@@ -314,7 +318,7 @@ class EditorApp(QMainWindow):
         file_menu.addAction(exit_action)
 
         # "New Project" tıklandığında bir fonksiyon çalıştır
-        new_project_action.triggered.connect(self.new_project_dialog)
+        self.new_project_action.triggered.connect(self.new_project_dialog)
 
         # 2. Edit Menüsü
         edit_menu = menubar.addMenu('Edit')
@@ -377,7 +381,7 @@ class EditorApp(QMainWindow):
         workspace_menu.addAction(set_default_ui_action)
 
         # Bind menu items to methods for File and Edit menus
-        new_project_action.triggered.connect(self.new_project)
+        self.new_project_action.triggered.connect(self.new_project)
         open_project_action.triggered.connect(self.open_project)
         new_file_action.triggered.connect(self.create_new_file_dialog)
         open_action.triggered.connect(self.open_file)
@@ -386,7 +390,362 @@ class EditorApp(QMainWindow):
         exit_action.triggered.connect(self.file_exit)
         replace_action.triggered.connect(self.trigger_replace_in_active_editor)
 
+    def new_project_dialog(self):
+        self.allowed_pattern = r'^[a-zA-Z0-9_ ]+$'
+        """Yeni proje oluşturmak için diyalog kutusu."""
+        bg_image_path = os.path.join(self.project_root, 'ui', 'icons', 'nuke_logo_bg_01.png')
+        dialog = QDialog(self)
+        dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        dialog.setAttribute(Qt.WA_TranslucentBackground)
+        dialog.setModal(True)
+        new_project_dialog_size = QSize(500, 300)  # Yüksekliği artırıldı
+        dialog.resize(new_project_dialog_size)
+
+        # Gölge efekti
+        shadow_effect = QGraphicsDropShadowEffect()
+        shadow_effect.setBlurRadius(40)
+        shadow_effect.setOffset(0, 12)  # Gölge aşağı kaydırıldı
+        shadow_effect.setColor(QColor(0, 0, 0, 100))
+        dialog.setGraphicsEffect(shadow_effect)
+
+        # Ana layout
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Arka plan çerçevesi
+        background_frame = QFrame(dialog)
+        background_frame.setStyleSheet("""
+            QFrame {
+                background-color: rgb(50, 50, 50);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 9px;
+            }
+        """)
+
+        # İçerik yerleşimi
+        inner_layout = QVBoxLayout(background_frame)
+        inner_layout.setContentsMargins(30, 30, 30, 20)
+        layout.addWidget(background_frame)
+
+        # İmajı yükle ve yuvarlak köşeli bir pixmap oluştur
+        pixmap = QPixmap(bg_image_path)
+        rounded_pixmap = QPixmap(pixmap.size())
+        rounded_pixmap.fill(Qt.transparent)
+
+        # Yuvarlak köşe maskesi uygulama
+        painter = QPainter(rounded_pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        path = QPainterPath()
+        path.addRoundedRect(QRect(0, 0, pixmap.width(), pixmap.height()), 9, 9)
+        painter.setClipPath(path)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+
+        # Yuvarlatılmış pixmap'i image_label içinde göster
+        image_label = QLabel(background_frame)
+        image_label.setPixmap(rounded_pixmap)
+        image_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        image_label.setFixedSize(dialog.size())
+
+        # Başlık
+        title_label = QLabel("Create New Project", background_frame)
+        title_label.setAlignment(Qt.AlignLeft)
+        title_label.setStyleSheet("""
+            color: #CFCFCF;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Myriad';
+            border: none;
+            background-color: transparent;
+        """)
+        inner_layout.addWidget(title_label)
+
+        # Başlık altındaki boşluk
+        inner_layout.addSpacing(20)
+
+        # Proje ismi giriş alanı
+        self.project_name_input = QLineEdit()
+        self.project_name_input.setPlaceholderText("Enter Project Name")
+        self.project_name_input.setMaxLength(20)  # Maksimum 20 karakter
+        self.project_name_input.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(255, 255, 255, 0.08);
+                color: #E0E0E0;
+                padding: 10px;
+                padding-right: 40px;  /* Sağ tarafta karakter sayacı için boşluk */
+                border: 1px solid #5A5A5A;
+                border-radius: 8px;
+            }
+        """)
+        inner_layout.addWidget(self.project_name_input)
+
+        # Giriş doğrulama işlevi
+        def validate_project_name():
+            # İzin verilen karakterler
+
+            if re.match(self.allowed_pattern, self.project_name_input.text()) and self.project_name_input.text() != "":
+                # Geçerli giriş olduğunda orijinal stile dön
+                self.project_name_input.setStyleSheet("""
+                    QLineEdit {
+                        background-color: rgba(255, 255, 255, 0.08);
+                        color: #E0E0E0;
+                        padding: 10px;
+                        padding-right: 40px;
+                        border: 1px solid #5A5A5A;
+                        border-radius: 8px;
+                    }
+                """)
+                self.project_desc.setText("Please ensure the correct information!")
+            else:
+                # Geçersiz giriş olduğunda kırmızı çerçeve
+                self.project_name_input.setStyleSheet("""
+                    QLineEdit {
+                        background-color: rgba(255, 100, 100, 0.08);
+                        color: #ff9991;
+                        padding: 10px;
+                        padding-right: 40px;
+                        border: 1px solid red;
+                        border-radius: 8px;
+                    }
+                """)
+                self.project_desc.setText("Incorrect file name!")
+
+        self.project_name_input.textChanged.connect(validate_project_name)
+        # Karakter sayacı
+        char_count_label = QLabel("0/20", self.project_name_input)
+        if self.project_name_input.text() == "":
+            char_count_label.setText("")
+        char_count_label.setStyleSheet("""
+            color: rgba(160, 160, 160, 0.6);  /* %60 opaklık */
+            font-size: 12px;
+            border: none;
+            background: transparent;
+        """)
+        char_count_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        char_count_label.setFixedSize(60, 30)
+
+        # Karakter sayacını güncelleyen işlev
+        def update_char_count():
+            current_length = str(len(self.project_name_input.text()))
+            current_length_count = current_length + "/20"
+
+            char_count_label.setText(current_length_count)
+            char_count_label.move(self.project_name_input.width() - 75,
+                                  (self.project_name_input.height() - char_count_label.height()) // 2)
+
+        # `textChanged` sinyali ile sayaç güncellemesi
+        self.project_name_input.textChanged.connect(update_char_count)
+
+        # QLineEdit'ler arasında ve title ile boşluk bırak
+        inner_layout.addSpacing(20)
+
+        # Proje dizini giriş alanı ve "Browse" butonu
+        self.project_dir_input = QLineEdit()
+        self.project_dir_input.setPlaceholderText("Select Project Directory")
+        self.project_dir_input.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(255, 255, 255, 0.08);
+                color: #E0E0E0;
+                padding: 10px;  /* Orijinal kalınlık */
+                border: 1px solid #5A5A5A;
+                border-radius: 8px;
+            }
+        """)
+
+        # Dizin doğrulama işlevi
+        def validate_project_directory():
+            if not self.project_dir_input.text():
+                # Dizin seçilmezse kırmızı çerçeve
+                self.project_dir_input.setStyleSheet("""
+                    QLineEdit {
+                        background-color: rgba(255, 255, 255, 0.08);
+                        color: #E0E0E0;
+                        padding: 10px;
+                        border: 1px solid red;
+                        border-radius: 8px;
+                    }
+                """)
+            else:
+                # Geçerli giriş olduğunda orijinal stile dön
+                self.project_dir_input.setStyleSheet("""
+                    QLineEdit {
+                        background-color: rgba(255, 255, 255, 0.08);
+                        color: #E0E0E0;
+                        padding: 10px;
+                        border: 1px solid #5A5A5A;
+                        border-radius: 8px;
+                    }
+                """)
+
+        # Dizin seçimi için layout
+        dir_layout = QHBoxLayout()
+        dir_layout.addWidget(self.project_dir_input)
+
+        # Browse butonu
+        project_dir_button = QPushButton("Browse")
+        project_dir_button.setFixedHeight(self.project_dir_input.sizeHint().height())  # QLineEdit ile aynı yükseklik
+        project_dir_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4E4E4E;
+                color: #FFFFFF;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #6E6E6E;
+            }
+        """)
+        dir_layout.addWidget(project_dir_button)
+        inner_layout.addLayout(dir_layout)
+
+        # Bilgilendirme metni
+        self.project_desc = QLabel("Please ensure the correct information!")
+        self.project_desc.setStyleSheet("""
+            color: #A0A0A0;
+            font-size: 11px;
+            border: none;
+            text-align: left;
+            margin-top: 10px;
+        """)
+        inner_layout.addWidget(self.project_desc)
+
+        # OK ve Cancel butonları
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
+        # OK butonu
+        ok_button = QPushButton("OK")
+        ok_button.setFixedSize(80, 30)
+        ok_button.setStyleSheet("""
+            QPushButton {
+                background-color: #808080; /* Gri renk */
+                color: #FFFFFF;
+                font-family: 'Myriad';
+                border-radius: 10px;
+                font-size: 14px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #A9A9A9; /* Daha açık gri */
+            }
+        """)
+        button_layout.addWidget(ok_button)
+
+        # Cancel butonu
+        cancel_button = QPushButton("Cancel")
+        cancel_button.setFixedSize(80, 30)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #808080; /* Gri renk */
+                color: #FFFFFF;
+                font-family: 'Myriad';
+                border-radius: 10px;
+                font-size: 14px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #A9A9A9; /* Daha açık gri */
+            }
+        """)
+        button_layout.addWidget(cancel_button)
+
+        # Label ile butonlar arasında boşluk ekleyin
+        inner_layout.addSpacing(20)  # Label ile buton grubu arasında boşluk
+        inner_layout.addLayout(button_layout)
+
+        # Proje dizini seçiminde "Browse" butonuna tıklama işlemi
+        project_dir_button.clicked.connect(lambda: self.browse_directory(self.project_dir_input))
+
+        # OK butonuna tıklandığında proje oluşturma işlemi
+        ok_button.clicked.connect(
+            lambda: self.create_new_project(self.project_name_input.text(), self.project_dir_input.text(), dialog))
+
+        # Cancel butonuna tıklanınca dialogu kapatma işlemi
+        cancel_button.clicked.connect(dialog.close)
+        dialog.exec_()
+
+    def create_new_project(self, project_name, project_directory, dialog):
+        """Create a new project directory and set project_dir to the new path."""
+        if not project_name.strip():
+            if re.match(self.allowed_pattern, self.project_name_input.text()) and self.project_name_input.text() != "":
+                # Geçerli giriş olduğunda orijinal stile dön
+                self.project_name_input.setStyleSheet("""
+                        QLineEdit {
+                            background-color: rgba(255, 255, 255, 0.08);
+                            color: #E0E0E0;
+                            padding: 10px;
+                            padding-right: 40px;
+                            border: 1px solid #5A5A5A;
+                            border-radius: 8px;
+                        }
+                    """)
+                self.project_desc.setText("Please ensure the correct information!")
+            else:
+                # Geçersiz giriş olduğunda kırmızı çerçeve
+                self.project_name_input.setStyleSheet("""
+                        QLineEdit {
+                            background-color: rgba(255, 100, 100, 0.08);
+                            color: #ff9991;
+                            padding: 10px;
+                            padding-right: 40px;
+                            border: 1px solid red;
+                            border-radius: 8px;
+                        }
+                    """)
+                self.project_desc.setText("Incorrect file name!")
+            return
+
+        # Directory denetleme OK'a basıldığında
+        if not project_directory.strip():
+            if not self.project_dir_input.text():
+                # Dizin seçilmezse kırmızı çerçeve
+                self.project_dir_input.setStyleSheet("""
+                        QLineEdit {
+                            background-color: rgba(255, 255, 255, 0.08);
+                            color: #E0E0E0;
+                            padding: 10px;
+                            border: 1px solid red;
+                            border-radius: 8px;
+                        }
+                    """)
+                self.project_desc.setText("Please ensure the correct information!")
+            else:
+                # Geçerli giriş olduğunda orijinal stile dön
+                self.project_dir_input.setStyleSheet("""
+                        QLineEdit {
+                            background-color: rgba(255, 100, 100, 0.08);
+                            color: #ff9991;
+                            padding: 10px;
+                            border: 1px solid #5A5A5A;
+                            border-radius: 8px;
+                        }
+                    """)
+                self.project_desc.setText("Please set a directory!")
+            return
+
+        # Create the new project directory
+        project_path = os.path.join(project_directory, project_name)
+
+        if os.path.exists(project_path):
+            self.project_desc.setText("Project directory already exists.")
+            return
+        else:
+            os.makedirs(project_path)
+
+        # Set self.project_dir to the newly created project directory
+        self.project_dir = project_path
+        self.populate_workplace(self.project_dir)
+        self.setWindowTitle(self.empty_project_win_title + os.path.basename(self.project_dir))
+
+        # Projeyi recent_projects_list'e ekleyelim
+        self.add_to_recent_projects(self.project_dir)
+
+        # Close the dialog
+        dialog.close()
     # Add the methods for Workspace menu actions
+
+
     def reset_ui(self):
         """Resets the UI layout."""
         QMessageBox.information(self, "Reset UI", "UI has been reset.")
@@ -445,89 +804,12 @@ class EditorApp(QMainWindow):
         else:
             QMessageBox.warning(self, "Hata", f"Proje dizini {project_path} mevcut değil.")
 
-    def new_project_dialog(self):
-        """Yeni proje oluşturmak için diyalog kutusu."""
-        # Bu işlemi yalnızca bir kez çalıştırmamız gerekiyor
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Create New Project")
-        dialog.setGeometry(200, 200, 400, 150)
-        dialog.move(self.frameGeometry().center() - dialog.rect().center())
+    from PySide2.QtWidgets import QGraphicsDropShadowEffect
+    from PySide2.QtGui import QColor
 
-        layout = QVBoxLayout()
+    from PySide2.QtGui import QPixmap, QPainter, QPainterPath, QBrush
+    from PySide2.QtCore import Qt, QSize, QRect
 
-        # Proje ismi giriş alanı (placeholder text ile)
-        project_name_input = QLineEdit()
-        project_name_input.setPlaceholderText("Enter Project Name")
-        layout.addWidget(project_name_input)
-
-        # Proje dizini giriş alanı ve "Browse" butonu
-        project_dir_input = QLineEdit()
-        project_dir_input.setPlaceholderText("Select Project Directory")
-        layout.addWidget(project_dir_input)
-
-        project_dir_button = QPushButton("Browse")
-        layout.addWidget(project_dir_button)
-        project_desc = QLabel("Please be shure the correct information!")
-
-        # Dizin seçimi için layout
-        dir_layout = QHBoxLayout()
-        dir_layout.addWidget(project_dir_input)
-        dir_layout.addWidget(project_dir_button)
-        layout.addLayout(dir_layout)
-        layout.addWidget(project_desc)
-
-        # OK ve Cancel butonları
-        button_layout = QHBoxLayout()
-        ok_button = QPushButton("OK")
-        cancel_button = QPushButton("Cancel")
-        button_layout.addWidget(ok_button)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
-
-        dialog.setLayout(layout)
-
-        # Proje dizini seçiminde "Browse" butonuna tıklama işlemi
-        project_dir_button.clicked.connect(lambda: self.browse_directory(project_dir_input))
-
-        # OK butonuna tıklandığında proje oluşturma işlemi
-        ok_button.clicked.connect(
-            lambda: self.create_new_project(project_name_input.text(), project_dir_input.text(), dialog)
-        )
-
-        # Cancel butonuna tıklanınca dialogu kapatma işlemi
-        cancel_button.clicked.connect(dialog.close)
-
-        dialog.exec_()
-
-    def create_new_project(self, project_name, project_directory, dialog):
-        """Create a new project directory and set project_dir to the new path."""
-        if not project_name.strip():
-            QMessageBox.warning(self, "Error", "Please enter a valid project name.")
-            return
-
-        if not project_directory.strip():
-            QMessageBox.warning(self, "Error", "Please select a project directory.")
-            return
-
-        # Create the new project directory
-        project_path = os.path.join(project_directory, project_name)
-
-        if os.path.exists(project_path):
-            QMessageBox.warning(self, "Error", "Project directory already exists.")
-            return
-        else:
-            os.makedirs(project_path)
-
-        # Set self.project_dir to the newly created project directory
-        self.project_dir = project_path
-        self.populate_workplace(self.project_dir)
-        self.setWindowTitle(self.empty_project_win_title + os.path.basename(self.project_dir))
-
-        # Projeyi recent_projects_list'e ekleyelim
-        self.add_to_recent_projects(self.project_dir)
-
-        # Close the dialog
-        dialog.close()
 
     def browse_directory(self, input_field):
         """Proje dizini seçmek için bir dizin tarayıcı aç."""
@@ -583,7 +865,8 @@ class EditorApp(QMainWindow):
     def context_menu(self, position):
         """Sağ tıklama menüsünü oluştur."""
         menu = QMenu()
-
+        if self.workplace_tree.topLevelItemCount() == 0:
+            return None
         # 1. Explore file
         explore_file_action = QAction('Explore file', self)
         explore_file_action.triggered.connect(lambda: self.explore_file(self.workplace_tree.itemAt(position)))
@@ -642,11 +925,15 @@ class EditorApp(QMainWindow):
         self.workplace_tree.collapseAll()
 
     def explore_file(self, item):
+        # item'dan Qt.UserRole verisini alıyoruz
         file_path = item.data(0, Qt.UserRole)
+
+        # file_path'in geçerli olup olmadığını kontrol et
         if file_path and os.path.exists(file_path):
             os.startfile(os.path.dirname(file_path))
         else:
-            QMessageBox.warning(self, "Hata", "Dosya mevcut değil.")
+            QMessageBox.warning(self, "Hata", "Please select sub dir or file.")
+
 
     def open_file_item(self, item):
         file_path = item.data(0, Qt.UserRole)
@@ -742,42 +1029,169 @@ class EditorApp(QMainWindow):
             return
         self.add_new_tab("untitled.py")
 
+    def load_suggestions(self):
+        # suggestions.json'dan önerileri yükler
+        with open(self.json_path + "/suggestions.json", "r") as file:
+            data = json.load(file)
+        return data.get("suggestions", [])
+        print (self.json_path + "/suggestions.json")
+
     def create_new_file_dialog(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle("Create New Python File")
-        dialog.setGeometry(200, 200, 300, 150)
-        dialog.move(self.frameGeometry().center() - dialog.rect().center())
-        layout = QVBoxLayout()
+        dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        dialog.setAttribute(Qt.WA_TranslucentBackground)
+        dialog.setModal(True)
+        dialog.resize(500, 80)
 
-        # Dosya adı girişi
+        # Pencereyi ortalamak
+        qr = dialog.frameGeometry()
+        qr.moveCenter(self.frameGeometry().center())
+        dialog.move(qr.topLeft())
+
+        # Gölge efekti
+        shadow_effect = QGraphicsDropShadowEffect()
+        shadow_effect.setBlurRadius(30)
+        shadow_effect.setOffset(0, 8)
+        shadow_effect.setColor(QColor(0, 0, 0, 150))
+        dialog.setGraphicsEffect(shadow_effect)
+
+        # Ana layout
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Ana pencere çerçevesine (input_frame) sadece stroke ekliyoruz
+        input_frame = QFrame()
+        input_frame.setStyleSheet("""
+            QFrame {
+                background-color: rgba(48, 48, 48, 230); /* Saydam koyu arka plan */
+                border: 1px solid rgba(80, 80, 80, 200); /* Kenarlık sadece çerçevede */
+                border-radius: 10px;
+            }
+        """)
+        input_layout = QHBoxLayout(input_frame)
+        input_layout.setContentsMargins(10, 0, 10, 0)
+        layout.addWidget(input_frame)
+
+        # Python logosu (Kenarlık olmadan, saydamlık ile)
+        icon_label = QLabel()
+        python_icon_path = os.path.join(self.icons_path, "python_logo.png")
+        opacity_effect = QGraphicsOpacityEffect()
+        opacity_effect.setOpacity(0.5)
+        python_icon = QPixmap(python_icon_path).scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        icon_label.setPixmap(python_icon)
+        icon_label.setGraphicsEffect(opacity_effect)
+        icon_label.setFixedSize(30, 30)
+        icon_label.setStyleSheet("""
+            QLabel {
+                background: transparent;
+                border: none;
+            }
+        """)
+        input_layout.addWidget(icon_label)
+
+        # Dosya adı giriş alanı ve stil ayarları
         file_name_input = QLineEdit()
-        file_name_input.setPlaceholderText("Enter Python file name (e.g., example.py)")
-        layout.addWidget(file_name_input)
+        file_name_input.setPlaceholderText("Enter file name (e.g., example)")
+        file_name_input.setStyleSheet("""
+            QLineEdit {
+                background: transparent;
+                color: rgba(128, 128, 128, 1); /* Normal yazı rengi gri */
+                border: none;
+            }
+            QLineEdit::placeholder {
+                color: rgba(255, 255, 255, 0.5); /* Placeholder %50 saydam beyaz */
+            }
+        """)
+        input_layout.addWidget(file_name_input)
 
-        # Yazım kuralları ile ilgili açıklama metni
-        instructions_label = QLabel("Please follow the naming conventions. For more info, press the Info button.")
-        layout.addWidget(instructions_label)
+        # Öneriler veya hata mesajı için dinamik alan (sağa yaslanmış, ortalanmış, %50 transparan)
+        suggestion_label = QLabel("No suggestions.")
+        suggestion_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)  # Sağa yasla ve yukarıdan/aşağıdan ortala
+        suggestion_label.setStyleSheet(
+            "color: rgba(255, 165, 0, 0.5); border: none;")  # Turuncu ve %50 transparan, kenar çizgisi yok
+        suggestion_label.setFixedWidth(200)  # Genişliği ayarla
+        input_layout.addWidget(suggestion_label)
 
-        # Buton düzeni: Info butonunu Create'in soluna alıyoruz ve genişliğini 50px yapıyoruz
-        button_layout = QHBoxLayout()
-        info_button = QPushButton("Info")
-        info_button.setMaximumWidth(50)  # Info butonunun genişliği 50px yapılıyor
-        button_layout.addWidget(info_button)
-        create_button = QPushButton("Create")
-        button_layout.addWidget(create_button)
-        cancel_button = QPushButton("Cancel")
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
+        # JSON'dan önerileri yükle
+        suggestions = self.load_suggestions()
 
-        # Diyalog Layout
-        dialog.setLayout(layout)
+        # Dinamik öneri ve hata mesajı işlevi
+        def on_text_changed():
+            text = file_name_input.text()
+            suggestion_label.setStyleSheet(
+                "color: rgba(255, 165, 0, 0.5); border: none;")  # Öneri için turuncu %50 transparan
 
-        # Create ve Cancel butonlarına fonksiyon ekleme
-        create_button.clicked.connect(lambda: self.create_file(file_name_input.text(), dialog))
-        cancel_button.clicked.connect(dialog.close)
-        info_button.clicked.connect(
-            self.show_python_naming_info)  # Info butonuna show_python_naming_info fonksiyonunu bağlıyoruz
+            # Uygun bir öneri bul
+            found_suggestion = None
+            for suggestion in suggestions:
+                if suggestion.lower().startswith(text.lower()) and suggestion.lower() != text.lower():
+                    found_suggestion = suggestion
+                    break
 
+            # Öneri veya hata mesajını güncelle
+            if found_suggestion:
+                suggestion_label.setText(found_suggestion)
+            elif not is_valid_file_name(text):
+                suggestion_label.setText("Invalid file name")
+                suggestion_label.setStyleSheet(
+                    "color: rgba(255, 94, 94, 1); border: none;")  # Hata mesajı için kırmızı %50 transparan
+            else:
+                suggestion_label.setText("")
+
+        # Tamamlama için Tab tuşuna basıldığında öneriyi kabul et
+        def complete_text():
+            if suggestion_label.text() != "Invalid file name" and suggestion_label.text() != "":
+                file_name_input.setText(suggestion_label.text())
+                suggestion_label.setText("")
+
+        file_name_input.textChanged.connect(on_text_changed)
+        file_name_input.editingFinished.connect(complete_text)
+
+        # Onay butonu (beyaz renkte, basılıyken gri)
+        create_button = QPushButton()
+        confirm_icon_path = os.path.join(self.icons_path, "confirm_icon.png")
+        create_button.setIcon(QIcon(confirm_icon_path))
+        create_button.setFixedSize(30, 30)
+        create_button.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                border-radius: 15px;
+                color: #FFFFFF; /* Beyaz */
+            }
+            QPushButton:hover {
+                opacity: 0.8;
+            }
+        """)
+        input_layout.addWidget(create_button)
+
+        # Dosya adı doğrulama fonksiyonu
+        def is_valid_file_name(file_name):
+            # Dosya adı boşluk, özel karakter içeremez
+            return re.match(r'^[\w-]+$', file_name) is not None
+
+        # Onay butonuna tıklama işlevi
+        def on_create_clicked():
+            file_name = file_name_input.text().strip()
+            if not is_valid_file_name(file_name):
+                suggestion_label.setText("Invalid file name")
+                suggestion_label.setStyleSheet(
+                    "color: rgba(255, 0, 0, 0.5); border: none;")  # Hata rengi %50 transparan
+            else:
+                self.create_file(file_name, dialog)
+
+        create_button.clicked.connect(on_create_clicked)
+
+        # Pencereyi saydamdan görünür hale getirme animasyonu
+        dialog.setWindowOpacity(0)
+        fade_in = QPropertyAnimation(dialog, b"windowOpacity")
+        fade_in.setDuration(400)
+        fade_in.setStartValue(0)
+        fade_in.setEndValue(1)
+        fade_in.setEasingCurve(QEasingCurve.InOutQuad)
+        fade_in.start()
+
+        # Diyalog gösterimi
         dialog.exec_()
 
     def create_file(self, file_name, dialog):
@@ -797,7 +1211,9 @@ class EditorApp(QMainWindow):
         full_path = os.path.join(self.project_dir, file_name)
         with open(full_path, 'w') as file:
             file.write("# New Python file\n")
+
         self.add_new_tab(full_path)  # Yeni dosya ile bir sekme aç
+        self.populate_workplace(self.project_dir)  # "Workplace" görünümünü güncelle
         dialog.close()
 
     def add_new_tab(self, file_path, initial_content=""):
@@ -916,14 +1332,6 @@ class EditorApp(QMainWindow):
 
         # Menüde göstermek için listeyi güncelle
         self.update_recent_projects_menu()
-
-    def save_recent_projects(self):
-        """Recent Projects listesini JSON dosyasına kaydeder."""
-        try:
-            with open(self.recent_projects_path, 'w') as file:
-                json.dump(self.recent_projects_list, file)
-        except Exception as e:
-            print(f"Error saving recent projects: {e}")
 
     def open_file(self):
         """Dosya açma işlemi."""

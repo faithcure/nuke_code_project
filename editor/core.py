@@ -1,7 +1,7 @@
 from PySide2.QtCore import Qt, QRegExp, QSize
 from PySide2.QtGui import QFont, QColor, QSyntaxHighlighter, QTextCharFormat
 from PySide2.QtWidgets import *
-
+import os
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
@@ -106,3 +106,5 @@ class OutputCatcher:
 
     def flush(self):
         pass  # Gerekirse bir flush metodu eklenebilir, fakat burada gerek yok
+
+
