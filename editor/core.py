@@ -108,3 +108,8 @@ class OutputCatcher:
         pass  # Gerekirse bir flush metodu eklenebilir, fakat burada gerek yok
 
 
+class PathFromOS:
+    def __init__(self):
+        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Bir üst dizine çıkıyoruz
+        self.icons_path = os.path.join(self.project_root, 'ui', 'icons')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
+        self.json_path = os.path.join(self.project_root, 'assets')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol

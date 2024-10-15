@@ -5,6 +5,7 @@ import sys
 import os
 import re
 import webbrowser
+import importlib
 from functools import partial
 from PySide2.QtCore import QStringListModel
 from PySide2.QtGui import  QTextCharFormat, QTextCursor, QGuiApplication
@@ -15,14 +16,18 @@ from editor.core import PythonHighlighter, OutputCatcher
 from PySide2.QtCore import  QPropertyAnimation, QEasingCurve, Qt, QSize, QRect
 from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QGraphicsDropShadowEffect, QFrame
 from PySide2.QtGui import  QIcon, QColor, QPixmap, QPainter, QPainterPath, QBrush
+import editor.core
+importlib.reload(editor.core)
+from editor.core import PathFromOS
+from PySide2.QtGui import QIcon, QKeySequence
 
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
         # Proje kök dizinini bulmak (relative path)
-        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Bir üst dizine çıkıyoruz
-        self.icons_path = os.path.join(self.project_root, 'ui', 'icons')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
-        self.json_path = os.path.join(self.project_root, 'assets')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
+        # self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Bir üst dizine çıkıyoruz
+        # PathFromOS().icons_path = os.path.join(self.project_root, 'ui', 'icons')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
+        # self.json_path = os.path.join(self.project_root, 'assets')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
 
         # Window başlık değişkeni
         self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
@@ -124,19 +129,19 @@ class EditorApp(QMainWindow):
 
 
         # 1. RUN Butonu (Kod çalıştırmak için)
-        run_action = QAction(QIcon(os.path.join(self.icons_path, 'play.png')), '', self)  # İkon ile boş bir buton
+        run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.png')), '', self)  # İkon ile boş bir buton
         run_action.setToolTip("Run Current Code")  # Butona tooltip ekliyoruz
         run_action.triggered.connect(self.run_code)  # Fonksiyon bağlama
         toolbar.addAction(run_action)  # Butonu toolbara ekle
 
         # 2. SAVE Butonu (Kod kaydetmek için)
-        save_action = QAction(QIcon(os.path.join(self.icons_path, 'save.png')), '', self)  # İkon ile boş bir buton
+        save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.png')), '', self)  # İkon ile boş bir buton
         save_action.setToolTip("Save Current File")  # Tooltip ekliyoruz
         save_action.triggered.connect(self.save_file)  # Fonksiyon bağlama
         toolbar.addAction(save_action)  # Butonu toolbara ekle
 
         # 3. ARAMA Butonu (Kod içinde arama yapmak için)
-        search_action = QAction(QIcon(os.path.join(self.icons_path, 'search.png')), '', self)  # İkon ile boş bir buton
+        search_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.png')), '', self)  # İkon ile boş bir buton
         search_action.setToolTip("Search in Code")  # Tooltip ekliyoruz
         search_action.triggered.connect(self.show_search_dialog)  # Fonksiyon bağlama
         toolbar.addAction(search_action)  # Butonu toolbara ekle
@@ -147,13 +152,13 @@ class EditorApp(QMainWindow):
         toolbar.addWidget(spacer)
 
         # 4. CLEAR Butonu (Output panelini temizlemek için)
-        clear_action = QAction(QIcon(os.path.join(self.icons_path, 'clear.png')), '', self)  # İkon ile boş bir buton
+        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.png')), '', self)  # İkon ile boş bir buton
         clear_action.setToolTip("Clear Output")  # Tooltip ekliyoruz
         clear_action.triggered.connect(self.clear_output)  # Fonksiyon bağlama
         toolbar.addAction(clear_action)  # Butonu toolbara ekle
 
         # 5. SETTINGS Butonu (Ayarlar menüsüne erişim)
-        settings_action = QAction(QIcon(os.path.join(self.icons_path, 'settings.png')), '', self)  # İkon ile boş bir buton
+        settings_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'settings.png')), '', self)  # İkon ile boş bir buton
         settings_action.setToolTip("Settings")  # Tooltip ekliyoruz
         settings_action.triggered.connect(self.show_settings_dialog)  # Fonksiyon bağlama
         toolbar.addAction(settings_action)  # Butonu toolbara ekle
@@ -287,21 +292,31 @@ class EditorApp(QMainWindow):
                 method_item.setText(1, "Method")  # "Method" olarak tipini ayarla
 
     def create_menu(self):
-        """Menü çubuğunu oluşturur."""
+        """Genişletilmiş ve yeniden düzenlenmiş menü çubuğunu oluşturur."""
         menubar = self.menuBar()
+        menubar.setStyleSheet("QMenuBar { padding: 4px 4px; font-size: 8pt; }")  # Eski boyutlara geri döndürüldü
 
         # 1. File Menüsü
         file_menu = menubar.addMenu('File')
-        # Recent Projects menüsünü tanımla ve File menüsüne ekle
+        self.new_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'new_project.png')),
+                                          'New Project', self)
+        self.new_project_action.setShortcut(QKeySequence("Ctrl+N"))
+        open_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'open_project.png')), 'Open Project',
+                                      self)
+        new_file_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'new_file.png')), 'New File', self)
+        new_file_action.setShortcut(QKeySequence("Ctrl+Shift+N"))
+        open_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'open.png')), 'Open File', self)
+        open_action.setShortcut(QKeySequence("Ctrl+O"))
+        save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.png')), 'Save', self)
+        save_action.setShortcut(QKeySequence("Ctrl+S"))
+        save_as_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save_as.png')), 'Save As', self)
+        exit_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'exit.png')), 'Exit', self)
+        exit_action.setShortcut(QKeySequence("Ctrl+Q"))
 
-        self.new_project_action = QAction(QIcon('icons/new_project.png'), 'New Project', self)
-        open_project_action = QAction(QIcon('icons/new_project.png'), 'Open Project', self)
-        new_file_action = QAction(QIcon('icons/new_file.png'), 'New File', self)
-        open_action = QAction(QIcon('icons/open.png'), 'Open File', self)
-        save_action = QAction(QIcon('../ui/icons/save.png'), 'Save', self)
-        save_as_action = QAction(QIcon('icons/save_as.png'), 'Save As', self)
-        exit_action = QAction(QIcon('icons/exit.png'), 'Exit', self)
+        # Preferences menü öğesini ekle
+        preferences_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'settings.png')), 'Preferences', self)
 
+        # File menüsüne eklemeler
         file_menu.addAction(self.new_project_action)
         file_menu.addAction(open_project_action)
         file_menu.addSeparator()
@@ -311,74 +326,104 @@ class EditorApp(QMainWindow):
         file_menu.addAction(save_action)
         file_menu.addAction(save_as_action)
         file_menu.addSeparator()
+        file_menu.addAction(preferences_action)  # Preferences öğesi eklendi
+        file_menu.addSeparator()
         self.recent_projects = file_menu.addMenu('Recent Projects')
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
 
-        # "New Project" tıklandığında bir fonksiyon çalıştır
-        self.new_project_action.triggered.connect(self.new_project_dialog)
-
         # 2. Edit Menüsü
         edit_menu = menubar.addMenu('Edit')
-        find_action = QAction(QIcon('icons/find.png'), 'Search', self)
-        # Edit Menüsünde "Find" işlemini arama fonksiyonuna bağlama
-        find_action.triggered.connect(self.show_search_dialog)
-        replace_action = QAction(QIcon('icons/replace.png'), 'Replace All', self)
-        undo_action = QAction(QIcon('icons/undo.png'), 'Undo', self)
-        redo_action = QAction(QIcon('icons/redo.png'), 'Redo', self)
-        clear_action = QAction(QIcon('../ui/icons/clear.png'), 'Clear Output', self)
-        clear_action.triggered.connect(self.clear_output)
+        undo_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'undo.png')), 'Undo', self)
+        undo_action.setShortcut(QKeySequence("Ctrl+Z"))
+        redo_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'redo.png')), 'Redo', self)
+        redo_action.setShortcut(QKeySequence("Ctrl+Y"))
+        find_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.png')), 'Find', self)
+        find_action.setShortcut(QKeySequence("Ctrl+F"))
+        replace_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'replace.png')), 'Replace', self)
+        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.png')), 'Clear Output', self)
 
-        # Cut, Copy, Paste işlemleri
-        cut_action = QAction(QIcon('icons/cut.png'), 'Cut', self)
-        cut_action.setShortcut("Ctrl+X")
-        cut_action.triggered.connect(self.cut_text)
-        copy_action = QAction(QIcon('icons/copy.png'), 'Copy', self)
-        copy_action.setShortcut("Ctrl+C")
-        copy_action.triggered.connect(self.copy_text)
-        paste_action = QAction(QIcon('icons/paste.png'), 'Paste', self)
-        paste_action.setShortcut("Ctrl+V")
-        paste_action.triggered.connect(self.paste_text)
+        cut_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'cut.png')), 'Cut', self)
+        cut_action.setShortcut(QKeySequence("Ctrl+X"))
+        copy_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'copy.png')), 'Copy', self)
+        copy_action.setShortcut(QKeySequence("Ctrl+C"))
+        paste_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'paste.png')), 'Paste', self)
+        paste_action.setShortcut(QKeySequence("Ctrl+V"))
 
-        edit_menu.addAction(find_action)
-        edit_menu.addAction(replace_action)
+        # Edit menüsüne eklemeler
+        edit_menu.addAction(undo_action)
+        edit_menu.addAction(redo_action)
         edit_menu.addSeparator()
         edit_menu.addAction(cut_action)
         edit_menu.addAction(copy_action)
         edit_menu.addAction(paste_action)
         edit_menu.addSeparator()
-        edit_menu.addAction(undo_action)
-        edit_menu.addAction(redo_action)
+        edit_menu.addAction(find_action)
+        edit_menu.addAction(replace_action)
         edit_menu.addSeparator()
         edit_menu.addAction(clear_action)
 
-        # 3. Run Menüsü
-        run_menu = menubar.addMenu('Run')
-        rn = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'icons', 'play.png')
-        run_action = QAction(QIcon(rn), 'Run Current Code', self)
-        run_menu.addAction(run_action)
-
-        # 4. Help Menüsü
-        help_menu = menubar.addMenu('Help')
-        documentation_action = QAction(QIcon('icons/documentation.png'), 'Documentation', self)
-        licence_action = QAction(QIcon('icons/licence.png'), 'Licence', self)
-        about_action = QAction(QIcon('icons/about.png'), 'About', self)
-        help_menu.addAction(documentation_action)
-        help_menu.addAction(licence_action)
-        help_menu.addAction(about_action)
-
-        # 5. Workspace Menüsü - New Menu Addition
-        workspace_menu = menubar.addMenu('Workspace')
+        # 3. View Menüsü (Görünüm yönetim işlemleri)
+        view_menu = menubar.addMenu('View')
+        zoom_in_action = QAction('Zoom In', self)
+        zoom_in_action.setShortcut(QKeySequence("Ctrl++"))
+        zoom_out_action = QAction('Zoom Out', self)
+        zoom_out_action.setShortcut(QKeySequence("Ctrl+-"))
         reset_ui_action = QAction('Reset UI', self)
         set_default_ui_action = QAction('Set Default UI', self)
 
-        reset_ui_action.triggered.connect(self.reset_ui)
-        set_default_ui_action.triggered.connect(self.set_default_ui)
+        # View menüsüne eklemeler
+        view_menu.addAction(zoom_in_action)
+        view_menu.addAction(zoom_out_action)
+        view_menu.addSeparator()
+        view_menu.addAction(reset_ui_action)
+        view_menu.addAction(set_default_ui_action)
 
-        workspace_menu.addAction(reset_ui_action)
-        workspace_menu.addAction(set_default_ui_action)
+        # 4. Run Menüsü
+        run_menu = menubar.addMenu('Run')
+        run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.png')), 'Run Current Code', self)
+        run_action.setShortcut(QKeySequence("F5"))
+        stop_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'stop.png')), 'Stop Execution', self)
+        run_menu.addAction(run_action)
+        run_menu.addAction(stop_action)
 
-        # Bind menu items to methods for File and Edit menus
+        # 5. Tools Menüsü (GitHub İşlemleri ve PyCharm Bağlantısı ile)
+        tools_menu = menubar.addMenu('Tools')
+        live_connection_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'pycharm.png')), 'LCV PyCharm',
+                                         self)
+
+        # GitHub alt menüsü
+        github_menu = tools_menu.addMenu(QIcon(os.path.join(PathFromOS().icons_path, 'github.png')), 'GitHub')
+        git_commit_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'commit.png')), 'Commit', self)
+        git_push_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'push.png')), 'Push', self)
+        git_pull_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'pull.png')), 'Pull', self)
+        git_status_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'status.png')), 'Status', self)
+
+        # GitHub menüsüne eklemeler
+        github_menu.addAction(git_commit_action)
+        github_menu.addAction(git_push_action)
+        github_menu.addAction(git_pull_action)
+        github_menu.addAction(git_status_action)
+
+        tools_menu.addAction(live_connection_action)
+
+        # 6. Help Menüsü
+        help_menu = menubar.addMenu('Help')
+        documentation_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'documentation.png')),
+                                       'Documentation', self)
+        licence_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'licence.png')), 'Licence', self)
+        about_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'about.png')), 'About', self)
+        update_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'update.png')), 'Update', self)
+
+        # Help menüsüne eklemeler
+        help_menu.addAction(documentation_action)
+        help_menu.addAction(licence_action)
+        help_menu.addAction(about_action)
+        help_menu.addSeparator()  # Update üstüne ayraç eklendi
+        help_menu.addAction(update_action)
+
+        # İşlevleri Fonksiyonlara Bağlama
+        self.new_project_action.triggered.connect(self.new_project_dialog)
         self.new_project_action.triggered.connect(self.new_project)
         open_project_action.triggered.connect(self.open_project)
         new_file_action.triggered.connect(self.create_new_file_dialog)
@@ -386,12 +431,34 @@ class EditorApp(QMainWindow):
         save_action.triggered.connect(self.save_file)
         save_as_action.triggered.connect(self.save_file_as)
         exit_action.triggered.connect(self.file_exit)
+        find_action.triggered.connect(self.show_search_dialog)
         replace_action.triggered.connect(self.trigger_replace_in_active_editor)
+        cut_action.triggered.connect(self.cut_text)
+        copy_action.triggered.connect(self.copy_text)
+        paste_action.triggered.connect(self.paste_text)
+        clear_action.triggered.connect(self.clear_output)
+        run_action.triggered.connect(self.run_code)
+        stop_action.triggered.connect(self.stop_code)
+        reset_ui_action.triggered.connect(self.reset_ui)
+        set_default_ui_action.triggered.connect(self.set_default_ui)
+        preferences_action.triggered.connect(self.open_settings)  # Settings işlevi Preferences altında
+
+    def stop_code(self):
+        # Kodun çalışmasını durdurmak için işlemleri buraya yazın
+        print("Execution stopped.")
+
+    def open_settings(self):
+        # Ayarlar penceresi açılacaksa buraya kod ekleyin
+        print("Settings opened.")
+
+    def switch_theme(self):
+        # Ayarlar penceresi açılacaksa buraya kod ekleyin
+        print("Settings opened.")
 
     def new_project_dialog(self):
         self.allowed_pattern = r'^[a-zA-Z0-9_ ]+$'
         """Yeni proje oluşturmak için diyalog kutusu."""
-        bg_image_path = os.path.join(self.project_root, 'ui', 'icons', 'nuke_logo_bg_01.png')
+        bg_image_path = os.path.join(PathFromOS().project_root, 'ui', 'icons', 'nuke_logo_bg_01.png')
         dialog = QDialog(self)
         dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         dialog.setAttribute(Qt.WA_TranslucentBackground)
@@ -1029,10 +1096,10 @@ class EditorApp(QMainWindow):
 
     def load_suggestions(self):
         # suggestions.json'dan önerileri yükler
-        with open(self.json_path + "/suggestions.json", "r") as file:
+        with open(PathFromOS().json_path + "/suggestions.json", "r") as file:
             data = json.load(file)
         return data.get("suggestions", [])
-        print (self.json_path + "/suggestions.json")
+        print (PathFromOS().json_path + "/suggestions.json")
 
     def create_new_file_dialog(self):
         dialog = QDialog(self)
@@ -1072,7 +1139,7 @@ class EditorApp(QMainWindow):
 
         # Python logosu (Kenarlık olmadan, saydamlık ile)
         icon_label = QLabel()
-        python_icon_path = os.path.join(self.icons_path, "python_logo.png")
+        python_icon_path = os.path.join(PathFromOS().icons_path, "python_logo.png")
         opacity_effect = QGraphicsOpacityEffect()
         opacity_effect.setOpacity(0.5)
         python_icon = QPixmap(python_icon_path).scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
@@ -1147,7 +1214,7 @@ class EditorApp(QMainWindow):
 
         # Onay butonu (beyaz renkte, basılıyken gri)
         create_button = QPushButton()
-        confirm_icon_path = os.path.join(self.icons_path, "confirm_icon.png")
+        confirm_icon_path = os.path.join(PathFromOS().icons_path, "confirm_icon.png")
         create_button.setIcon(QIcon(confirm_icon_path))
         create_button.setFixedSize(30, 30)
         create_button.setStyleSheet("""
