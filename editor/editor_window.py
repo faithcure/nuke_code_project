@@ -58,6 +58,7 @@ class EditorApp(QMainWindow):
 
         # Sekmeli düzenleyici (Tab Widget) oluşturma
         self.tab_widget = QTabWidget()
+
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(self.close_tab)
         self.tab_widget.currentChanged.connect(self.ensure_tab)

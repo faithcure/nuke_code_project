@@ -50,7 +50,7 @@ class PythonHighlighter(QSyntaxHighlighter):
         keywords = [
             "class", "def", "if", "else", "elif", "while", "for", "in", "try", "except", "finally",
             "return", "yield", "break", "continue", "pass", "import", "from", "as", "with", "raise",
-            "assert", "async", "await"
+            "assert", "async", "await", "self.", "self"
         ]
         for word in keywords:
             pattern = QRegExp(f"\\b{word}\\b")
