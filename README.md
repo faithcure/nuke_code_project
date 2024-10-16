@@ -1,26 +1,37 @@
-# Nuke Python IDE
+# Nuke Python IDE (Under Development 🚧)
 
-A Python IDE built specifically for the Nuke environment, using PySide2 to create a robust and user-friendly code editor for developing scripts and plugins in Nuke.
+A specialized Python IDE tailored for the **Nuke** environment, enabling VFX professionals to create, edit, and test scripts seamlessly within Nuke without needing external tools. Built with **PySide2**, this IDE offers an integrated workspace, helping artists and developers streamline their workflow in visual effects and technical direction.
+
+---
 
 ## Table of Contents
-- [Project Overview](#project-overview)
+- [Overview](#overview)
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Compatibility](#compatibility)
 - [License](#license)
 
-## Project Overview
-Nuke Python IDE is designed to enhance productivity by providing an integrated code editor that works seamlessly within the Nuke environment. This editor allows for code creation, editing, and testing without the need to switch between applications, making it an ideal tool for VFX professionals and technical directors.
+---
+
+## Overview
+**Nuke Python IDE** is in its early stages of development, aiming to become a comprehensive solution for coding directly within Nuke. Designed to support both VFX artists and technical directors, this IDE bridges the gap between coding and production, providing an intuitive, integrated editor for Python scripting in Nuke. Ideal for developing tools, scripts, and plugins directly where they are needed.
 
 ## Features
-- **Nuke and Standalone Compatibility**: Run the editor in both the Nuke environment and standalone mode (e.g., PyCharm).
-- **Code Highlighting**: Syntax highlighting for Python and Nuke-specific code to improve readability.
-- **Dynamic Import Paths**: Automatically configures paths to find Nuke scripts and plugins.
-- **Error Handling**: Simple error messages for user-friendly debugging.
+- **Nuke Environment Integration**: Seamless integration with Nuke, letting users create and test scripts directly.
+- **Standalone Mode**: Operate in standalone environments like **PyCharm** for advanced debugging and development.
+- **Syntax Highlighting**: Enhanced readability with syntax highlighting for Python and Nuke-specific modules.
+- **GitHub Integration**: Built-in options for `commit`, `push`, and `pull`, enabling smooth version control directly from the IDE.
+- **Error Management**: Instant error messages and easy-to-read debugging tools.
+- **Customizable Workspace**: Reconfigurable panels and settings that adapt to user preferences.
+- **Dynamic Import Paths**: Auto-configures paths for easier Nuke plugin and script access.
+- **Resizable Icons and Enhanced Menus**: User-friendly and visually appealing, with adaptable icons and menus for better readability and interaction.
 
 ## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/nuke-python-ide.git
-   cd nuke-python-ide
+### Step 1: Clone the Repository
+Start by cloning this repository to your local environment.
+
+```bash
+git clone https://github.com/yourusername/nuke-python-ide.git
+cd nuke-python-ide
+pip install PySide2
