@@ -310,66 +310,69 @@ class EditorApp(QMainWindow):
         current_editor.setExtraSelections(extra_selections)
 
     def populate_outliner_with_functions(self):
-        """OUTLINER'a sınıf ve fonksiyonları ekle, nuke.py ve nukescripts.py başlıklarını hariç tut."""
-
-        # assets klasörüne bir önceki dizine geçerek ulaşmak
+        """OUTLINER'a sınıf ve fonksiyonları ekler, nuke.py ve nukescripts.py başlıklarını hariç tutar."""
+        # Sınıf ve fonksiyon bilgilerini yüklemek için dosya yollarını belirtiyoruz
         nuke_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'nuke.py')
         nukescripts_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'nukescripts.py')
 
-        # Nuke dosyalarındaki sınıf ve fonksiyonları alalım:
+        # Nuke dosyalarındaki sınıf ve fonksiyonları alıyoruz
         nuke_classes = self.list_classes_from_file(nuke_file_path)
         nukescripts_classes = self.list_classes_from_file(nukescripts_file_path)
 
-        # nuke.py ve nukescripts.py başlıklarını göstermeden, sadece sınıf ve metodları ekleyelim
-        # Nuke.py içindeki sınıf ve fonksiyonları doğrudan ekleyelim
-        self.add_classes_and_functions_to_tree(nuke_classes, self.outliner_list)
+        # Nuke.py ve nukescripts.py başlıkları olmadan sadece sınıf ve metodları ekliyoruz
+        # Ana dosya adıyla kök öğeler ekleyerek dosya yapısını oluşturuyoruz
+        self.add_classes_and_functions_to_tree(nuke_classes, "nuke.py")
+        self.add_classes_and_functions_to_tree(nukescripts_classes, "nukescripts.py")
 
-        # Nukescripts.py içindeki sınıf ve fonksiyonları doğrudan ekleyelim
-        self.add_classes_and_functions_to_tree(nukescripts_classes, self.outliner_list)
-
-        # Nuke.py dosyasını OUTLINER'a ekle:
-        nuke_root_item = QTreeWidgetItem(self.outliner_list)
-        nuke_root_item.setText(0, "nuke.py")
-        self.add_classes_and_functions_to_tree(nuke_classes, nuke_root_item)
-
-        # Nukescripts.py dosyasını OUTLINER'a ekle:
-        nukescripts_root_item = QTreeWidgetItem(self.outliner_list)
-        nukescripts_root_item.setText(0, "nukescripts.py")
-        self.add_classes_and_functions_to_tree(nukescripts_classes, nukescripts_root_item)
 
     def list_classes_from_file(self, file_path):
-        """Verilen dosyadaki sınıfları ve fonksiyonları bul ve döndür."""
-        full_path = os.path.abspath(file_path)
-
-        if not os.path.exists(full_path):
-            print(f"Error: {full_path} dosyası bulunamadı!")
+        """Verilen dosyadaki sınıfları ve metotları bulur, özel metotları filtreler."""
+        if not os.path.exists(file_path):
+            print(f"Error: {file_path} dosyası bulunamadı!")
             return []
 
-        with open(full_path, 'r') as file:
+        # Dosya içeriğini okuyor ve AST'ye dönüştürüyoruz
+        with open(file_path, 'r') as file:
             file_content = file.read()
-
-        tree = ast.parse(file_content)  # Python kodunu AST'ye dönüştür
+        tree = ast.parse(file_content)
         classes = []
 
+        # AST üzerinde gezinerek sınıf ve metodları buluyoruz
         for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):  # Eğer sınıf tanımıysa
-                class_name = node.name  # Sınıfın adı
-                methods = [n.name for n in node.body if isinstance(n, ast.FunctionDef)]  # Sınıfın metodları
-                classes.append((class_name, methods))  # Sınıf ve metodları listeye ekle
+            if isinstance(node, ast.ClassDef):
+                class_name = node.name
+                # Sınıf içinde, __init__ gibi özel metodları filtreliyoruz
+                methods = [n.name for n in node.body if isinstance(n, ast.FunctionDef) and not n.name.startswith('__')]
+                classes.append((class_name, methods))
 
-        return classes  # Sınıf ve metod listesini döndür
+        return classes
 
-    def add_classes_and_functions_to_tree(self, classes, root_item):
-        """Sınıf ve fonksiyonları ağaç yapısına ekler."""
+    def add_classes_and_functions_to_tree(self, classes, file_name):
+        """Sınıf ve fonksiyonları Outliner'a ekler, dosya başlığını üst öğe olarak gösterir."""
+        # Dosya adı için bir kök öğe oluşturuyoruz
+        root_item = QTreeWidgetItem(self.outliner_list)
+        root_item.setText(0, file_name)
+
+        # Dosya simgesi atama
+        root_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'R_logo.png')))  # R simgesi (Referans/Modül)
+
+        # Her sınıfı ve metodunu Outliner'a ekliyoruz
         for class_name, methods in classes:
             class_item = QTreeWidgetItem(root_item)
             class_item.setText(0, class_name)
-            class_item.setText(1, "Class")  # "Class" olarak tipini ayarla
 
+            # Sınıf simgesi atama
+            class_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'C_logo.svg')))  # C simgesi (Sınıf)
+
+            # Her sınıf için metodları ekliyoruz
             for method in methods:
                 method_item = QTreeWidgetItem(class_item)
                 method_item.setText(0, method)
-                method_item.setText(1, "Method")  # "Method" olarak tipini ayarla
+
+                # Metod simgesi atama
+                method_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'M_logo.svg')))  # M simgesi (Metod)
+
+        self.outliner_list.expandItem(root_item)  # Ana dosya başlığını otomatik olarak genişlet
 
     def create_menu(self):
         """Genişletilmiş ve yeniden düzenlenmiş menü çubuğunu oluşturur."""
@@ -983,23 +986,38 @@ class EditorApp(QMainWindow):
         self.workplace_tree.expandAll()
 
     def add_items_to_tree(self, parent_item, directory):
-        """Dizindeki tüm dosya ve klasörleri tree'ye ekler."""
+        """Belirli uzantılara sahip dosyaları tree'ye ekler."""
+        # İzin verilen uzantılar
+        allowed_extensions = {'.py', '.txt', '.sh', '.cpp', '.png', '.jpg', '.jpeg'}
+
         for file_name in os.listdir(directory):
             file_path = os.path.join(directory, file_name)
-            item = QTreeWidgetItem(parent_item)
-            item.setText(0, file_name)
 
+            # Eğer bir klasörse, içine girip tekrar `add_items_to_tree` çağır
             if os.path.isdir(file_path):
-                self.add_items_to_tree(item, file_path)
+                folder_item = QTreeWidgetItem(parent_item)
+                folder_item.setText(0, file_name)
+                folder_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'folder_tree.svg')))
+                self.add_items_to_tree(folder_item, file_path)
             else:
-                # Eğer dosya .py uzantılıysa italic yapalım
-                if file_name.endswith(".py"):
-                    font = item.font(0)
-                    font.setItalic(True)
-                    item.setFont(0, font)
+                # Dosya uzantısını kontrol et ve sadece izin verilenleri ekle
+                _, extension = os.path.splitext(file_name)
+                if extension.lower() in allowed_extensions:
+                    file_item = QTreeWidgetItem(parent_item)
+                    file_item.setText(0, file_name)
+                    file_item.setData(0, Qt.UserRole, file_path)  # Sağ tık menüsü için yol bilgisi ekle
 
-            # Sağ tık menüsü için öğeye sağ tıklama sinyali bağlama
-            item.setData(0, Qt.UserRole, file_path)
+                    # Dosya tipine göre ikon ekle
+                    if extension.lower() == '.py':
+                        file_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'python_tab.svg')))
+                    elif extension.lower() == '.txt':
+                        file_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'text_icon.svg')))
+                    elif extension.lower() == '.sh':
+                        file_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'shell_icon.svg')))
+                    elif extension.lower() == '.cpp':
+                        file_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'cpp_icon.svg')))
+                    elif extension.lower() in {'.png', '.jpg', '.jpeg'}:
+                        file_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'image_icon.svg')))
 
     def on_workplace_item_double_clicked(self, item, column):
         """Workplace'deki bir dosya çift tıklanınca dosyayı aç."""
@@ -1622,69 +1640,117 @@ class EditorApp(QMainWindow):
         if reply == QMessageBox.Yes:
             QApplication.quit()
 
+    from PySide2.QtWidgets import QDockWidget, QLabel, QTreeWidget, QVBoxLayout, QHBoxLayout, QWidget
+    from PySide2.QtGui import QFont, QPixmap
+    from PySide2.QtCore import Qt
+
     def create_docks(self):
         """Sol tarafa dockable listeleri ekler."""
-        workplace_dock = QDockWidget("WORKPLACE", self)
+        # Workplace dock widget
+        self.workplace_dock = QDockWidget("", self)
+        expand_icon_path = os.path.join(PathFromOS().icons_path, 'expand_icon.svg')
+        collapse_icon_path = os.path.join(PathFromOS().icons_path, 'collapse_icon.svg')
+
         self.workplace_tree = QTreeWidget()
         self.workplace_tree.setHeaderHidden(True)
         self.workplace_tree.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.workplace_tree.customContextMenuRequested.connect(self.context_menu)  # Sağ tıklama menüsü ekleme
+        self.workplace_tree.customContextMenuRequested.connect(self.context_menu)
         self.workplace_tree.itemDoubleClicked.connect(self.on_workplace_item_double_clicked)
-        workplace_dock.setWidget(self.workplace_tree)
-        self.addDockWidget(Qt.LeftDockWidgetArea, workplace_dock)
+        self.workplace_dock.setWidget(self.workplace_tree)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.workplace_dock)
         self.workplace_tree.setAlternatingRowColors(True)
 
-        # OUTLINER
-        outliner_dock = QDockWidget("OUTLINER", self)
+        # Başlık oluşturma
+        self.create_dock_title("WORKSPACE", self.workplace_dock, expand_icon_path, collapse_icon_path)
 
-        # OUTLINER içeriği için bir widget ve layout oluşturuyoruz
-        outliner_widget = QWidget()  # OUTLINER'ın ana widget'ı
-        outliner_layout = QVBoxLayout(outliner_widget)  # OUTLINER widget'ına dikey layout ekliyoruz
+        # OUTLINER ve HEADER widget'larını oluşturma
+        self.create_outliner_dock(expand_icon_path, collapse_icon_path)
+        self.create_header_dock(expand_icon_path, collapse_icon_path)
 
-        # QTreeWidget (OUTLINER) ekliyoruz
-        self.outliner_list = QTreeWidget()  # OUTLINER QTreeWidget'ini oluştur
+    def create_dock_title(self, title, dock_widget, expand_icon_path, collapse_icon_path):
+        """Dock widget başlığını özelleştirme ve collapse/expand işlevi ekleme."""
+        title_widget = QWidget()
+        title_layout = QHBoxLayout()
+        title_layout.setContentsMargins(5, 5, 5, 5)
+
+        # İkon ve toggle işlemi için QLabel
+        icon_label = QLabel()
+        icon_label.setPixmap(QPixmap(expand_icon_path).scaled(25, 25, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        icon_label.mousePressEvent = lambda event: self.toggle_dock_widget(dock_widget, icon_label, expand_icon_path,
+                                                                           collapse_icon_path)
+
+        # Başlık metni
+        title_label = QLabel(title)
+        title_label.setAlignment(Qt.AlignVCenter)
+        font = QFont("Arial", 10, QFont.Bold)
+        title_label.setFont(font)
+
+        # Layout ekleme
+        title_layout.addWidget(icon_label)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        title_widget.setLayout(title_layout)
+
+        dock_widget.setTitleBarWidget(title_widget)
+
+    def toggle_dock_widget(self, dock_widget, icon_label, expand_icon_path, collapse_icon_path):
+        """Dock widget'ı collapse/expand yapma fonksiyonu."""
+        is_collapsed = dock_widget.maximumHeight() == 30
+        if is_collapsed:
+            dock_widget.setMinimumHeight(200)
+            dock_widget.setMaximumHeight(16777215)
+            icon_label.setPixmap(
+                QPixmap(collapse_icon_path).scaled(25, 25, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        else:
+            dock_widget.setMinimumHeight(30)
+            dock_widget.setMaximumHeight(30)
+            icon_label.setPixmap(QPixmap(expand_icon_path).scaled(25, 25, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def create_outliner_dock(self, expand_icon_path, collapse_icon_path):
+        """OUTLINER dock widget'ını oluşturur."""
+        self.outliner_dock = QDockWidget("OUTLINER", self)
+        outliner_widget = QWidget()
+        outliner_layout = QVBoxLayout(outliner_widget)
+
+        # OUTLINER QTreeWidget tanımla ve sadece isim sütunu göster
+        self.outliner_list = QTreeWidget()
         self.outliner_list.setAlternatingRowColors(True)
-        self.outliner_list.setHeaderLabels(["Class/Function", "Type"])  # OUTLINER başlıkları
-        outliner_layout.addWidget(self.outliner_list)  # OUTLINER'ı layout'a ekliyoruz
+        self.outliner_list.setHeaderLabels(["Name"])  # Sadece "Name" sütunu
 
-        # QLineEdit (Arama Çubuğu) ekliyoruz
-        self.search_bar = QLineEdit()  # Arama çubuğunu oluştur
-        self.search_bar.setPlaceholderText("Search...")  # Placeholder text
-        outliner_layout.addWidget(self.search_bar)  # Arama çubuğunu layout'a ekliyoruz
+        # Layout'a ekle
+        outliner_layout.addWidget(self.outliner_list)
 
-        # QLineEdit üzerindeki metin değiştiğinde filter_outliner fonksiyonunu çağırıyoruz
+        # Arama çubuğu ekle
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search...")
+        outliner_layout.addWidget(self.search_bar)
         self.search_bar.textChanged.connect(self.filter_outliner)
 
-        # QCompleter tanımlıyoruz
-        self.completer = QCompleter(self)  # QCompleter'i oluştur
-        self.search_bar.setCompleter(self.completer)  # Arama çubuğu ile ilişkilendiriyoruz
+        self.completer = QCompleter(self)
+        self.search_bar.setCompleter(self.completer)
 
-        # Layout'u OUTLINER dock widget'ına yerleştiriyoruz
-        outliner_dock.setWidget(outliner_widget)
-        self.addDockWidget(Qt.LeftDockWidgetArea, outliner_dock)
-
-        # OUTLINER'a sınıf ve fonksiyonları ekleyelim
+        # OUTLINER widget'ını Outliner dock'a bağla ve başlığı ayarla
+        self.outliner_dock.setWidget(outliner_widget)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.outliner_dock)
         self.populate_outliner_with_functions()
-
-        # OUTLINER tamamlandıktan sonra QCompleter'i güncelle
         self.update_completer_from_outliner()
 
-        # OUTLINER'a sınıf ve fonksiyonları ekleyelim
-        self.populate_outliner_with_functions()
         self.outliner_list.itemDoubleClicked.connect(self.insert_into_editor)
-        # OUTLINER sağ tıklama menüsü
         self.outliner_list.setContextMenuPolicy(Qt.CustomContextMenu)
         self.outliner_list.customContextMenuRequested.connect(self.context_menu_outliner)
 
-        # HEADER Listesi için QTreeWidget kullanıyoruz
-        header_dock = QDockWidget("HEADER", self)
+    def create_header_dock(self, expand_icon_path, collapse_icon_path):
+        """HEADER dock widget'ını oluşturur."""
+        self.header_dock = QDockWidget("HEADER", self)
         self.header_tree = QTreeWidget()
-        self.header_tree.setHeaderLabels(["Element", "Type"])  # İki sütun ekliyoruz
-        header_dock.setWidget(self.header_tree)
-        self.addDockWidget(Qt.LeftDockWidgetArea, header_dock)
+        self.header_tree.setHeaderLabels(["Element", "Type"])
+        self.header_dock.setWidget(self.header_tree)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.header_dock)
 
-        # Öğeye tıklama sinyalini bağla
-        self.header_tree.itemClicked.connect(self.go_to_line_from_header)  # Bu satırı burada ekliyoruz
+        self.header_tree.itemClicked.connect(self.go_to_line_from_header)
+
+        # HEADER başlığı için özel widget
+        self.create_dock_title("HEADER", self.header_dock, expand_icon_path, collapse_icon_path)
 
     def update_header_tree(self):
         """QPlainTextEdit içindeki metni analiz edip sınıf ve fonksiyonları HEADER'a ekler."""
