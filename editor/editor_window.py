@@ -58,9 +58,9 @@ class EditorApp(QMainWindow):
 
         # Sekmeli düzenleyici (Tab Widget) oluşturma
         self.tab_widget = QTabWidget()
-
         self.python_icon = QIcon(os.path.join(PathFromOS().icons_path, 'python_tab.svg'))
         self.tab_widget.setIconSize(QSize(15, 15))
+
         # Kapatma butonu ve ikon ayarları
         self.close_icon = os.path.join(PathFromOS().icons_path, 'new_file.png')  # Doğru yolda olduğundan emin olun
         self.tab_widget.setStyleSheet(f"""
