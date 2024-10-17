@@ -10,8 +10,8 @@ from functools import partial
 from PySide2.QtCore import QStringListModel
 from PySide2.QtGui import  QTextCharFormat, QTextCursor, QGuiApplication
 from PySide2.QtGui import  QFont
-from PySide2.QtWidgets import *
 from editor.code_editor import CodeEditor
+from PySide2.QtWidgets import *
 from editor.core import PythonHighlighter, OutputCatcher
 from PySide2.QtCore import  QPropertyAnimation, QEasingCurve, Qt, QSize, QRect
 from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QGraphicsDropShadowEffect, QFrame
@@ -59,6 +59,40 @@ class EditorApp(QMainWindow):
         # Sekmeli düzenleyici (Tab Widget) oluşturma
         self.tab_widget = QTabWidget()
 
+        self.python_icon = QIcon(os.path.join(PathFromOS().icons_path, 'python_tab.svg'))
+        self.tab_widget.setIconSize(QSize(15, 15))
+        # Kapatma butonu ve ikon ayarları
+        self.close_icon = os.path.join(PathFromOS().icons_path, 'new_file.png')  # Doğru yolda olduğundan emin olun
+        self.tab_widget.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: none;
+            }}
+
+            QTabBar::tab {{
+                background-color: #2B2B2B;
+                color: #B0B0B0;
+                padding: 5px 10px;
+                border: none;
+                font-size: 10pt;
+                padding: 5px 10px 5px 10px;  /* Üst, sağ, alt ve sol padding */
+            }}
+
+            QTabBar::tab:selected {{
+                background-color: #3C3C3C;
+                color: #FFFFFF;
+                border-bottom: 2px solid #3C88E3;
+            }}
+            
+            QTabBar::tab:!selected {{
+                background-color: #323232;
+            }}
+            QTabBar::tab:hover {{
+                background-color: #3C3C3C;
+                color: #E0E0E0;
+            }}
+            
+        """)
+
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(self.close_tab)
         self.tab_widget.currentChanged.connect(self.ensure_tab)
@@ -80,6 +114,45 @@ class EditorApp(QMainWindow):
 
         # Başlangıçta boş bir "untitled.py" sekmesi açılıyor
         self.add_new_tab("untitled.py", initial_content="import nuke\nimport nukescripts")
+
+        def add_new_tab(self, file_path, initial_content=""):
+            """Yeni bir sekme oluşturur ve dosyayı yükler."""
+            editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
+            editor.setFont(QFont("Consolas", 12))
+
+            # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
+            self.highlighter = PythonHighlighter(editor.document())
+
+            # Düzenleyicideki değişiklikler olduğunda HEADER panelini güncelle
+            editor.textChanged.connect(self.update_header_tree)
+
+            # Dosya içeriği eğer mevcutsa yüklüyoruz, yoksa varsayılan içerik ile açıyoruz
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as file:
+                    content = file.read()
+                    editor.setPlainText(content)
+            else:
+                editor.setPlainText(initial_content)
+
+            # QDockWidget içinde düzenleyiciyi oluştur
+            dock = QDockWidget(os.path.basename(file_path), self)
+            dock.setWidget(editor)
+            dock.setFloating(True)  # Yüzer pencereli olarak ayarla
+            dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her yöne taşınabilir
+
+            # Ana pencereye dock widget'ı ekleyin
+            self.addDockWidget(Qt.LeftDockWidgetArea, dock)
+
+            # dock_widgets sözlüğüne yeni dock widget'ı ekleyin
+            self.dock_widgets[file_path] = dock
+
+            # Tab başlığını "*" ile işaretleyin (eğer kaydedilmemişse)
+            editor.textChanged.connect(lambda: self.mark_as_modified(dock, file_path))
+
+        def mark_as_modified(self, dock, file_path):
+            """Dosya değişiklik yapıldığında başlıkta '*' gösterir."""
+            if dock.windowTitle()[-1] != '*':
+                dock.setWindowTitle(f"{os.path.basename(file_path)}*")
         # Program başlarken renkleri yükle
         self.load_colors_from_file()
         # Son açılan projeler bu listeye JSON olarak atanır
@@ -123,37 +196,43 @@ class EditorApp(QMainWindow):
 
     def create_toolbar(self):
         """Toolbar'ı oluşturur ve gerekli butonları ekler."""
+
         toolbar = self.addToolBar("Main Toolbar")
+        self.addToolBar(Qt.LeftToolBarArea, toolbar)  # Araç çubuğunu pencerenin sol tarafına yerleştir
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Yatay için genişler, dikey için değil
 
         # İkon boyutunu 60x60 piksel olarak ayarlıyoruz
-        toolbar.setIconSize(QSize(25, 25))
-
-
+        toolbar.setIconSize(QSize(30, 30))
+        toolbar.setStyleSheet("QToolBar { spacing: 3px; }")
+        # toolbar.setFixedHeight(40)
         # 1. RUN Butonu (Kod çalıştırmak için)
-        run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.png')), '', self)  # İkon ile boş bir buton
+        run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.svg')), '', self)  # İkon ile boş bir buton
         run_action.setToolTip("Run Current Code")  # Butona tooltip ekliyoruz
         run_action.triggered.connect(self.run_code)  # Fonksiyon bağlama
         toolbar.addAction(run_action)  # Butonu toolbara ekle
 
+
         # 2. SAVE Butonu (Kod kaydetmek için)
-        save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.png')), '', self)  # İkon ile boş bir buton
+        save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.svg')), '', self)  # İkon ile boş bir buton
         save_action.setToolTip("Save Current File")  # Tooltip ekliyoruz
         save_action.triggered.connect(self.save_file)  # Fonksiyon bağlama
         toolbar.addAction(save_action)  # Butonu toolbara ekle
 
         # 3. ARAMA Butonu (Kod içinde arama yapmak için)
-        search_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.png')), '', self)  # İkon ile boş bir buton
+        search_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.svg')), '', self)  # İkon ile boş bir buton
         search_action.setToolTip("Search in Code")  # Tooltip ekliyoruz
         search_action.triggered.connect(self.show_search_dialog)  # Fonksiyon bağlama
         toolbar.addAction(search_action)  # Butonu toolbara ekle
 
         # Boş widget ekleyerek butonları sağa veya alta iteceğiz (spacer)
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Yatay için genişler, dikey için değil
+
+
         toolbar.addWidget(spacer)
 
         # 4. CLEAR Butonu (Output panelini temizlemek için)
-        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.png')), '', self)  # İkon ile boş bir buton
+        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.svg')), '', self)  # İkon ile boş bir buton
         clear_action.setToolTip("Clear Output")  # Tooltip ekliyoruz
         clear_action.triggered.connect(self.clear_output)  # Fonksiyon bağlama
         toolbar.addAction(clear_action)  # Butonu toolbara ekle
@@ -308,7 +387,7 @@ class EditorApp(QMainWindow):
         new_file_action.setShortcut(QKeySequence("Ctrl+Shift+N"))
         open_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'open.png')), 'Open File', self)
         open_action.setShortcut(QKeySequence("Ctrl+O"))
-        save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.png')), 'Save', self)
+        save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.svg')), 'Save', self)
         save_action.setShortcut(QKeySequence("Ctrl+S"))
         save_as_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save_as.png')), 'Save As', self)
         exit_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'exit.png')), 'Exit', self)
@@ -339,10 +418,10 @@ class EditorApp(QMainWindow):
         undo_action.setShortcut(QKeySequence("Ctrl+Z"))
         redo_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'redo.png')), 'Redo', self)
         redo_action.setShortcut(QKeySequence("Ctrl+Y"))
-        find_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.png')), 'Find', self)
+        find_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.svg')), 'Find', self)
         find_action.setShortcut(QKeySequence("Ctrl+F"))
         replace_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'replace.png')), 'Replace', self)
-        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.png')), 'Clear Output', self)
+        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.svg')), 'Clear Output', self)
 
         cut_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'cut.png')), 'Cut', self)
         cut_action.setShortcut(QKeySequence("Ctrl+X"))
@@ -382,7 +461,7 @@ class EditorApp(QMainWindow):
 
         # 4. Run Menüsü
         run_menu = menubar.addMenu('Run')
-        run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.png')), 'Run Current Code', self)
+        run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.svg')), 'Run Current Code', self)
         run_action.setShortcut(QKeySequence("F5"))
         stop_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'stop.png')), 'Stop Execution', self)
         run_menu.addAction(run_action)
@@ -394,7 +473,7 @@ class EditorApp(QMainWindow):
                                          self)
 
         # GitHub alt menüsü
-        github_menu = tools_menu.addMenu(QIcon(os.path.join(PathFromOS().icons_path, 'github.png')), 'GitHub')
+        github_menu = tools_menu.addMenu(QIcon(os.path.join(PathFromOS().icons_path, 'github.svg')), 'GitHub')
         git_commit_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'commit.png')), 'Commit', self)
         git_push_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'push.png')), 'Push', self)
         git_pull_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'pull.png')), 'Pull', self)
@@ -1303,7 +1382,7 @@ class EditorApp(QMainWindow):
 
         editor.textChanged.connect(lambda: self.mark_as_modified(editor))
 
-        self.tab_widget.addTab(editor, os.path.basename(file_path))
+        self.tab_widget.addTab(editor, self.python_icon, os.path.basename(file_path))
         self.tab_widget.setCurrentWidget(editor)
 
     def mark_as_modified(self, editor):
