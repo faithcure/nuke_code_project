@@ -1,36 +1,33 @@
 import ast
+import importlib
 import json
-import shutil
-import sys
 import os
 import re
+import shutil
+import sys
 import webbrowser
-import importlib
 from functools import partial
 from PySide2.QtCore import QStringListModel
-from PySide2.QtGui import  QTextCharFormat, QTextCursor, QGuiApplication
-from PySide2.QtGui import  QFont
-from editor.code_editor import CodeEditor
+from PySide2.QtCore import Qt, QSize
+from PySide2.QtGui import QFont
+from PySide2.QtGui import QPixmap, QPainter, QPainterPath, QBrush
+from PySide2.QtGui import QTextCharFormat, QTextCursor, QGuiApplication
 from PySide2.QtWidgets import *
-from editor.core import PythonHighlighter, OutputCatcher
-from PySide2.QtCore import  QPropertyAnimation, QEasingCurve, Qt, QSize, QRect
-from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QGraphicsDropShadowEffect, QFrame
-from PySide2.QtGui import  QIcon, QColor, QPixmap, QPainter, QPainterPath, QBrush
+from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, \
+    QGraphicsDropShadowEffect, QFrame
 import editor.core
+from editor.code_editor import CodeEditor
+from editor.core import PythonHighlighter, OutputCatcher
 importlib.reload(editor.core)
 from editor.core import PathFromOS
 from PySide2.QtGui import QIcon, QKeySequence
-from PySide2.QtCore import QPropertyAnimation, QRect, QEasingCurve, QEvent, QTimer
+from PySide2.QtCore import QPropertyAnimation, QRect, QEasingCurve
 from PySide2.QtGui import QColor
-from PySide2.QtGui import QKeyEvent
+from editor.nlink import update_nuke_functions
 
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        # Proje kök dizinini bulmak (relative path)
-        # self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Bir üst dizine çıkıyoruz
-        # PathFromOS().icons_path = os.path.join(self.project_root, 'ui', 'icons')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
-        # self.json_path = os.path.join(self.project_root, 'assets')  # Proje kök dizininden 'ui/icons' klasörüne göreli yol
 
         # Window başlık değişkeni
         self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
@@ -165,6 +162,7 @@ class EditorApp(QMainWindow):
         # Program başlarken recent projects listesini yükleyelim
         self.load_recent_projects()
         self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
+        # Başlangıçta Nuke fonksiyonlarını yükle
 
     def run_code(self):
         """Aktif sekmedeki tüm kodu çalıştırır ve çıktıyı Output penceresinde gösterir."""
@@ -229,9 +227,14 @@ class EditorApp(QMainWindow):
         search_action.triggered.connect(self.show_search_dialog)  # Fonksiyon bağlama
         toolbar.addAction(search_action)  # Butonu toolbara ekle
 
+
+        # 6. Update internat things like nuke update
+        update_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'update.svg')), 'Update NLink', self)
+        update_action.setToolTip("Update Nuke Functions List (NLink!)")
+        update_action.triggered.connect(update_nuke_functions)  # Butona fonksiyonu bağlama
+        toolbar.addAction(update_action)
+
         # Boş widget ekleyerek butonları sağa veya alta iteceğiz (spacer)
-
-
         toolbar.addWidget(spacer)
 
         # 4. CLEAR Butonu (Output panelini temizlemek için)
@@ -248,6 +251,8 @@ class EditorApp(QMainWindow):
 
         # Toolbar yönü değiştiğinde spacer widget'inin genişlik/yükseklik politikasını değiştireceğiz
         toolbar.orientationChanged.connect(lambda orientation: self.update_toolbar_spacer(orientation, spacer))
+
+
 
     def clear_output(self):
         """Output panelini temizlemek için kullanılır."""
@@ -325,6 +330,33 @@ class EditorApp(QMainWindow):
         # nuke.py ve nukescripts.py başlıkları olmadan sınıf ve metodları doğrudan Outliner'a ekliyoruz
         self.add_classes_and_functions_to_tree(nuke_classes)
         self.add_classes_and_functions_to_tree(nukescripts_classes)
+
+    def add_nuke_functions_to_outliner(self, nuke_functions):
+        """Nuke fonksiyonlarını mevcut OUTLINER öğelerine dokunmadan ekler."""
+        if nuke_functions:
+            # "Nuke Functions" başlığını arayın, eğer yoksa ekleyin
+            parent_item = None
+            for i in range(self.outliner_list.topLevelItemCount()):
+                item = self.outliner_list.topLevelItem(i)
+                if item.text(0) == "Nuke Functions":
+                    parent_item = item
+                    break
+
+            if not parent_item:
+                # Eğer "Nuke Functions" başlığı yoksa, yeni bir başlık ekleyin
+                parent_item = QTreeWidgetItem(self.outliner_list)
+                parent_item.setText(0, "Nuke Functions")
+                parent_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'folder_tree.svg')))  # Klasör ikonu
+
+            # Mevcut OUTLINER'a fonksiyonları ekleyin
+            for func in nuke_functions:
+                func_item = QTreeWidgetItem(parent_item)
+                func_item.setText(0, func)  # Fonksiyon adı
+                func_item.setIcon(0, QIcon(
+                    os.path.join(PathFromOS().icons_path, 'M_red.svg')))  # Yanına M_red.svg ikonunu ekleyin
+
+            # Sadece "Nuke Functions" altındaki öğeleri genişletin
+            self.outliner_list.expandItem(parent_item)
 
     def add_classes_and_functions_to_tree(self, classes):
         """Sınıf ve fonksiyonları doğrudan Outliner'a ekler."""
@@ -942,13 +974,6 @@ class EditorApp(QMainWindow):
                 self.empty_project_win_title + os.path.basename(project_path))  # Pencere başlığını güncelle
         else:
             QMessageBox.warning(self, "Hata", f"Proje dizini {project_path} mevcut değil.")
-
-    from PySide2.QtWidgets import QGraphicsDropShadowEffect
-    from PySide2.QtGui import QColor
-
-    from PySide2.QtGui import QPixmap, QPainter, QPainterPath, QBrush
-    from PySide2.QtCore import Qt, QSize, QRect
-
 
     def browse_directory(self, input_field):
         """Proje dizini seçmek için bir dizin tarayıcı aç."""
@@ -1631,10 +1656,6 @@ class EditorApp(QMainWindow):
         if reply == QMessageBox.Yes:
             QApplication.quit()
 
-    from PySide2.QtWidgets import QDockWidget, QLabel, QTreeWidget, QVBoxLayout, QHBoxLayout, QWidget
-    from PySide2.QtGui import QFont, QPixmap
-    from PySide2.QtCore import Qt
-
     def create_docks(self):
         """Sol tarafa dockable listeleri ekler."""
         # Workplace dock widget
@@ -1765,6 +1786,10 @@ class EditorApp(QMainWindow):
 
         # Animasyon durumu kontrolü için bayrak
         self.search_bar_visible = False  # Çubuğun görünürlüğünü kontrol eden bayrak
+        # Nuke fonksiyonlarını JSON'dan yükle ve OUTLINER'a ekle
+        self.nuke_functions = load_nuke_functions()  # JSON'dan Nuke fonksiyonlarını yükle
+        if self.nuke_functions:
+            self.add_nuke_functions_to_outliner(self.nuke_functions)  # Eğer fonksiyonlar doluysa OUTLINER'a ekle
 
     def create_custom_dock_title(self, title, dock_widget, expand_icon_path, collapse_icon_path):
         """OUTLINER başlığını özelleştirir, simge ve arama ikonunu ekler."""
@@ -1774,8 +1799,11 @@ class EditorApp(QMainWindow):
 
         # Sol tarafa ikonu ekleyelim
         expand_icon_label = QLabel()
-        expand_icon_label.setPixmap(QPixmap(expand_icon_path).scaled(16, 16, Qt.KeepAspectRatio,
-                                                                     Qt.SmoothTransformation))
+        expand_icon_label.setPixmap(QPixmap(expand_icon_path).scaled(25, 25, Qt.KeepAspectRatio,
+                                                                     Qt.SmoothTransformation))  # İkonu 25x25 olarak büyüttük
+        expand_icon_label.mousePressEvent = lambda event: self.toggle_dock_widget(dock_widget, expand_icon_label,
+                                                                                  expand_icon_path, collapse_icon_path)
+        title_layout.addSpacing(5)  # İkonu sağa kaydırıyoruz
         title_layout.addWidget(expand_icon_label)
 
         # OUTLINER başlık yazısı
@@ -1783,7 +1811,6 @@ class EditorApp(QMainWindow):
         title_label.setStyleSheet("""
             QLabel {
                 color: white;
-                font-weight: bold;
                 font-size: 14px;
             }
         """)
@@ -1794,8 +1821,8 @@ class EditorApp(QMainWindow):
         # Sağ tarafa arama ikonunu ekleyelim
         search_icon_label = QLabel()
         search_icon_label.setPixmap(
-            QPixmap(os.path.join(PathFromOS().icons_path, "find.svg")).scaled(16, 16, Qt.KeepAspectRatio,
-                                                                                Qt.SmoothTransformation))
+            QPixmap(os.path.join(PathFromOS().icons_path, "find.svg")).scaled(20, 20, Qt.KeepAspectRatio,
+                                                                              Qt.SmoothTransformation))  # Arama simgesini de 20x20 olarak büyüttük
         search_icon_label.setStyleSheet("QLabel { padding: 5px; cursor: pointer; }")
         search_icon_label.mousePressEvent = self.toggle_search_bar  # İkona tıklandığında arama çubuğunu aç/kapa
         title_layout.addWidget(search_icon_label)

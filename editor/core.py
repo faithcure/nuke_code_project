@@ -1,7 +1,9 @@
+import os
+
 from PySide2.QtCore import Qt, QRegExp, QSize
 from PySide2.QtGui import QFont, QColor, QSyntaxHighlighter, QTextCharFormat
 from PySide2.QtWidgets import *
-import os
+
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
@@ -107,7 +109,6 @@ class OutputCatcher:
     def flush(self):
         pass  # Gerekirse bir flush metodu eklenebilir, fakat burada gerek yok
 
-
 class PathFromOS:
     def __init__(self):
         self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -115,3 +116,5 @@ class PathFromOS:
         self.json_path = os.path.join(self.project_root, 'assets')
         self.nuke_ref_path = os.path.join(self.project_root, 'assets', 'nuke.py')
         self.nukescripts_ref_path = os.path.join(self.project_root, 'assets', 'nukescripts.py')
+        self.assets_path = os.path.join(self.project_root, 'assets')  # Assets dizini
+

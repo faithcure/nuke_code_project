@@ -3,6 +3,7 @@ from PySide2.QtCore import Qt, QEvent, QStringListModel, QRect
 from PySide2.QtGui import QColor, QTextCharFormat, QPainter, QTextFormat, \
     QTextCursor
 from PySide2.QtWidgets import *
+
 from editor.core import LineNumberArea
 
 
