@@ -20,6 +20,9 @@ import editor.core
 importlib.reload(editor.core)
 from editor.core import PathFromOS
 from PySide2.QtGui import QIcon, QKeySequence
+from PySide2.QtCore import QPropertyAnimation, QRect, QEasingCurve, QEvent, QTimer
+from PySide2.QtGui import QColor
+from PySide2.QtGui import QKeyEvent
 
 class EditorApp(QMainWindow):
     def __init__(self):
@@ -310,20 +313,35 @@ class EditorApp(QMainWindow):
         current_editor.setExtraSelections(extra_selections)
 
     def populate_outliner_with_functions(self):
-        """OUTLINER'a sınıf ve fonksiyonları ekler, nuke.py ve nukescripts.py başlıklarını hariç tutar."""
-        # Sınıf ve fonksiyon bilgilerini yüklemek için dosya yollarını belirtiyoruz
-        nuke_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'nuke.py')
-        nukescripts_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'nukescripts.py')
+        """OUTLINER'a yalnızca sınıf ve fonksiyonları ekler, nuke.py ve nukescripts.py başlıklarını hariç tutar."""
+        # Dosya yollarını belirtiyoruz
+        nuke_file_path = PathFromOS().nuke_ref_path
+        nukescripts_file_path = PathFromOS().nukescripts_ref_path
 
         # Nuke dosyalarındaki sınıf ve fonksiyonları alıyoruz
         nuke_classes = self.list_classes_from_file(nuke_file_path)
         nukescripts_classes = self.list_classes_from_file(nukescripts_file_path)
 
-        # Nuke.py ve nukescripts.py başlıkları olmadan sadece sınıf ve metodları ekliyoruz
-        # Ana dosya adıyla kök öğeler ekleyerek dosya yapısını oluşturuyoruz
-        self.add_classes_and_functions_to_tree(nuke_classes, "nuke.py")
-        self.add_classes_and_functions_to_tree(nukescripts_classes, "nukescripts.py")
+        # nuke.py ve nukescripts.py başlıkları olmadan sınıf ve metodları doğrudan Outliner'a ekliyoruz
+        self.add_classes_and_functions_to_tree(nuke_classes)
+        self.add_classes_and_functions_to_tree(nukescripts_classes)
 
+    def add_classes_and_functions_to_tree(self, classes):
+        """Sınıf ve fonksiyonları doğrudan Outliner'a ekler."""
+        for class_name, methods in classes:
+            # Sınıfı Outliner'a ekliyoruz
+            class_item = QTreeWidgetItem(self.outliner_list)
+            class_item.setText(0, class_name)
+            class_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'C_logo.svg')))  # Sınıf ikonunu ayarlayın
+
+            # Her sınıfın metotlarını ekliyoruz
+            for method in methods:
+                method_item = QTreeWidgetItem(class_item)
+                method_item.setText(0, method)
+                method_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'M_logo.svg')))  # Metot ikonunu ayarlayın
+
+        # Outliner içindeki tüm öğeleri genişletiyoruz
+        self.outliner_list.expandAll()
 
     def list_classes_from_file(self, file_path):
         """Verilen dosyadaki sınıfları ve metotları bulur, özel metotları filtreler."""
@@ -346,33 +364,6 @@ class EditorApp(QMainWindow):
                 classes.append((class_name, methods))
 
         return classes
-
-    def add_classes_and_functions_to_tree(self, classes, file_name):
-        """Sınıf ve fonksiyonları Outliner'a ekler, dosya başlığını üst öğe olarak gösterir."""
-        # Dosya adı için bir kök öğe oluşturuyoruz
-        root_item = QTreeWidgetItem(self.outliner_list)
-        root_item.setText(0, file_name)
-
-        # Dosya simgesi atama
-        root_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'R_logo.png')))  # R simgesi (Referans/Modül)
-
-        # Her sınıfı ve metodunu Outliner'a ekliyoruz
-        for class_name, methods in classes:
-            class_item = QTreeWidgetItem(root_item)
-            class_item.setText(0, class_name)
-
-            # Sınıf simgesi atama
-            class_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'C_logo.svg')))  # C simgesi (Sınıf)
-
-            # Her sınıf için metodları ekliyoruz
-            for method in methods:
-                method_item = QTreeWidgetItem(class_item)
-                method_item.setText(0, method)
-
-                # Metod simgesi atama
-                method_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'M_logo.svg')))  # M simgesi (Metod)
-
-        self.outliner_list.expandItem(root_item)  # Ana dosya başlığını otomatik olarak genişlet
 
     def create_menu(self):
         """Genişletilmiş ve yeniden düzenlenmiş menü çubuğunu oluşturur."""
@@ -1707,37 +1698,147 @@ class EditorApp(QMainWindow):
             icon_label.setPixmap(QPixmap(expand_icon_path).scaled(25, 25, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def create_outliner_dock(self, expand_icon_path, collapse_icon_path):
-        """OUTLINER dock widget'ını oluşturur."""
-        self.outliner_dock = QDockWidget("OUTLINER", self)
+        """OUTLINER dock widget'ını oluşturur ve başlığı özelleştirir."""
+        self.outliner_dock = QDockWidget("", self)
         outliner_widget = QWidget()
         outliner_layout = QVBoxLayout(outliner_widget)
 
-        # OUTLINER QTreeWidget tanımla ve sadece isim sütunu göster
+        # OUTLINER QTreeWidget tanımla
         self.outliner_list = QTreeWidget()
-        self.outliner_list.setAlternatingRowColors(True)
-        self.outliner_list.setHeaderLabels(["Name"])  # Sadece "Name" sütunu
+        self.outliner_list.setHeaderHidden(True)  # Başlığı gizle
+        self.outliner_list.setAlternatingRowColors(False)
+        self.outliner_list.setStyleSheet("""
+            QTreeWidget {
+                background-color: #2B2B2B;
+                border: none;
+            }
+        """)
 
-        # Layout'a ekle
-        outliner_layout.addWidget(self.outliner_list)
+        # Arama çubuğu için bir widget ve layout oluştur
+        self.search_widget = QWidget()
+        search_layout = QHBoxLayout(self.search_widget)
+        search_layout.setContentsMargins(0, 0, 0, 0)
+        self.search_widget.setFixedHeight(25)  # Arama çubuğu yüksekliği
+        self.search_widget.setStyleSheet("""
+            QWidget {
+                background-color: rgba(60, 60, 60, 0.8); /* Yarı saydam arka plan */
+                border-radius: 8px;
+            }
+        """)
+        self.search_widget.setVisible(False)  # Başlangıçta gizli olacak
 
-        # Arama çubuğu ekle
+        # Arama çubuğunu ekleyelim
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search...")
-        outliner_layout.addWidget(self.search_bar)
+        self.search_bar.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(60, 60, 60, 0.8); /* Yarı saydam arka plan */
+                border: none;
+                color: #FFFFFF;
+                padding-left: 5px;
+                height: 20px;  /* QLineEdit yüksekliği */
+            }
+            QLineEdit::placeholder {
+                color: rgba(255, 255, 255, 0.5); /* Yarı saydam placeholder */
+            }
+        """)
         self.search_bar.textChanged.connect(self.filter_outliner)
+        search_layout.addWidget(self.search_bar)
 
-        self.completer = QCompleter(self)
-        self.search_bar.setCompleter(self.completer)
+        # OUTLINER widget'ını layout'a ekleyin
+        outliner_layout.addWidget(self.outliner_list)
+        outliner_layout.addWidget(self.search_widget)  # Arama çubuğu alta ekleniyor
 
-        # OUTLINER widget'ını Outliner dock'a bağla ve başlığı ayarla
+        # OUTLINER widget'ını Outliner dock'a bağla
         self.outliner_dock.setWidget(outliner_widget)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.outliner_dock)
         self.populate_outliner_with_functions()
-        self.update_completer_from_outliner()
-
-        self.outliner_list.itemDoubleClicked.connect(self.insert_into_editor)
+        # Sağ tıklama menüsü ekle (Context Menu)
         self.outliner_list.setContextMenuPolicy(Qt.CustomContextMenu)
         self.outliner_list.customContextMenuRequested.connect(self.context_menu_outliner)
+        # OUTLINER başlık stilini oluştur ve arama ikonunu ekle
+        self.create_custom_dock_title("OUTLINER", self.outliner_dock, expand_icon_path, collapse_icon_path)
+
+        # Arama çubuğunu gösterme ve gizleme için animasyonlar
+        self.search_animation_show = QPropertyAnimation(self.search_widget, b"maximumHeight")
+        self.search_animation_hide = QPropertyAnimation(self.search_widget, b"maximumHeight")
+
+        # Animasyon durumu kontrolü için bayrak
+        self.search_bar_visible = False  # Çubuğun görünürlüğünü kontrol eden bayrak
+
+    def create_custom_dock_title(self, title, dock_widget, expand_icon_path, collapse_icon_path):
+        """OUTLINER başlığını özelleştirir, simge ve arama ikonunu ekler."""
+        title_bar = QWidget()
+        title_layout = QHBoxLayout(title_bar)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Sol tarafa ikonu ekleyelim
+        expand_icon_label = QLabel()
+        expand_icon_label.setPixmap(QPixmap(expand_icon_path).scaled(16, 16, Qt.KeepAspectRatio,
+                                                                     Qt.SmoothTransformation))
+        title_layout.addWidget(expand_icon_label)
+
+        # OUTLINER başlık yazısı
+        title_label = QLabel(title)
+        title_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+            }
+        """)
+        title_layout.addWidget(title_label)
+
+        title_layout.addStretch(1)  # Başlığı sola yaslamak için araya boşluk ekle
+
+        # Sağ tarafa arama ikonunu ekleyelim
+        search_icon_label = QLabel()
+        search_icon_label.setPixmap(
+            QPixmap(os.path.join(PathFromOS().icons_path, "find.svg")).scaled(16, 16, Qt.KeepAspectRatio,
+                                                                                Qt.SmoothTransformation))
+        search_icon_label.setStyleSheet("QLabel { padding: 5px; cursor: pointer; }")
+        search_icon_label.mousePressEvent = self.toggle_search_bar  # İkona tıklandığında arama çubuğunu aç/kapa
+        title_layout.addWidget(search_icon_label)
+
+        # Özel başlık widget'ını dock'un başlığı olarak ayarla
+        title_bar.setLayout(title_layout)
+        dock_widget.setTitleBarWidget(title_bar)
+
+    def toggle_search_bar(self, event):
+        """Arama çubuğunu aç/kapa."""
+        if not self.search_bar_visible:
+            self.show_search_bar(event)
+        else:
+            self.hide_search_bar(event)
+
+    def show_search_bar(self, event):
+        """Arama çubuğunu kayarak göster."""
+        if not self.search_bar_visible:
+            # Arama çubuğunun açılması için animasyon ayarları
+            self.search_animation_show.setDuration(300)
+            self.search_animation_show.setStartValue(0)  # Gizli başlıyor
+            self.search_animation_show.setEndValue(25)  # Arama çubuğunun tam yüksekliği
+            self.search_animation_show.setEasingCurve(QEasingCurve.OutQuad)
+            self.search_widget.setVisible(True)  # Arama widget'ını görünür yap
+            self.search_animation_show.start()
+
+            # Çubuğun şu an görünür olduğunu işaretleyelim
+            self.search_bar_visible = True
+
+    def hide_search_bar(self, event):
+        """Arama çubuğunu kayarak gizle."""
+        if self.search_bar_visible:
+            # Arama çubuğunun kapanması için animasyon ayarları
+            self.search_animation_hide.setDuration(300)
+            self.search_animation_hide.setStartValue(25)  # Tam yükseklikten başlıyor
+            self.search_animation_hide.setEndValue(0)  # Gizli sonlanıyor
+            self.search_animation_hide.setEasingCurve(QEasingCurve.InQuad)
+            self.search_animation_hide.start()
+            self.search_animation_hide.finished.connect(
+                lambda: self.search_widget.setVisible(False))  # Animasyon bitince gizle
+
+            # Çubuğun şu an gizlendiğini işaretleyelim
+            self.search_bar_visible = False
 
     def create_header_dock(self, expand_icon_path, collapse_icon_path):
         """HEADER dock widget'ını oluşturur."""
@@ -1806,7 +1907,7 @@ class EditorApp(QMainWindow):
             self.tab_widget.currentWidget().setFocus()
 
     def insert_into_editor(self, item, column):
-        """OUTLINER'da çift tıklanan öğeyi aktif metin düzenleyiciye, imlecin olduğu yere ekler."""
+        """OUTLINER'da çift tıklanan öğeyi aktif metin düzenleyiciye ekler."""
         # Seçilen sınıf ya da fonksiyon adını al
         selected_text = item.text(0)
 
@@ -1823,23 +1924,63 @@ class EditorApp(QMainWindow):
             current_editor.setTextCursor(cursor)
 
     def context_menu_outliner(self, position):
-        """OUTLINER'da sağ tıklama menüsü."""
+        """OUTLINER'da sağ tıklama menüsü oluşturur."""
+        item = self.outliner_list.itemAt(position)
+        if item is None:
+            return
+
         menu = QMenu()
 
         # "Insert the Code" seçeneği
         insert_action = QAction("Insert the Code", self)
-        insert_action.triggered.connect(lambda: self.insert_into_editor(self.outliner_list.currentItem(), 0))
+        insert_action.triggered.connect(lambda: self.insert_into_editor(item, 0))
 
         # "Go to Information" seçeneği
         go_to_info_action = QAction("Search API Reference", self)
-        go_to_info_action.triggered.connect(lambda: self.go_to_information(self.outliner_list.currentItem()))
+        go_to_info_action.triggered.connect(lambda: self.go_to_information(item))
 
-        # Menünün öğelerini ekleyelim
+        # Menü öğelerini ekleyin
         menu.addAction(insert_action)
         menu.addAction(go_to_info_action)
 
-        # Sağ tık menüsünü göster
+        # Ayraç ekleyin
+        menu.addSeparator()
+
+        # "Expand All" seçeneği
+        expand_all_action = QAction("Expand All", self)
+        expand_all_action.triggered.connect(self.expand_all_outliner_items)
+        menu.addAction(expand_all_action)
+
+        # "Collapse All" seçeneği
+        collapse_all_action = QAction("Collapse All", self)
+        collapse_all_action.triggered.connect(self.collapse_all_outliner_items)
+        menu.addAction(collapse_all_action)
+
+        # Ayraç ekleyin
+        menu.addSeparator()
+
+        # "Search QLineEdit'i Aç" seçeneği
+        search_action = QAction("Open Search Bar", self)
+        search_action.triggered.connect(self.toggle_search_bar)  # Daha önceki toggle_search_bar işlevine bağlandı
+        menu.addAction(search_action)
+
+        # Sağ tıklama menüsünü göster
         menu.exec_(self.outliner_list.viewport().mapToGlobal(position))
+
+    def expand_all_outliner_items(self):
+        """OUTLINER'daki tüm öğeleri genişletir."""
+        self.outliner_list.expandAll()
+
+    def collapse_all_outliner_items(self):
+        """OUTLINER'daki tüm öğeleri kapatır."""
+        self.outliner_list.collapseAll()
+
+    def toggle_search_bar(self, event=None):
+        """Search QLineEdit'i aç/kapa."""
+        if not self.search_bar_visible:
+            self.show_search_bar(event)  # Arama çubuğunu göster
+        else:
+            self.hide_search_bar(event)  # Arama çubuğunu gizle
 
     def go_to_information(self, item):
         """Seçilen öğeyi geliştirici kılavuzunda arar."""
@@ -1853,6 +1994,11 @@ class EditorApp(QMainWindow):
 
         # Tarayıcıda aç
         webbrowser.open(search_url)
+
+    def custom_outliner_action(self, item):
+        """OUTLINER'da özel bir işlem gerçekleştirir."""
+        selected_text = item.text(0)
+        QMessageBox.information(self, "Custom Action", f"You selected: {selected_text}")
 
     def filter_outliner(self, text):
         """OUTLINER içindeki öğeleri arama çubuğundaki metne göre filtreler."""
