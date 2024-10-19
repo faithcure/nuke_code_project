@@ -3,15 +3,18 @@ from PySide2.QtCore import Qt, QEvent, QStringListModel, QRect, QSize
 from PySide2.QtGui import (QColor, QTextCharFormat, QPainter, QTextFormat,
                            QFontDatabase, QFont, QTextCursor, QTextBlockFormat, QSyntaxHighlighter)
 from PySide2.QtWidgets import *
-from editor.core import PathFromOS
+from editor.core import PathFromOS, CodeEditorSettings
 import os
 from PySide2.QtCore import Qt, QRegExp, QSize
-from PySide2.QtGui import QFont, QColor, QSyntaxHighlighter, QTextCharFormat
+from PySide2.QtGui import QFont, QColor, QSyntaxHighlighter, QTextCharFormat, QPalette, QTextOption
+
 class CodeEditor(QPlainTextEdit):
     def __init__(self, *args):
         super(CodeEditor, self).__init__(*args)
         self.setup_fonts()
-        self.set_line_spacing(1.2)
+        self.set_background_color()
+        self.setWordWrapMode(QTextOption.NoWrap)
+        self.set_line_spacing(CodeEditorSettings().line_spacing_size)
         self.line_number_area = LineNumberArea(self)
         self.blockCountChanged.connect(self.update_line_number_area_width)
         self.updateRequest.connect(self.update_line_number_area)
@@ -40,10 +43,18 @@ class CodeEditor(QPlainTextEdit):
         # Completer'den bir öneri seçildiğinde, insert_completion fonksiyonunu çağır.
         self.completer.activated.connect(self.insert_completion)
 
+    def set_background_color(self):
+        """Kod panelinin arkaplan rengini ayarlar"""
+        # QPalette oluştur
+        palette = self.palette()
+        # QPalette ile arka plan rengini QPalette.Base kısmına uygula
+        palette.setColor(QPalette.Base, CodeEditorSettings().code_background_color)
+        # Arka plan rengini uygula
+        self.setPalette(palette)
+
     def setup_fonts(self):
         # core.py'deki font yollarını almak için PathFromOS kullanıyoruz
-        font_paths = PathFromOS()
-        jetbrains_mono_path = os.path.join(font_paths.jet_fonts, "JetBrainsMono-Regular.ttf")
+        jetbrains_mono_path = os.path.join(PathFromOS().jet_fonts, "JetBrainsMono-Regular.ttf")
 
         # JetBrains Mono fontunu yükleyelim
         font_id = QFontDatabase.addApplicationFont(jetbrains_mono_path)
@@ -54,7 +65,7 @@ class CodeEditor(QPlainTextEdit):
             font_families = QFontDatabase.applicationFontFamilies(font_id)
             if font_families:
                 print(f"Yüklenen font ailesi: {font_families[0]}")
-                self.setFont(QFont(font_families[0], 13))  # JetBrains Mono'yu 12 boyutunda ayarla
+                self.setFont(QFont(font_families[0], CodeEditorSettings().main_font_size))  # JetBrains Mono'yu 12 boyutunda ayarla
             else:
                 print("Font ailesi bulunamadı!")
 
@@ -352,7 +363,7 @@ class CodeEditor(QPlainTextEdit):
 
     def line_number_area_width(self):
         digits = len(str(self.blockCount()))
-        space = 20 + self.fontMetrics().horizontalAdvance('9') * digits
+        space = 20 + self.fontMetrics().horizontalAdvance('9') * digits +10
         return space
 
     def update_line_number_area_width(self, _):
@@ -386,24 +397,69 @@ class CodeEditor(QPlainTextEdit):
 
     def line_number_area_paint_event(self, event):
         painter = QPainter(self.line_number_area)
-        painter.fillRect(event.rect(), QColor(77, 77, 77))
+        painter.fillRect(event.rect(), CodeEditorSettings().line_number_background_color)
 
         block = self.firstVisibleBlock()
         block_number = block.blockNumber()
         top = self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
         bottom = top + self.blockBoundingRect(block).height()
 
+        font = painter.font()
+        font.setBold(CodeEditorSettings().line_number_weight)
+        font.setPointSize(CodeEditorSettings().main_font_size)
+        painter.setFont(font)
+
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
                 number = str(block_number + 1)
-                painter.setPen(Qt.black)
-                painter.drawText(0, top, self.line_number_area.width(), self.fontMetrics().height(), Qt.AlignRight,
-                                 number)
+                text = block.text().strip()
 
+                # Satırın "def" veya "class" ile başlayıp başlamadığını kontrol ediyoruz
+                if text.startswith('def ') or text.startswith('class '):
+                    painter.setPen(CodeEditorSettings().line_number_color)
+                    # Satır numarasının sağ tarafına ">" sembolü ekliyoruz
+                    painter.drawText(5, top, self.line_number_area.width() - 5, self.fontMetrics().height(),
+                                     Qt.AlignLeft, number + u" \u2192")
+                else:
+                    # Diğer satırlara sadece numara yaz
+                    painter.setPen(CodeEditorSettings().line_number_color)
+                    painter.drawText(5, top, self.line_number_area.width() - 5, self.fontMetrics().height(),
+                                     Qt.AlignLeft, number)
+
+            # Bir sonraki bloğa geçerken block_number'ı arttır
+            block_number += 1
             block = block.next()
             top = bottom
             bottom = top + self.blockBoundingRect(block).height()
-            block_number += 1
+
+        painter.setPen(CodeEditorSettings().line_number_draw_line)
+        painter.drawLine(self.line_number_area.width() - 1, event.rect().top(), self.line_number_area.width() - 1,
+                         event.rect().bottom())
+
+    def mousePressEvent(self, event):
+        """Satır numarası alanına tıklama kontrolü"""
+        if event.x() < self.line_number_area_width():
+            # Satır numarası alanına tıklama
+            block_number = self.cursorForPosition(event.pos()).blockNumber()
+            block = self.document().findBlockByNumber(block_number)
+            text = block.text().strip()
+
+            # Eğer satır 'def' veya 'class' ile başlıyorsa
+            if text.startswith('def ') or text.startswith('class '):
+                print(f"Clicked on {text}")  # Tıklanan satırın adını yazdırıyoruz
+        else:
+            super().mousePressEvent(event)
+
+class LineNumberArea(QWidget):
+    def __init__(self, editor):
+        super().__init__(editor)
+        self.code_editor = editor
+
+    def sizeHint(self):
+        return QSize(self.code_editor.line_number_area_width(), 0)
+
+    def paintEvent(self, event):
+        self.code_editor.line_number_area_paint_event(event)
 
 class PythonHighlighter(QSyntaxHighlighter):
     def __init__(self, document):
@@ -486,13 +542,3 @@ class PythonHighlighter(QSyntaxHighlighter):
                 self.setFormat(index, length, format)
                 index = expression.indexIn(text, index + length)
 
-class LineNumberArea(QWidget):
-    def __init__(self, editor):
-        super().__init__(editor)
-        self.code_editor = editor
-
-    def sizeHint(self):
-        return QSize(self.code_editor.line_number_area_width(), 0)
-
-    def paintEvent(self, event):
-        self.code_editor.line_number_area_paint_event(event)
