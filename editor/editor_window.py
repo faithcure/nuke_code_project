@@ -21,7 +21,7 @@ importlib.reload(editor.core)
 importlib.reload(editor.code_editor)
 from editor.core import  OutputCatcher
 from editor.core import PathFromOS
-from editor.code_editor import CodeEditor, LineNumberArea, PythonHighlighter
+from editor.code_editor import CodeEditor,  PythonHighlighter, LineNumberArea
 from PySide2.QtGui import QIcon, QKeySequence
 from PySide2.QtCore import QPropertyAnimation, QRect, QEasingCurve
 from PySide2.QtGui import QColor
