@@ -23,7 +23,7 @@ from editor.core import PathFromOS
 from PySide2.QtGui import QIcon, QKeySequence
 from PySide2.QtCore import QPropertyAnimation, QRect, QEasingCurve
 from PySide2.QtGui import QColor
-from editor.nlink import update_nuke_functions
+from editor.nlink import update_nuke_functions, load_nuke_functions
 
 class EditorApp(QMainWindow):
     def __init__(self):
@@ -1723,6 +1723,17 @@ class EditorApp(QMainWindow):
         self.outliner_dock = QDockWidget("", self)
         outliner_widget = QWidget()
         outliner_layout = QVBoxLayout(outliner_widget)
+        outliner_layout.setContentsMargins(0, 0, 0, 0)  # Tüm kenarlardan sıfır boşluk
+        outliner_layout.setSpacing(0)  # Öğeler arasında boşluk yok
+
+
+        # PathFromOS sınıfının bir örneğini oluşturuyoruz
+        path_from_os = PathFromOS()
+
+        # İkon yolunu alıyoruz
+        expand_icon = os.path.join(path_from_os.icons_path, 'expand_icon.svg')
+        collapse_icon = os.path.join(path_from_os.icons_path, 'collapse_icon.svg')
+
 
         # OUTLINER QTreeWidget tanımla
         self.outliner_list = QTreeWidget()
@@ -1732,8 +1743,14 @@ class EditorApp(QMainWindow):
             QTreeWidget {
                 background-color: #2B2B2B;
                 border: none;
+                font-size: 9pt;  /* Yazı boyutu */
             }
+            
         """)
+
+        self.outliner_list.setRootIsDecorated(False)  # Klasör simgeleri ve bağlantı çizgilerini gizler
+        self.outliner_list.setStyleSheet(
+            "QTreeWidget::branch { background-color: transparent; }")  # Dikey çizgileri kaldırır
 
         # Arama çubuğu için bir widget ve layout oluştur
         self.search_widget = QWidget()
@@ -1763,6 +1780,7 @@ class EditorApp(QMainWindow):
                 color: rgba(255, 255, 255, 0.5); /* Yarı saydam placeholder */
             }
         """)
+
         self.search_bar.textChanged.connect(self.filter_outliner)
         search_layout.addWidget(self.search_bar)
 
@@ -1807,13 +1825,11 @@ class EditorApp(QMainWindow):
         title_layout.addWidget(expand_icon_label)
 
         # OUTLINER başlık yazısı
+        # Başlık metni
         title_label = QLabel(title)
-        title_label.setStyleSheet("""
-            QLabel {
-                color: white;
-                font-size: 14px;
-            }
-        """)
+        title_label.setAlignment(Qt.AlignVCenter)
+        font = QFont("Arial", 10, QFont.Bold)
+        title_label.setFont(font)
         title_layout.addWidget(title_label)
 
         title_layout.addStretch(1)  # Başlığı sola yaslamak için araya boşluk ekle
@@ -1871,7 +1887,19 @@ class EditorApp(QMainWindow):
         """HEADER dock widget'ını oluşturur."""
         self.header_dock = QDockWidget("HEADER", self)
         self.header_tree = QTreeWidget()
-        self.header_tree.setHeaderLabels(["Element", "Type"])
+
+        # Apply the same stylesheet as OUTLINER to the HEADER's QTreeWidget
+        self.header_tree.setHeaderHidden(True)  # Dikey çizgileri gizler
+
+        # Copying the same style from OUTLINER to HEADER and hiding the +, -, and lines
+        self.header_tree.setStyleSheet("""
+            QTreeWidget {
+                border: none;
+                font-size: 9pt;  /* Yazı boyutu */
+                
+            }
+        """)
+        self.header_tree.setRootIsDecorated(False)
         self.header_dock.setWidget(self.header_tree)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.header_dock)
 
@@ -1896,15 +1924,29 @@ class EditorApp(QMainWindow):
             # Eğer kod geçerli değilse, HEADER'ı güncellemeyin
             return
 
+        # Define the paths for the icons
+        class_icon_path = os.path.join(PathFromOS().icons_path, "C_logo.svg")
+        def_icon_path = os.path.join(PathFromOS().icons_path, "def.svg")
+        project_icon_path = os.path.join(PathFromOS().icons_path, "python.svg")
+
+        # Project header with an icon if a project is set
+        if self.project_dir:
+            project_item = QTreeWidgetItem(self.header_tree)
+            project_item.setText(0, os.path.basename(self.project_dir))  # Project name
+            project_item.setIcon(0, QIcon(project_icon_path))  # Project icon
+            project_item.setFirstColumnSpanned(True)  # Span the project name across the header
+
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):  # Eğer sınıf tanımıysa
                 class_item = QTreeWidgetItem(self.header_tree)
                 class_item.setText(0, node.name)  # Sınıf ismi
                 class_item.setText(1, "Class")  # Türü
-                class_item.setIcon(0, QIcon("icons/class_icon.png"))  # Sınıf için ikon
-
-                # Sınıfın satır numarasını tutuyoruz
+                class_item.setIcon(0, QIcon(class_icon_path))  # Sınıf için ikon
                 class_item.setData(0, Qt.UserRole, node.lineno)
+
+                # Indentation for class items
+                class_item.setTextAlignment(0, Qt.AlignLeft | Qt.AlignVCenter)
+                class_item.setSizeHint(0, QSize(200, 20))  # Adjust size for better spacing
 
                 # Sınıfın metodlarını ekleyelim
                 for sub_node in node.body:
@@ -1912,16 +1954,24 @@ class EditorApp(QMainWindow):
                         method_item = QTreeWidgetItem(class_item)
                         method_item.setText(0, sub_node.name)
                         method_item.setText(1, "Method")
-                        method_item.setIcon(0, QIcon("icons/method_icon.png"))  # Fonksiyon için ikon
+                        method_item.setIcon(0, QIcon(def_icon_path))  # Metod için ikon
                         method_item.setData(0, Qt.UserRole, sub_node.lineno)
+
+                        # Indentation for method items
+                        method_item.setTextAlignment(0, Qt.AlignLeft | Qt.AlignVCenter)
+                        method_item.setSizeHint(0, QSize(200, 20))  # Adjust size for better spacing
 
             elif isinstance(node, ast.FunctionDef) and not isinstance(node, ast.ClassDef):
                 # Eğer sınıf dışı bir fonksiyon tanımıysa doğrudan ekleyelim
                 func_item = QTreeWidgetItem(self.header_tree)
                 func_item.setText(0, node.name)  # Fonksiyon ismi
                 func_item.setText(1, "Function")
-                func_item.setIcon(0, QIcon("icons/function_icon.png"))  # Fonksiyon için ikon
+                func_item.setIcon(0, QIcon(def_icon_path))  # Fonksiyon için ikon
                 func_item.setData(0, Qt.UserRole, node.lineno)
+
+                # Indentation for function items
+                func_item.setTextAlignment(0, Qt.AlignLeft | Qt.AlignVCenter)
+                func_item.setSizeHint(0, QSize(200, 20))  # Adjust size for better spacing
 
     def go_to_line_from_header(self, item, column):
         """HEADER'da bir öğeye tıklandığında ilgili satıra gitme işlemi."""
