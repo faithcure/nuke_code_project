@@ -10,7 +10,7 @@ A specialized Python IDE tailored for the **Nuke** environment, enabling VFX pro
 - [Installation](#installation)
 - [Usage](#usage)
 - [Compatibility](#compatibility)
-- [License](#license)
+- [Licenses](#licenses)
 
 ---
 
@@ -30,8 +30,8 @@ A specialized Python IDE tailored for the **Nuke** environment, enabling VFX pro
 ## Installation
 ### Step 1: Clone the Repository
 Start by cloning this repository to your local environment.
+COMING SOON...
 
-```bash
-git clone https://github.com/yourusername/nuke-python-ide.git
-cd nuke-python-ide
-pip install PySide2
+## Licenses
+JetBrains Mono typeface is available under the SIL Open Font License 1.1 license and can be used free of charge, for both commercial and non-commercial purposes. You do not need to give credit to JetBrains, although we will appreciate it very much if you do.
+

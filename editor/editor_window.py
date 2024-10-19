@@ -16,10 +16,12 @@ from PySide2.QtWidgets import *
 from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, \
     QGraphicsDropShadowEffect, QFrame
 import editor.core
-from editor.code_editor import CodeEditor
-from editor.core import PythonHighlighter, OutputCatcher
+import editor.code_editor
 importlib.reload(editor.core)
+importlib.reload(editor.code_editor)
+from editor.core import  OutputCatcher
 from editor.core import PathFromOS
+from editor.code_editor import CodeEditor, LineNumberArea, PythonHighlighter
 from PySide2.QtGui import QIcon, QKeySequence
 from PySide2.QtCore import QPropertyAnimation, QRect, QEasingCurve
 from PySide2.QtGui import QColor
@@ -118,7 +120,7 @@ class EditorApp(QMainWindow):
         def add_new_tab(self, file_path, initial_content=""):
             """Yeni bir sekme oluşturur ve dosyayı yükler."""
             editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
-            editor.setFont(QFont("Consolas", 12))
+
 
             # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
             self.highlighter = PythonHighlighter(editor.document())
@@ -1398,7 +1400,7 @@ class EditorApp(QMainWindow):
     def add_new_tab(self, file_path, initial_content=""):
         """Yeni bir sekme oluşturur ve dosyayı yükler."""
         editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
-        editor.setFont(QFont("Consolas", 12))
+
 
         # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
         self.highlighter = PythonHighlighter(editor.document())

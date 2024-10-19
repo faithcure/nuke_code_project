@@ -1,16 +1,17 @@
 import jedi
-from PySide2.QtCore import Qt, QEvent, QStringListModel, QRect
-from PySide2.QtGui import QColor, QTextCharFormat, QPainter, QTextFormat, \
-    QTextCursor
+from PySide2.QtCore import Qt, QEvent, QStringListModel, QRect, QSize
+from PySide2.QtGui import (QColor, QTextCharFormat, QPainter, QTextFormat,
+                           QFontDatabase, QFont, QTextCursor, QTextBlockFormat, QSyntaxHighlighter)
 from PySide2.QtWidgets import *
-
-from editor.core import LineNumberArea
-
-
+from editor.core import PathFromOS
+import os
+from PySide2.QtCore import Qt, QRegExp, QSize
+from PySide2.QtGui import QFont, QColor, QSyntaxHighlighter, QTextCharFormat
 class CodeEditor(QPlainTextEdit):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def __init__(self, *args):
+        super(CodeEditor, self).__init__(*args)
+        self.setup_fonts()
+        self.set_line_spacing(1.2)
         self.line_number_area = LineNumberArea(self)
         self.blockCountChanged.connect(self.update_line_number_area_width)
         self.updateRequest.connect(self.update_line_number_area)
@@ -35,8 +36,37 @@ class CodeEditor(QPlainTextEdit):
         # İmleç pozisyonuna göre tamamlama popup'ını göster
         self.textChanged.connect(self.show_completer)
 
+
         # Completer'den bir öneri seçildiğinde, insert_completion fonksiyonunu çağır.
         self.completer.activated.connect(self.insert_completion)
+
+    def setup_fonts(self):
+        # core.py'deki font yollarını almak için PathFromOS kullanıyoruz
+        font_paths = PathFromOS()
+        jetbrains_mono_path = os.path.join(font_paths.jet_fonts, "JetBrainsMono-Regular.ttf")
+
+        # JetBrains Mono fontunu yükleyelim
+        font_id = QFontDatabase.addApplicationFont(jetbrains_mono_path)
+
+        if font_id == -1:
+            print("JetBrains Mono fontu yüklenemedi!")
+        else:
+            font_families = QFontDatabase.applicationFontFamilies(font_id)
+            if font_families:
+                print(f"Yüklenen font ailesi: {font_families[0]}")
+                self.setFont(QFont(font_families[0], 13))  # JetBrains Mono'yu 12 boyutunda ayarla
+            else:
+                print("Font ailesi bulunamadı!")
+
+    def set_line_spacing(self, line_spacing_factor):
+        # TextCursor ve TextBlockFormat kullanarak satır aralığını ayarlıyoruz
+        cursor = self.textCursor()
+        cursor.select(QTextCursor.Document)  # Tüm belgeyi seçiyoruz
+        block_format = QTextBlockFormat()
+        block_format.setLineHeight(line_spacing_factor * 100, QTextBlockFormat.ProportionalHeight)
+        cursor.mergeBlockFormat(block_format)
+        self.setTextCursor(cursor)  # Yeni formatı uyguluyoruz
+
 
     def eventFilter(self, obj, event):
         if obj == self.completer.popup():
@@ -374,3 +404,95 @@ class CodeEditor(QPlainTextEdit):
             top = bottom
             bottom = top + self.blockBoundingRect(block).height()
             block_number += 1
+
+class PythonHighlighter(QSyntaxHighlighter):
+    def __init__(self, document):
+        super().__init__(document)
+        self.highlighting_rules = []
+
+        # Monokai Renk Paleti
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor("#F92672"))  # Pembe/Kırmızı (keywords)
+        keyword_format.setFontWeight(QFont.Bold)
+
+        class_format = QTextCharFormat()
+        class_format.setForeground(QColor("#66D9EF"))  # Açık Mavi (sınıf isimleri)
+
+        function_format = QTextCharFormat()
+        function_format.setForeground(QColor("#A6E22E"))  # Açık Yeşil (fonksiyon isimleri)
+
+        special_method_format = QTextCharFormat()
+        special_method_format.setForeground(QColor("#AE81FF"))  # Mor (özel metodlar)
+
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor("#E6DB74"))  # Sarı (stringler)
+
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor("#75715E"))  # Gri (yorumlar)
+
+        docstring_format = QTextCharFormat()
+        docstring_format.setForeground(QColor("#A6E22E"))  # Yeşil (docstringler)
+
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor("#AE81FF"))  # Mor (sayısal değerler)
+
+        # Anahtar kelimeler
+        keywords = [
+            "class", "def", "if", "else", "elif", "while", "for", "in", "try", "except", "finally",
+            "return", "yield", "break", "continue", "pass", "import", "from", "as", "with", "raise",
+            "assert", "async", "await", "self.", "self"
+        ]
+        for word in keywords:
+            pattern = QRegExp(f"\\b{word}\\b")
+            self.highlighting_rules.append((pattern, keyword_format))
+
+        # Sınıf isimleri
+        class_name_pattern = QRegExp(r'\bclass\s+(\w+)')
+        self.highlighting_rules.append((class_name_pattern, class_format))
+
+        # Fonksiyon isimleri
+        function_name_pattern = QRegExp(r'\bdef\s+(\w+)')
+        self.highlighting_rules.append((function_name_pattern, function_format))
+
+        # Özel metodlar
+        special_methods = [
+            "__init__", "__str__", "__repr__", "__call__", "__len__", "__getitem__", "__setitem__", "__delitem__"
+        ]
+        for method in special_methods:
+            pattern = QRegExp(f"\\b{method}\\b")
+            self.highlighting_rules.append((pattern, special_method_format))
+
+        # Stringler
+        self.highlighting_rules.append((QRegExp("\".*\""), string_format))
+        self.highlighting_rules.append((QRegExp("\'.*\''"), string_format))
+
+        # Yorumlar
+        self.highlighting_rules.append((QRegExp("#[^\n]*"), comment_format))
+
+        # Docstring
+        self.highlighting_rules.append((QRegExp("\"\"\".*\"\"\"", Qt.CaseInsensitive), docstring_format))
+        self.highlighting_rules.append((QRegExp("\'\'\'.*\'\'\'", Qt.CaseInsensitive), docstring_format))
+
+        # Sayısal değerler
+        self.highlighting_rules.append((QRegExp("\\b[0-9]+\\b"), number_format))
+
+    def highlightBlock(self, text):
+        """Her bir metin bloğunu renklendiren fonksiyon."""
+        for pattern, format in self.highlighting_rules:
+            expression = QRegExp(pattern)
+            index = expression.indexIn(text)
+            while index >= 0:
+                length = expression.matchedLength()
+                self.setFormat(index, length, format)
+                index = expression.indexIn(text, index + length)
+
+class LineNumberArea(QWidget):
+    def __init__(self, editor):
+        super().__init__(editor)
+        self.code_editor = editor
+
+    def sizeHint(self):
+        return QSize(self.code_editor.line_number_area_width(), 0)
+
+    def paintEvent(self, event):
+        self.code_editor.line_number_area_paint_event(event)
