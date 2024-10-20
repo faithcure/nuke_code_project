@@ -44,3 +44,7 @@ class CodeEditorSettings:
         inteder_line_onOff = 250
         self.intender_color = QColor(62, 62, 62, inteder_line_onOff)
         self.intender_width = 1.5
+
+        # Satır renklendirme ayarları
+        line_opacity = 50
+        self.clicked_line_color = QColor(75, 75, 75, line_opacity)

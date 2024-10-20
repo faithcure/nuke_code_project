@@ -8,7 +8,7 @@
     "decorators_gold": "#FFD700",
     "exceptions": "#e15151",
     "modules": "#FF79C6",
-    "generators": "#BD93F9",
+    "nukescripts": "#fec686",
     "coroutines": "#FFB86C",
     "context_managers": "#8BE9FD",
     "type_hints": "#dedede",
@@ -65,9 +65,10 @@
   ],
   "modules": [
     "os", "sys", "math", "random", "datetime", "json", "re", "subprocess", "itertools", "functools", "collections",
-    "asyncio", "threading", "time", "logging", "pathlib", "socket", "multiprocessing", "argparse", "shutil"
+    "asyncio", "threading", "time", "logging", "pathlib", "socket", "multiprocessing", "argparse", "shutil", "importlib",
+    "ast", "webbrowser", "PySide2", "PySide", "PyQt5", "Tkinter"
   ],
-  "generators": [
+  "nukescripts": [ "nuke", "nukescripts"
 
   ],
   "coroutines": [

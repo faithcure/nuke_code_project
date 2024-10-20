@@ -442,18 +442,35 @@ class CodeEditor(QPlainTextEdit):
                          event.rect().bottom())
 
     def mousePressEvent(self, event):
-        """Satır numarası alanına tıklama kontrolü"""
-        if event.x() < self.line_number_area_width():
-            # Satır numarası alanına tıklama
-            block_number = self.cursorForPosition(event.pos()).blockNumber()
-            block = self.document().findBlockByNumber(block_number)
-            text = block.text().strip()
+        """Satır numarası alanına tıklama kontrolü ve satır renklendirme"""
+        super().mousePressEvent(event)  # Önce varsayılan işlemi çağır
 
-            # Eğer satır 'def' veya 'class' ile başlıyorsa
-            if text.startswith('def ') or text.startswith('class '):
-                print(f"Clicked on {text}")  # Tıklanan satırın adını yazdırıyoruz
-        else:
-            super().mousePressEvent(event)
+        # Tıklanan satırın rengini değiştir
+        self.highlight_clicked_line()
+
+    def highlight_clicked_line(self):
+        """Tıklanan satırı transparan arka plan rengiyle vurgula"""
+        cursor = self.textCursor()  # İmleç pozisyonunu al
+        selection = QTextEdit.ExtraSelection()
+
+        # Transparan arka plan rengi ayarlama
+        line_color = CodeEditorSettings().clicked_line_color
+        selection.format.setBackground(line_color)
+        selection.format.setProperty(QTextFormat.FullWidthSelection, True)
+
+        selection.cursor = cursor
+        selection.cursor.clearSelection()
+
+        # Mevcut renklendirmeleri temizle
+        extraSelections = self.extraSelections()
+
+        # Diğer renklendirmeleri kontrol et ve temizle
+        extraSelections = [sel for sel in extraSelections if sel.format.background() != line_color]
+
+        # Yeni renklendirme ekle
+        extraSelections.append(selection)
+        self.setExtraSelections(extraSelections)
+
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):
@@ -489,7 +506,7 @@ class PythonHighlighter(QSyntaxHighlighter):
         self.add_highlighting_rule(syntax_data["decorators_gold"], colors["decorators_gold"])
         self.add_highlighting_rule(syntax_data["exceptions"], colors["exceptions"])
         self.add_highlighting_rule(syntax_data["modules"], colors["modules"])
-        self.add_highlighting_rule(syntax_data["generators"], colors["generators"])
+        self.add_highlighting_rule(syntax_data["nukescripts"], colors["nukescripts"])
         self.add_highlighting_rule(syntax_data["coroutines"], colors["coroutines"])
         self.add_highlighting_rule(syntax_data["context_managers"], colors["context_managers"])
         self.add_highlighting_rule(syntax_data["type_hints"], colors["type_hints"])
