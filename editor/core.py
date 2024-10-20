@@ -1,5 +1,6 @@
 import os
 from PySide2.QtGui import QColor
+
 class OutputCatcher:
     def __init__(self, output_widget):
         self.output_widget = output_widget
@@ -32,7 +33,6 @@ class CodeEditorSettings:
         # BACKGROUND COLOR SETTIGS
         self.code_background_color = QColor(45, 45, 45)
 
-
         # SOL LINE NUMBER AREA AYARLARI
         self.line_spacing_size = 1.2
         self.line_number_weight = False
@@ -40,5 +40,7 @@ class CodeEditorSettings:
         self.line_number_draw_line = QColor(100, 100, 100)
         self.line_number_background_color = QColor(45, 45, 45)
 
-        # CODE PythonHighlighter SETTINGS
-        self.selfColor = QColor(255, 255, 255)
+        # Intender Color
+        inteder_line_onOff = 250
+        self.intender_color = QColor(62, 62, 62, inteder_line_onOff)
+        self.intender_width = 1.5

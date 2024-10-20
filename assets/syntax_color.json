@@ -1,17 +1,17 @@
 {
   "colors": {
     "keywords": "#cf8e6d",
-    "built_in_functions": "#A6E22E",
+    "built_in_functions": "#9f9ebd",
     "built_in_constants": "#AE81FF",
     "built_in_types": "#66D9EF",
     "special_methods": "#b00295",
-    "decorators": "#75715E",
-    "exceptions": "#FF5555",
+    "decorators_gold": "#FFD700",
+    "exceptions": "#e15151",
     "modules": "#FF79C6",
     "generators": "#BD93F9",
     "coroutines": "#FFB86C",
     "context_managers": "#8BE9FD",
-    "type_hints": "#50FA7B",
+    "type_hints": "#dedede",
     "comments": "#75715E",
     "function_names": "#55a7f2",
     "strings": "#A6E22E",
@@ -21,22 +21,26 @@
   "keywords": [
     "False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise", "True", "class", "finally",
     "is", "return", "and", "continue", "for", "lambda", "try", "as", "def", "from", "nonlocal", "while", "assert",
-    "del", "global", "not", "with", "async", "elif", "if", "or", "yield", "self"
+    "del", "global", "not", "with", "async", "elif", "if", "or", "yield", "self", "True", "False", "None", "with", "yield",
+    "async", "await"
   ],
+
+
   "built_in_functions": [
     "abs", "all", "any", "ascii", "bin", "bool", "bytearray", "bytes", "callable", "chr", "classmethod", "compile",
     "complex", "delattr", "dict", "dir", "divmod", "enumerate", "eval", "exec", "filter", "float", "format", "frozenset",
     "getattr", "globals", "hasattr", "hash", "help", "hex", "id", "input", "int", "isinstance", "issubclass", "iter",
     "len", "list", "locals", "map", "max", "memoryview", "min", "next", "object", "oct", "open", "ord", "pow",
     "print", "property", "range", "repr", "reversed", "round", "set", "setattr", "slice", "sorted", "staticmethod",
-    "str", "sum", "super", "tuple", "type", "vars", "zip", "__import__"
+    "str", "sum", "super", "tuple", "type", "vars", "zip"
   ],
   "built_in_constants": [
-    "True", "False", "None", "Ellipsis", "NotImplemented"
+       "Ellipsis", "NotImplemented","int", "float", "complex", "str", "list", "tuple", "set", "frozenset", "dict", "bytes", "bytearray", "memoryview"
   ],
+
   "built_in_types": [
-    "int", "float", "complex", "str", "list", "tuple", "set", "frozenset", "dict", "bytes", "bytearray", "memoryview"
   ],
+
   "special_methods": [
     "__init__", "__new__", "__del__", "__repr__", "__str__", "__bytes__", "__format__", "__lt__", "__le__", "__eq__",
     "__ne__", "__gt__", "__ge__", "__hash__", "__bool__", "__getattr__", "__setattr__", "__delattr__", "__dir__",
@@ -46,9 +50,9 @@
     "__iadd__", "__isub__", "__imul__", "__imatmul__", "__itruediv__", "__ifloordiv__", "__imod__", "__ipow__",
     "__ilshift__", "__irshift__", "__iand__", "__ixor__", "__ior__", "__neg__", "__pos__", "__abs__", "__invert__",
     "__complex__", "__int__", "__float__", "__index__", "__round__", "__trunc__", "__floor__", "__ceil__", "__enter__",
-    "__exit__", "__await__", "__aiter__", "__anext__", "__aenter__", "__aexit__"
+    "__exit__", "__await__", "__aiter__", "__anext__", "__aenter__", "__aexit__", "__doc__", "__import__"
   ],
-  "decorators": [
+  "decorators_gold": [
     "@staticmethod", "@classmethod", "@property", "@functools.wraps", "@contextlib.contextmanager"
   ],
   "exceptions": [
@@ -64,13 +68,13 @@
     "asyncio", "threading", "time", "logging", "pathlib", "socket", "multiprocessing", "argparse", "shutil"
   ],
   "generators": [
-    "yield"
+
   ],
   "coroutines": [
-    "async", "await"
+
   ],
   "context_managers": [
-    "with", "@contextlib.contextmanager"
+
   ],
   "type_hints": [
     "List", "Dict", "Tuple", "Set", "Union", "Optional", "Any", "Callable", "TypeVar", "Generic", "Iterable"

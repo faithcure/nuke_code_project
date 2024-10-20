@@ -8,7 +8,7 @@ from editor.core import CodeEditorSettings
 from PySide2.QtCore import QSize
 from PySide2.QtGui import QFont, QPalette, QTextOption
 from PySide2.QtCore import QRegExp
-from PySide2.QtGui import QColor, QTextCharFormat, QSyntaxHighlighter
+from PySide2.QtGui import QColor, QTextCharFormat, QSyntaxHighlighter, QPen
 from PySide2.QtCore import Qt
 from editor.core import PathFromOS
 
@@ -340,8 +340,9 @@ class CodeEditor(QPlainTextEdit):
     def paintEvent(self, event):
         super().paintEvent(event)
         painter = QPainter(self.viewport())
-        pen = painter.pen()
-        pen.setColor(QColor("#C0C0C0"))
+
+        pen = QPen(QColor(CodeEditorSettings().intender_color))
+        pen.setWidth(CodeEditorSettings().intender_width)  # Çizgi kalınlığını buradan ayarlayabilirsiniz (örnek: 2 piksel)
         painter.setPen(pen)
 
         block = self.firstVisibleBlock()
@@ -465,7 +466,6 @@ class LineNumberArea(QWidget):
     def paintEvent(self, event):
         self.code_editor.line_number_area_paint_event(event)
 
-
 class PythonHighlighter(QSyntaxHighlighter):
     def __init__(self, document):
         super().__init__(document)
@@ -476,27 +476,27 @@ class PythonHighlighter(QSyntaxHighlighter):
         # JSON dosyasını yükle
         with open(os.path.join(PathFromOS().json_path, "syntax_color.json"), 'r') as file:
             syntax_data = json.load(file)
-
         colors = syntax_data["colors"]
 
         # Anahtar kelimeler için renklendirme kuralı
         self.add_highlighting_rule(syntax_data["keywords"], colors["keywords"])
-
 
         # Diğer kategoriler için kurallar
         self.add_highlighting_rule(syntax_data["built_in_functions"], colors["built_in_functions"])
         self.add_highlighting_rule(syntax_data["built_in_constants"], colors["built_in_constants"])
         self.add_highlighting_rule(syntax_data["built_in_types"], colors["built_in_types"])
         self.add_highlighting_rule(syntax_data["special_methods"], colors["special_methods"], special_method=True)
-        self.add_highlighting_rule(syntax_data["decorators"], colors["decorators"])
+        self.add_highlighting_rule(syntax_data["decorators_gold"], colors["decorators_gold"])
         self.add_highlighting_rule(syntax_data["exceptions"], colors["exceptions"])
         self.add_highlighting_rule(syntax_data["modules"], colors["modules"])
         self.add_highlighting_rule(syntax_data["generators"], colors["generators"])
         self.add_highlighting_rule(syntax_data["coroutines"], colors["coroutines"])
         self.add_highlighting_rule(syntax_data["context_managers"], colors["context_managers"])
         self.add_highlighting_rule(syntax_data["type_hints"], colors["type_hints"])
+
         # Fonksiyon isimleri için renklendirme kuralı
         self.add_function_name_rule(colors["function_names"])  # Fonksiyon adı için renk
+
         # Yorumlar, docstringler, stringler ve sayılar için kurallar
         self.add_regex_rule(QRegExp("#[^\n]*"), colors["comments"])  # Yorumlar
         self.add_regex_rule(QRegExp("\"\"\".*\"\"\"", Qt.CaseInsensitive), colors["docstrings"])  # Docstring
@@ -504,6 +504,9 @@ class PythonHighlighter(QSyntaxHighlighter):
         self.add_regex_rule(QRegExp("\".*\""), colors["strings"])  # Stringler
         self.add_regex_rule(QRegExp("\'.*\'"), colors["strings"])  # Stringler
         self.add_regex_rule(QRegExp("\\b[0-9]+\\b"), colors["numbers"])  # Sayılar
+
+        # `@` ile başlayan dekoratörler için renklendirme kuralı (altın sarısı)
+        self.add_regex_rule(QRegExp(r"@\w+"), colors["decorators_gold"])  # Altın sarısı dekoratörler
 
     def add_highlighting_rule(self, items, color, special_method=False):
         """Her kategori için renklendirme kuralını ekler"""
@@ -526,8 +529,8 @@ class PythonHighlighter(QSyntaxHighlighter):
         format.setForeground(QColor(color))
 
         # Fonksiyon adını yakalamak için regex deseni: `def`'den sonra gelen ismi yakalar
-        function_name_pattern = QRegExp(r'\bdef\s+(\w+)')
-        self.highlighting_rules.append((function_name_pattern, format))
+        self.function_name_format = QTextCharFormat()
+        self.function_name_format.setForeground(QColor(color))
 
     def highlightBlock(self, text):
         """Her bir metin bloğunu renklendiren fonksiyon"""
@@ -539,5 +542,10 @@ class PythonHighlighter(QSyntaxHighlighter):
                 self.setFormat(index, length, format)
                 index = expression.indexIn(text, index + length)
 
-
-
+        # `def` anahtar kelimesinden sonra gelen fonksiyon ismini renklendirme
+        function_pattern = QRegExp(r'\bdef\s+(\w+)')
+        function_index = function_pattern.indexIn(text)
+        if function_index >= 0:
+            function_name = function_pattern.cap(1)  # Fonksiyon ismini yakala
+            function_name_start = function_pattern.pos(1)  # Fonksiyon isminin başladığı pozisyonu al
+            self.setFormat(function_name_start, len(function_name), self.function_name_format)  # Fonksiyon ismini renklendir
