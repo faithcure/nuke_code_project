@@ -13,8 +13,7 @@ from PySide2.QtGui import QFont
 from PySide2.QtGui import QPixmap, QPainter, QPainterPath, QBrush
 from PySide2.QtGui import QTextCharFormat, QTextCursor, QGuiApplication
 from PySide2.QtWidgets import *
-from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, \
-    QGraphicsDropShadowEffect, QFrame
+from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QGraphicsDropShadowEffect, QFrame
 import editor.core
 import editor.code_editor
 importlib.reload(editor.core)

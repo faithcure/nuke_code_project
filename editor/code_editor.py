@@ -1,22 +1,27 @@
-import jedi
+import importlib
 import json
 import os
-from PySide2.QtCore import  QEvent, QStringListModel, QRect
-from PySide2.QtGui import QPainter, QTextFormat, QFontDatabase,  QTextCursor, QTextBlockFormat
-from PySide2.QtWidgets import *
-from editor.core import CodeEditorSettings
-from PySide2.QtCore import QSize
-from PySide2.QtGui import QFont, QPalette, QTextOption
+from PySide2.QtCore import QRect
 from PySide2.QtCore import QRegExp
+from PySide2.QtCore import QSize
 from PySide2.QtGui import QColor, QTextCharFormat, QSyntaxHighlighter, QPen
-from PySide2.QtCore import Qt
+from PySide2.QtGui import QFont, QPalette, QTextOption
+from PySide2.QtGui import QPainter, QTextFormat, QFontDatabase, QTextBlockFormat
+from PySide2.QtWidgets import *
+import editor.completer
+from editor.core import CodeEditorSettings
 from editor.core import PathFromOS
+importlib.reload(editor.completer)
+from editor.completer import Completer
+from PySide2.QtCore import Qt
+from PySide2.QtGui import QTextCursor
 
 class CodeEditor(QPlainTextEdit):
     def __init__(self, *args):
         super(CodeEditor, self).__init__(*args)
         self.setup_fonts()
         self.set_background_color()
+        self.completer = Completer(self)  # Completer sınıfını başlatıyoruz
         self.setWordWrapMode(QTextOption.NoWrap)
         self.set_line_spacing(CodeEditorSettings().line_spacing_size)
         self.line_number_area = LineNumberArea(self)
@@ -28,24 +33,13 @@ class CodeEditor(QPlainTextEdit):
         self.blockCountChanged.connect(self.update_line_and_character_count)  # Satır sayısı güncellenince
         self.textChanged.connect(self.update_line_and_character_count)  # Karakter değişikliklerinde
         self.cursorPositionChanged.connect(self.update_line_and_character_count)  # İmleç pozisyonu değişince
+        self.textChanged.connect(self.handle_text_change)  # Her yazımda tetiklenecek
+
         self.update_line_number_area_width(0)
 
-        # QCompleter oluştur
-        self.completer = QCompleter(self)
-        self.completer.setCompletionMode(QCompleter.PopupCompletion)
-        self.completer.setWidget(self)
-
-        # Dinamik olarak güncellenecek model
-        self.model = QStringListModel()
-        self.completer.setModel(self.model)
-        self.completer.popup().installEventFilter(self)  # Event filter ekleme
-
-        # İmleç pozisyonuna göre tamamlama popup'ını göster
-        self.textChanged.connect(self.show_completer)
-
-
-        # Completer'den bir öneri seçildiğinde, insert_completion fonksiyonunu çağır.
-        self.completer.activated.connect(self.insert_completion)
+    def handle_text_change(self):
+        """Yazarken tamamlayıcıyı her harf değişiminde tetikleme"""
+        self.completer.update_completions()
 
     def set_background_color(self):
         """Kod panelinin arkaplan rengini ayarlar"""
@@ -82,59 +76,25 @@ class CodeEditor(QPlainTextEdit):
         cursor.mergeBlockFormat(block_format)
         self.setTextCursor(cursor)  # Yeni formatı uyguluyoruz
 
-
-    def eventFilter(self, obj, event):
-        if obj == self.completer.popup():
-            if event.type() == QEvent.KeyPress:
-                if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-                    self.insert_completion(self.completer.currentCompletion())
-                    self.completer.popup().hide()
-                    return True
-                elif event.key() == Qt.Key_Escape:
-                    self.completer.popup().hide()
-                    return True
-                else:
-                    self.setFocus()
-                    self.keyPressEvent(event)
-                    return True
-            return False
-        return super().eventFilter(obj, event)
-
-    def show_completer(self):
-        """Tamamlama popup'ını göster"""
-        cursor = self.textCursor()
-        cursor.select(cursor.WordUnderCursor)
-        current_code = self.toPlainText()
-        line, col = cursor.blockNumber() + 1, cursor.columnNumber()
-
-        if len(cursor.selectedText()) > 0:
-            script = jedi.Script(current_code)
-            try:
-                completions = script.complete(line, col)
-            except Exception:
-                completions = []
-
-            if completions:
-                completion_list = [comp.name for comp in completions]
-                self.model.setStringList(completion_list)
-
-                rect = self.cursorRect()
-                rect.setX(rect.x() + 35)
-                rect.setWidth(self.completer.popup().sizeHintForColumn(0) + 100)
-
-                opacity_effect = QGraphicsOpacityEffect(self.completer.popup())
-                opacity_effect.setOpacity(0.9)
-                self.completer.popup().setGraphicsEffect(opacity_effect)
-
-                self.completer.complete(rect)
-                self.setFocus()  # Odağı editöre geri ver
-            else:
-                self.completer.popup().hide()
-        else:
-            self.completer.popup().hide()
-
     def keyPressEvent(self, event):
         cursor = self.textCursor()
+
+        # Eğer tamamlama popup'ı açık ise Enter/Return tuşunu popup ile kullanmak
+        if self.completer.completion_popup.popup().isVisible():
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab):
+                # Seçilen öneriyi al
+                selected_index = self.completer.completion_popup.popup().currentIndex()
+                if selected_index.isValid():
+                    selected_completion = self.completer.completion_popup.popup().model().data(selected_index)
+                    if selected_completion:
+                        self.completer.insert_completion(selected_completion)
+                        self.completer.completion_popup.popup().hide()  # Tamamlama yapıldıktan sonra popup'ı gizle
+                return  # Tamamlama işlemi tamamlandığında varsayılan işlevi atla
+
+            elif event.key() in (Qt.Key_Up, Qt.Key_Down):
+                # Eğer yukarı/aşağı ok tuşuna basılmışsa popup'ta gezinme işlemini yap
+                self.completer.completion_popup.popup().keyPressEvent(event)
+                return  # Varsayılan davranışı atla
 
         # Ctrl+Enter kombinasyonu ile kod çalıştırma
         if event.key() == Qt.Key_Return and event.modifiers() == Qt.ControlModifier:
@@ -152,8 +112,6 @@ class CodeEditor(QPlainTextEdit):
             if main_window:
                 main_window.show_search_dialog()
             return
-
-            # Diğer tuş işlemleri için varsayılan davranış
 
         # Eğer Ctrl+H kombinasyonuna basıldıysa replace diyalogunu aç
         if event.key() == Qt.Key_H and event.modifiers() == Qt.ControlModifier:
@@ -224,16 +182,6 @@ class CodeEditor(QPlainTextEdit):
 
         else:
             super().keyPressEvent(event)
-            self.show_completer()  # Her tuş basımında tamamlayıcıyı güncelle
-
-    def insert_completion(self, completion_text):
-        """Seçilen öğeyi imleç pozisyonuna ekle"""
-        cursor = self.textCursor()
-        cursor.select(cursor.WordUnderCursor)
-        cursor.removeSelectedText()
-        cursor.insertText(completion_text + ' ')
-        self.setTextCursor(cursor)
-        self.completer.popup().hide()
 
     def update_line_and_character_count(self):
         """Update the total number of characters in the status bar, along with cursor position."""
@@ -470,7 +418,6 @@ class CodeEditor(QPlainTextEdit):
         # Yeni renklendirme ekle
         extraSelections.append(selection)
         self.setExtraSelections(extraSelections)
-
 
 class LineNumberArea(QWidget):
     def __init__(self, editor):

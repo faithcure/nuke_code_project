@@ -48,3 +48,4 @@ class CodeEditorSettings:
         # Satır renklendirme ayarları
         line_opacity = 50
         self.clicked_line_color = QColor(75, 75, 75, line_opacity)
+
