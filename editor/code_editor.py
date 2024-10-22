@@ -34,7 +34,6 @@ class CodeEditor(QPlainTextEdit):
         self.textChanged.connect(self.update_line_and_character_count)  # Karakter değişikliklerinde
         self.cursorPositionChanged.connect(self.update_line_and_character_count)  # İmleç pozisyonu değişince
         self.textChanged.connect(self.handle_text_change)  # Her yazımda tetiklenecek
-
         self.update_line_number_area_width(0)
 
     def handle_text_change(self):

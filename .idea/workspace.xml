@@ -4,13 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="db26f78f-f0ea-4b61-a50e-e24304b7c6d7" name="Changes" comment="20/10/24">
-      <change afterPath="$PROJECT_DIR$/editor/completer.py" afterDir="false" />
+    <list default="true" id="db26f78f-f0ea-4b61-a50e-e24304b7c6d7" name="Changes" comment="22/10/24">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/recent_projects.json" beforeDir="false" afterPath="$PROJECT_DIR$/assets/recent_projects.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/editor/code_editor.py" beforeDir="false" afterPath="$PROJECT_DIR$/editor/code_editor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/editor/core.py" beforeDir="false" afterPath="$PROJECT_DIR$/editor/core.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/editor/editor_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/editor/editor_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/editor/tab_stats.dat" beforeDir="false" afterPath="$PROJECT_DIR$/editor/tab_stats.dat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -467,7 +465,15 @@
       <option name="project" value="LOCAL" />
       <updated>1729444932168</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="22/10/24">
+      <option name="closed" value="true" />
+      <created>1729582112405</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1729582112405</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -523,6 +529,7 @@
     <MESSAGE value="19/10/24_N" />
     <MESSAGE value="19/10/24" />
     <MESSAGE value="20/10/24" />
-    <option name="LAST_COMMIT_MESSAGE" value="20/10/24" />
+    <MESSAGE value="22/10/24" />
+    <option name="LAST_COMMIT_MESSAGE" value="22/10/24" />
   </component>
 </project>

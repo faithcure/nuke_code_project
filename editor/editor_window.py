@@ -1039,7 +1039,17 @@ class EditorApp(QMainWindow):
     def on_workplace_item_double_clicked(self, item, column):
         """Workplace'deki bir dosya çift tıklanınca dosyayı aç."""
         file_path = item.data(0, Qt.UserRole)
+
         if file_path and file_path.endswith(".py"):
+            # Öncelikle aynı dosya yoluna sahip bir sekmenin açık olup olmadığını kontrol edelim
+            for index in range(self.tab_widget.count()):
+                existing_editor = self.tab_widget.widget(index)
+                if self.tab_widget.tabText(index) == os.path.basename(file_path):
+                    # Eğer aynı isimde bir sekme açıksa, mevcut sekmeyi öne getir
+                    self.tab_widget.setCurrentWidget(existing_editor)
+                    return  # Yeni bir sekme açılmasını engelle ve çık
+
+            # Aynı dosya açık değilse yeni bir sekme aç
             self.add_new_tab(file_path)
 
     def context_menu(self, position):
@@ -1114,10 +1124,19 @@ class EditorApp(QMainWindow):
         else:
             QMessageBox.warning(self, "Hata", "Please select sub dir or file.")
 
-
     def open_file_item(self, item):
         file_path = item.data(0, Qt.UserRole)
+
         if file_path and os.path.exists(file_path):
+            # Öncelikle aynı dosya yoluna sahip bir sekmenin açık olup olmadığını kontrol edelim
+            for index in range(self.tab_widget.count()):
+                existing_editor = self.tab_widget.widget(index)
+                if self.tab_widget.tabText(index) == os.path.basename(file_path):
+                    # Eğer aynı isimde bir sekme açıksa, mevcut sekmeyi öne getir
+                    self.tab_widget.setCurrentWidget(existing_editor)
+                    return  # Yeni bir sekme açılmasını engelle ve çık
+
+            # Aynı dosya açık değilse yeni bir sekme aç
             self.add_new_tab(file_path)
         else:
             QMessageBox.warning(self, "Hata", "Dosya mevcut değil.")
@@ -1516,7 +1535,17 @@ class EditorApp(QMainWindow):
     def open_file(self):
         """Dosya açma işlemi."""
         file_name, _ = QFileDialog.getOpenFileName(self, "Dosya Aç", "", "Python Dosyaları (*.py);;Tüm Dosyalar (*)")
+
         if file_name:
+            # Öncelikle aynı dosya yoluna sahip bir sekmenin açık olup olmadığını kontrol edelim
+            for index in range(self.tab_widget.count()):
+                existing_editor = self.tab_widget.widget(index)
+                if self.tab_widget.tabText(index) == os.path.basename(file_name):
+                    # Eğer aynı isimde bir sekme açıksa, mevcut sekmeyi öne getir
+                    self.tab_widget.setCurrentWidget(existing_editor)
+                    return  # Yeni bir sekme açılmasını engelle ve çık
+
+            # Aynı dosya açık değilse yeni bir sekme aç
             self.add_new_tab(file_name)
 
     def save_file(self):
@@ -1551,11 +1580,11 @@ class EditorApp(QMainWindow):
     def close_tab(self, index):
         """Bir sekmeyi kapatmadan önce kontrol eder."""
         editor = self.tab_widget.widget(index)
-
+        print ("istemci kapatildi")
         if editor.document().isModified():
             # Eğer sekmede kaydedilmemiş değişiklikler varsa kullanıcıya soralım
-            response = self.prompt_save_changes(editor)
 
+            response = self.prompt_save_changes(editor)
             if response == QMessageBox.Save:
                 self.save_file()
                 self.tab_widget.removeTab(index)  # Dosya kaydedildiyse tabı kapat
