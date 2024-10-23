@@ -1,7 +1,9 @@
 import ast
 import importlib
 import json
+import sys
 import os
+import io
 import re
 import shutil
 import webbrowser
@@ -27,6 +29,12 @@ from PySide2.QtCore import Qt, QRect, QSize
 from PySide2.QtGui import QColor, QTextCharFormat, QFont
 from editor.output import OutputWidget
 from editor.console import ConsoleWidget
+import traceback
+import platform
+import socket
+import nuke
+from editor.completer import Completer
+from editor.output import execute_python_code, execute_nuke_code  # output.py dosyasından fonksiyonları çekiyoruz
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -126,43 +134,43 @@ class EditorApp(QMainWindow):
         self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
 
         self.create_bottom_tabs() # Conolse ve Output penceresi
-        def add_new_tab(self, file_path, initial_content=""):
-            """Yeni bir sekme oluşturur ve dosyayı yükler."""
-            editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
+    def add_new_tab(self, file_path, initial_content=""):
+        """Yeni bir sekme oluşturur ve dosyayı yükler."""
+        editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
 
-            # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
-            self.highlighter = PythonHighlighter(editor.document())
+        # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
+        self.highlighter = PythonHighlighter(editor.document())
 
-            # Düzenleyicideki değişiklikler olduğunda HEADER panelini güncelle
-            editor.textChanged.connect(self.update_header_tree)
+        # Düzenleyicideki değişiklikler olduğunda HEADER panelini güncelle
+        editor.textChanged.connect(self.update_header_tree)
 
-            # Dosya içeriği eğer mevcutsa yüklüyoruz, yoksa varsayılan içerik ile açıyoruz
-            if os.path.exists(file_path):
-                with open(file_path, 'r') as file:
-                    content = file.read()
-                    editor.setPlainText(content)
-            else:
-                editor.setPlainText(initial_content)
+        # Dosya içeriği eğer mevcutsa yüklüyoruz, yoksa varsayılan içerik ile açıyoruz
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                content = file.read()
+                editor.setPlainText(content)
+        else:
+            editor.setPlainText(initial_content)
 
-            # QDockWidget içinde düzenleyiciyi oluştur
-            dock = QDockWidget(os.path.basename(file_path), self)
-            dock.setWidget(editor)
-            dock.setFloating(True)  # Yüzer pencereli olarak ayarla
-            dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her yöne taşınabilir
+        # QDockWidget içinde düzenleyiciyi oluştur
+        dock = QDockWidget(os.path.basename(file_path), self)
+        dock.setWidget(editor)
+        dock.setFloating(True)  # Yüzer pencereli olarak ayarla
+        dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her yöne taşınabilir
 
-            # Ana pencereye dock widget'ı ekleyin
-            self.addDockWidget(Qt.LeftDockWidgetArea, dock)
+        # Ana pencereye dock widget'ı ekleyin
+        self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
-            # dock_widgets sözlüğüne yeni dock widget'ı ekleyin
-            self.dock_widgets[file_path] = dock
+        # dock_widgets sözlüğüne yeni dock widget'ı ekleyin
+        self.dock_widgets[file_path] = dock
 
-            # Tab başlığını "*" ile işaretleyin (eğer kaydedilmemişse)
-            editor.textChanged.connect(lambda: self.mark_as_modified(dock, file_path))
+        # Tab başlığını "*" ile işaretleyin (eğer kaydedilmemişse)
+        editor.textChanged.connect(lambda: self.mark_as_modified(dock, file_path))
 
-        def mark_as_modified(self, dock, file_path):
-            """Dosya değişiklik yapıldığında başlıkta '*' gösterir."""
-            if dock.windowTitle()[-1] != '*':
-                dock.setWindowTitle(f"{os.path.basename(file_path)}*")
+    def mark_as_modified(self, dock, file_path):
+        """Dosya değişiklik yapıldığında başlıkta '*' gösterir."""
+        if dock.windowTitle()[-1] != '*':
+            dock.setWindowTitle(f"{os.path.basename(file_path)}*")
 
     def create_bottom_tabs(self):
         """Alt kısma 'Output' ve 'Console' sekmelerini ekleyen ve hareket ettirilebilir yapan fonksiyon."""
@@ -170,6 +178,9 @@ class EditorApp(QMainWindow):
         # Output Dock Widget
         self.output_dock = QDockWidget("Output", self)
         self.output_widget = OutputWidget()
+        title_font = QFont("JetBrains Mono", 10)  # JetBrains Mono fontunu ayarladık
+        self.output_widget.setFont(title_font)
+        self.output_widget.setReadOnly(True)
         self.output_dock.setWidget(self.output_widget)
         self.output_dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her alana yerleştirilebilir
         self.output_dock.setFloating(False)  # Varsayılan olarak yüzer durumda olmasın
@@ -195,6 +206,9 @@ class EditorApp(QMainWindow):
 
         # Dock widget'ları alt kısımda tab şeklinde grupla
         self.tabifyDockWidget(self.output_dock, self.console_dock)
+
+        # Output tabını aktif yapıyoruz
+        self.output_dock.raise_()  # Output tabını ön plana alıyoruz
 
         # Layout'a ekle (Mevcut üst düzenleyici sekmeleri koruyoruz)
         layout = QVBoxLayout()
@@ -231,14 +245,6 @@ class EditorApp(QMainWindow):
         # Özel başlık widget'ını dock widget başlığı olarak ayarla
         dock_widget.setTitleBarWidget(title_bar)
 
-    def print_to_output(self, message):
-        """Output sekmesine mesaj ekler."""
-        self.output_widget.append_output(message)
-
-    def execute_console_command(self, command):
-        """Console sekmesine Python komutu ekler ve çalıştırır."""
-        self.console_widget.run_command(command)
-
     def create_toolbar(self):
         """Toolbar'ı oluşturur ve gerekli butonları ekler."""
 
@@ -255,7 +261,7 @@ class EditorApp(QMainWindow):
         # 1. RUN Butonu (Kod çalıştırmak için)
         run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.svg')), '', self)  # İkon ile boş bir buton
         run_action.setToolTip("Run Current Code")  # Butona tooltip ekliyoruz
-        #run_action.triggered.connect(self.run_code)  # Fonksiyon bağlama
+        run_action.triggered.connect(self.run_code)  # Fonksiyon bağlama
         toolbar.addAction(run_action)  # Butonu toolbara ekle
 
 
@@ -294,6 +300,55 @@ class EditorApp(QMainWindow):
 
         # Toolbar yönü değiştiğinde spacer widget'inin genişlik/yükseklik politikasını değiştireceğiz
         toolbar.orientationChanged.connect(lambda orientation: self.update_toolbar_spacer(orientation, spacer))
+
+    def run_code(self):
+        # Output widget'ı temizle
+        self.output_widget.clear()
+
+        # Gri renkli bilgi mesajlarını ekle
+        from datetime import datetime
+
+        python_version = platform.python_version()  # Python versiyonu
+        nuke_version = nuke.env['NukeVersionString']  # Nuke versiyonu
+        computer_name = socket.gethostname()  # Bilgisayar ismi
+
+        # Şu anki tarih ve saat bilgisi
+        current_time = datetime.now()
+        formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Aktif sekmenin adını al (Tab ismi)
+        active_tab_name = self.tab_widget.tabText(self.tab_widget.currentIndex())  # Aktif sekmenin ismi
+
+        # Gri bilgi satırı
+        info_message = (
+            f'<span style="color: grey;">'
+            f'Python: {python_version} | Nuke: {nuke_version} | Active File: {active_tab_name} | Computer: {computer_name} | {formatted_time}'
+            f'</span>'
+        )
+        self.output_widget.append(info_message)
+
+        # Aktif olan düzenleyiciyi alıyoruz (QPlainTextEdit veya CodeEditor)
+        current_editor = self.tab_widget.currentWidget()
+
+        if isinstance(current_editor, QPlainTextEdit):
+            code = current_editor.toPlainText()
+
+            try:
+                if "nuke." in code:
+                    # Nuke kodunu çalıştır
+                    execute_nuke_code(code, self.output_widget)
+                else:
+                    # Python kodunu çalıştır
+                    execute_python_code(code, self.output_widget)
+
+                # Başarı mesajını ekle
+                success_message = '<span style="color: grey;">...End of the line</span>'
+                self.output_widget.append(success_message)
+
+            except Exception as e:
+                # Hata varsa, düzenli bir şekilde kırmızı renkte göster
+                error_message = traceback.format_exc()
+                self.output_widget.append_error_output(error_message)
 
     def update_toolbar_spacer(self, orientation, spacer):
         """Toolbar'ın yönüne göre spacer widget'inin genişlik/yükseklik ayarlarını değiştirir."""
@@ -1601,7 +1656,6 @@ class EditorApp(QMainWindow):
         print ("istemci kapatildi")
         if editor.document().isModified():
             # Eğer sekmede kaydedilmemiş değişiklikler varsa kullanıcıya soralım
-
             response = self.prompt_save_changes(editor)
             if response == QMessageBox.Save:
                 self.save_file()
@@ -1691,9 +1745,10 @@ class EditorApp(QMainWindow):
             if editor.document().isModified():
                 self.save_file()
 
+    # "ensure_tab" fonksiyonunuza eklemeniz gerekenler
     def ensure_tab(self):
-        """Eğer tüm tablar kapanmışsa, yeni bir 'untitled.py' tabı aç."""
         if self.tab_widget.count() == 0:
+            # Yeni bir sekme açıyoruz
             self.add_new_tab("untitled.py", initial_content="import nuke\nimport nukescripts")
 
     def close_app(self):
