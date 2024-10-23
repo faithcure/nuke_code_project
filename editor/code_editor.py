@@ -103,7 +103,8 @@ class CodeEditor(QPlainTextEdit):
                 if selected_text:
                     main_window.run_selected_code(selected_text)  # Eğer seçili metin varsa sadece onu çalıştır
                 else:
-                    main_window.run_code()  # Seçili metin yoksa tüm kodu çalıştır
+                    pass
+                    #main_window.run_code()  # Seçili metin yoksa tüm kodu çalıştır
             return  # Varsayılan davranışı engellemek için return ekliyoruz
 
         if event.key() == Qt.Key_F and event.modifiers() == Qt.ControlModifier:

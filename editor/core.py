@@ -1,15 +1,6 @@
 import os
 from PySide2.QtGui import QColor
 
-class OutputCatcher:
-    def __init__(self, output_widget):
-        self.output_widget = output_widget
-
-    def write(self, message):
-        self.output_widget.append(message)  # Mesajı Output penceresine ekle
-
-    def flush(self):
-        pass  # Gerekirse bir flush metodu eklenebilir, fakat burada gerek yok
 
 class PathFromOS:
     def __init__(self):

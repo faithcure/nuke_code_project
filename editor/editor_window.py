@@ -4,28 +4,29 @@ import json
 import os
 import re
 import shutil
-import sys
 import webbrowser
 from functools import partial
+from PySide2.QtCore import QPropertyAnimation, QEasingCurve
 from PySide2.QtCore import QStringListModel
-from PySide2.QtCore import Qt, QSize
-from PySide2.QtGui import QFont
+from PySide2.QtGui import QIcon, QKeySequence
 from PySide2.QtGui import QPixmap, QPainter, QPainterPath, QBrush
-from PySide2.QtGui import QTextCharFormat, QTextCursor, QGuiApplication
+from PySide2.QtGui import QTextCursor, QGuiApplication
 from PySide2.QtWidgets import *
-from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QGraphicsDropShadowEffect, QFrame
-import editor.core
+from PySide2.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QLabel, QGraphicsDropShadowEffect, QFrame
 import editor.code_editor
+import editor.core
+import editor.output
+from editor.nlink import update_nuke_functions, load_nuke_functions
 importlib.reload(editor.core)
 importlib.reload(editor.code_editor)
-from editor.core import  OutputCatcher
+importlib.reload(editor.output)
 from editor.core import PathFromOS
-from editor.code_editor import CodeEditor,  PythonHighlighter, LineNumberArea
-from PySide2.QtGui import QIcon, QKeySequence
-from PySide2.QtCore import QPropertyAnimation, QRect, QEasingCurve
-from PySide2.QtGui import QColor
-from editor.nlink import update_nuke_functions, load_nuke_functions
-
+from editor.code_editor import CodeEditor,  PythonHighlighter
+from PySide2.QtWidgets import QDockWidget, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QWidget
+from PySide2.QtCore import Qt, QRect, QSize
+from PySide2.QtGui import QColor, QTextCharFormat, QFont
+from editor.output import OutputWidget
+from editor.console import ConsoleWidget
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -34,6 +35,7 @@ class EditorApp(QMainWindow):
         self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
         self.setWindowTitle("Nuke Code Editor: Empty Project**")  # Open ve New project'den isim çeker
         self.setGeometry(100, 100, 1200, 800)
+
         qr = self.frameGeometry()
         screen = QGuiApplication.primaryScreen()
         cp = screen.availableGeometry().center()
@@ -46,7 +48,7 @@ class EditorApp(QMainWindow):
 
         # Status bar oluşturma
         self.status_bar = self.statusBar()  # Status bar oluşturma
-        self.status_bar.showMessage("Hazır")  # İlk mesajı göster
+        self.status_bar.showMessage("Ready")  # İlk mesajı göster
 
         # Sağ tarafa replace işlemi için bir label ekleyelim
         self.replace_status_label = QLabel()
@@ -64,9 +66,10 @@ class EditorApp(QMainWindow):
 
         # Kapatma butonu ve ikon ayarları
         self.close_icon = os.path.join(PathFromOS().icons_path, 'new_file.png')  # Doğru yolda olduğundan emin olun
-        self.tab_widget.setStyleSheet(f"""
+        self.setStyleSheet(f"""
             QTabWidget::pane {{
                 border: none;
+                
             }}
 
             QTabBar::tab {{
@@ -75,7 +78,8 @@ class EditorApp(QMainWindow):
                 padding: 5px 10px;
                 border: none;
                 font-size: 10pt;
-                padding: 5px 10px 5px 10px;  /* Üst, sağ, alt ve sol padding */
+                min-width: 150px;  /* Genişlik ayarı */
+                min-height: 15px;  /* Yükseklik ayarı */
             }}
 
             QTabBar::tab:selected {{
@@ -99,14 +103,6 @@ class EditorApp(QMainWindow):
         self.tab_widget.currentChanged.connect(self.ensure_tab)
         self.setCentralWidget(self.tab_widget)
 
-        # Output kısmı
-        self.output_text_edit = QTextEdit()
-        self.output_text_edit.setReadOnly(True)
-        self.output_text_edit.setFont(QFont("Consolas", 10))
-
-        # Output bölmesini alta ekleyelim
-        self.create_output_dock()
-
         # Üst menüyü oluşturma
         self.create_menu()
 
@@ -116,10 +112,23 @@ class EditorApp(QMainWindow):
         # Başlangıçta boş bir "untitled.py" sekmesi açılıyor
         self.add_new_tab("untitled.py", initial_content="import nuke\nimport nukescripts")
 
+        # Program başlarken renkleri yükle
+        self.load_colors_from_file()
+
+        # Son açılan projeler bu listeye JSON olarak atanır
+        # Recent Projects ile ilgili değişkenler
+        self.recent_projects_list = []  # Projeleri listelemek için boş bir liste
+        self.recent_projects_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "./",  "assets", "recent_projects.json")  # Dosya yolu
+
+        # Program başlarken recent projects listesini yükleyelim
+        self.load_recent_projects()
+
+        self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
+
+        self.create_bottom_tabs() # Conolse ve Output penceresi
         def add_new_tab(self, file_path, initial_content=""):
             """Yeni bir sekme oluşturur ve dosyayı yükler."""
             editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
-
 
             # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
             self.highlighter = PythonHighlighter(editor.document())
@@ -154,47 +163,81 @@ class EditorApp(QMainWindow):
             """Dosya değişiklik yapıldığında başlıkta '*' gösterir."""
             if dock.windowTitle()[-1] != '*':
                 dock.setWindowTitle(f"{os.path.basename(file_path)}*")
-        # Program başlarken renkleri yükle
-        self.load_colors_from_file()
-        # Son açılan projeler bu listeye JSON olarak atanır
-        # Recent Projects ile ilgili değişkenler
-        self.recent_projects_list = []  # Projeleri listelemek için boş bir liste
-        self.recent_projects_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "./",  "assets", "recent_projects.json")  # Dosya yolu
-        # Program başlarken recent projects listesini yükleyelim
-        self.load_recent_projects()
-        self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
-        # Başlangıçta Nuke fonksiyonlarını yükle
 
-    def run_code(self):
-        """Aktif sekmedeki tüm kodu çalıştırır ve çıktıyı Output penceresinde gösterir."""
-        current_editor = self.tab_widget.currentWidget()
-        if current_editor:
-            code = current_editor.toPlainText()
-            self.execute_code(code)
+    def create_bottom_tabs(self):
+        """Alt kısma 'Output' ve 'Console' sekmelerini ekleyen ve hareket ettirilebilir yapan fonksiyon."""
 
-    def run_selected_code(self, selected_code):
-        """Sadece seçili olan kodu çalıştırır ve çıktıyı Output penceresinde gösterir."""
-        self.execute_code(selected_code)
+        # Output Dock Widget
+        self.output_dock = QDockWidget("Output", self)
+        self.output_widget = OutputWidget()
+        self.output_dock.setWidget(self.output_widget)
+        self.output_dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her alana yerleştirilebilir
+        self.output_dock.setFloating(False)  # Varsayılan olarak yüzer durumda olmasın
 
-    def execute_code(self, code):
-        """Verilen kodu çalıştırır ve çıktıyı Output penceresinde gösterir."""
-        self.output_text_edit.clear()  # Önce Output penceresini temizleyelim
+        # Output başlık stil ayarı ve ikon ekleme
+        output_icon = QIcon(os.path.join(PathFromOS().icons_path, "play_orange.svg"))  # İkon yolunu burada belirtin
+        self.set_custom_dock_title(self.output_dock, "OUTPUT", output_icon)
 
-        try:
-            # Standart çıktıyı ve hata mesajlarını yakalamak için
-            old_stdout = sys.stdout
-            old_stderr = sys.stderr
-            sys.stdout = OutputCatcher(self.output_text_edit)
-            sys.stderr = OutputCatcher(self.output_text_edit)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.output_dock)  # Alt kısma yerleştir
 
-            exec(code, globals())  # Kodu çalıştır
+        # Console Dock Widget
+        self.console_dock = QDockWidget("Console", self)
+        self.console_widget = ConsoleWidget()
+        self.console_dock.setWidget(self.console_widget)
+        self.console_dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her alana yerleştirilebilir
+        self.console_dock.setFloating(False)  # Varsayılan olarak yüzer durumda olmasın
 
-        except Exception as e:
-            self.output_text_edit.append(f"Hata: {str(e)}\n")
+        # Console başlık stil ayarı ve ikon ekleme
+        console_icon = QIcon(os.path.join(PathFromOS().icons_path, "python_tab.svg"))  # İkon yolunu burada belirtin
+        self.set_custom_dock_title(self.console_dock, "CONSOLE", console_icon)
 
-        finally:
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.console_dock)  # Alt kısma yerleştir
+
+        # Dock widget'ları alt kısımda tab şeklinde grupla
+        self.tabifyDockWidget(self.output_dock, self.console_dock)
+
+        # Layout'a ekle (Mevcut üst düzenleyici sekmeleri koruyoruz)
+        layout = QVBoxLayout()
+        layout.addWidget(self.tab_widget)
+
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+    def set_custom_dock_title(self, dock_widget, title, icon):
+        """Dock widget başlıklarına özel stil ve ikon ekleyen fonksiyon."""
+
+        # Özel başlık widget'ı oluştur
+        title_bar = QWidget()
+        title_layout = QHBoxLayout(title_bar)
+        title_layout.setContentsMargins(0, 0, 0, 0)  # İç kenar boşluklarını kaldır
+        title_layout.setAlignment(Qt.AlignLeft)  # Başlığı sola yasla
+
+        # İkonu ekle
+        icon_label = QLabel()
+        icon_label.setPixmap(icon.pixmap(16, 16))  # İkonu 16x16 boyutunda ayarla
+        title_layout.addWidget(icon_label)
+
+        # Başlık metnini ekle
+        title_label = QLabel(title.upper())  # Büyük harflerle başlık
+        title_font = QFont("Arial", 10)
+        title_font.setBold(True)  # Kalın font
+        title_label.setFont(title_font)
+        title_layout.addWidget(title_label)
+
+        # Stretch ekleyerek başlığı sola yaslıyoruz
+        title_layout.addStretch()
+
+        # Özel başlık widget'ını dock widget başlığı olarak ayarla
+        dock_widget.setTitleBarWidget(title_bar)
+
+    def print_to_output(self, message):
+        """Output sekmesine mesaj ekler."""
+        self.output_widget.append_output(message)
+
+    def execute_console_command(self, command):
+        """Console sekmesine Python komutu ekler ve çalıştırır."""
+        self.console_widget.run_command(command)
 
     def create_toolbar(self):
         """Toolbar'ı oluşturur ve gerekli butonları ekler."""
@@ -208,11 +251,11 @@ class EditorApp(QMainWindow):
         # İkon boyutunu 60x60 piksel olarak ayarlıyoruz
         toolbar.setIconSize(QSize(30, 30))
         toolbar.setStyleSheet("QToolBar { spacing: 3px; }")
-        # toolbar.setFixedHeight(40)
+
         # 1. RUN Butonu (Kod çalıştırmak için)
         run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.svg')), '', self)  # İkon ile boş bir buton
         run_action.setToolTip("Run Current Code")  # Butona tooltip ekliyoruz
-        run_action.triggered.connect(self.run_code)  # Fonksiyon bağlama
+        #run_action.triggered.connect(self.run_code)  # Fonksiyon bağlama
         toolbar.addAction(run_action)  # Butonu toolbara ekle
 
 
@@ -228,7 +271,6 @@ class EditorApp(QMainWindow):
         search_action.triggered.connect(self.show_search_dialog)  # Fonksiyon bağlama
         toolbar.addAction(search_action)  # Butonu toolbara ekle
 
-
         # 6. Update internat things like nuke update
         update_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'update.svg')), 'Update NLink', self)
         update_action.setToolTip("Update Nuke Functions List (NLink!)")
@@ -241,7 +283,7 @@ class EditorApp(QMainWindow):
         # 4. CLEAR Butonu (Output panelini temizlemek için)
         clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.svg')), '', self)  # İkon ile boş bir buton
         clear_action.setToolTip("Clear Output")  # Tooltip ekliyoruz
-        clear_action.triggered.connect(self.clear_output)  # Fonksiyon bağlama
+        #clear_action.triggered.connect(self.clear_output)  # Fonksiyon bağlama
         toolbar.addAction(clear_action)  # Butonu toolbara ekle
 
         # 5. SETTINGS Butonu (Ayarlar menüsüne erişim)
@@ -252,12 +294,6 @@ class EditorApp(QMainWindow):
 
         # Toolbar yönü değiştiğinde spacer widget'inin genişlik/yükseklik politikasını değiştireceğiz
         toolbar.orientationChanged.connect(lambda orientation: self.update_toolbar_spacer(orientation, spacer))
-
-
-
-    def clear_output(self):
-        """Output panelini temizlemek için kullanılır."""
-        self.output_text_edit.clear()  # Output panelindeki tüm metni temizler
 
     def update_toolbar_spacer(self, orientation, spacer):
         """Toolbar'ın yönüne göre spacer widget'inin genişlik/yükseklik ayarlarını değiştirir."""
@@ -543,8 +579,6 @@ class EditorApp(QMainWindow):
         cut_action.triggered.connect(self.cut_text)
         copy_action.triggered.connect(self.copy_text)
         paste_action.triggered.connect(self.paste_text)
-        clear_action.triggered.connect(self.clear_output)
-        run_action.triggered.connect(self.run_code)
         stop_action.triggered.connect(self.stop_code)
         reset_ui_action.triggered.connect(self.reset_ui)
         set_default_ui_action.triggered.connect(self.set_default_ui)
@@ -981,12 +1015,6 @@ class EditorApp(QMainWindow):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
         if directory:
             input_field.setText(directory)
-
-    def create_output_dock(self):
-        """Output bölmesini oluşturur ve alt tarafa ekler."""
-        output_dock = QDockWidget("Output", self)
-        output_dock.setWidget(self.output_text_edit)
-        self.addDockWidget(Qt.BottomDockWidgetArea, output_dock)
 
     def new_project(self):
         """Yeni bir proje dizini seçer ve doğrudan dosya sistemine yansıtır."""
@@ -1447,16 +1475,6 @@ class EditorApp(QMainWindow):
             if not tab_title.startswith("*"):
                 self.tab_widget.setTabText(index, "*" + tab_title)
 
-    def run_code(self):
-        """Aktif sekmedeki kodu çalıştırır ve çıktıyı Output penceresinde gösterir."""
-        current_editor = self.tab_widget.currentWidget()
-        if current_editor:
-            code = current_editor.toPlainText()
-            try:
-                exec(code)  # Bu basit bir şekilde Python kodunu çalıştırır
-                self.output_text_edit.append("Kod başarıyla çalıştırıldı.\n")
-            except Exception as e:
-                self.output_text_edit.append(f"Hata: {str(e)}\n")
 
     def open_project(self):
         """Open an existing project and set self.project_dir to the selected directory."""
