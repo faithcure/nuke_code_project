@@ -18,23 +18,27 @@ from PySide2.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QLabel, QGraphics
 import editor.code_editor
 import editor.core
 import editor.output
+import editor.new_nuke_project
 from editor.nlink import update_nuke_functions, load_nuke_functions
 importlib.reload(editor.core)
 importlib.reload(editor.code_editor)
 importlib.reload(editor.output)
+importlib.reload(editor.new_nuke_project)
 from editor.core import PathFromOS
 from editor.code_editor import CodeEditor,  PythonHighlighter
 from PySide2.QtWidgets import QDockWidget, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QWidget
 from PySide2.QtCore import Qt, QRect, QSize
 from PySide2.QtGui import QColor, QTextCharFormat, QFont
 from editor.output import OutputWidget
-from editor.console import ConsoleWidget
 import traceback
 import platform
 import socket
 import nuke
 from editor.completer import Completer
 from editor.output import execute_python_code, execute_nuke_code  # output.py dosyasından fonksiyonları çekiyoruz
+from editor.console import ConsoleWidget
+from editor.new_nuke_project import NewNukeProjectDialog
+
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -134,10 +138,12 @@ class EditorApp(QMainWindow):
         self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
 
         self.create_bottom_tabs() # Conolse ve Output penceresi
+
     def add_new_tab(self, file_path, initial_content=""):
         """Yeni bir sekme oluşturur ve dosyayı yükler."""
+        print("add_new_tab yapıldı")
         editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
-
+        editor.completer.completion_popup.popup().hide()
         # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
         self.highlighter = PythonHighlighter(editor.document())
 
@@ -210,14 +216,6 @@ class EditorApp(QMainWindow):
         # Output tabını aktif yapıyoruz
         self.output_dock.raise_()  # Output tabını ön plana alıyoruz
 
-        # Layout'a ekle (Mevcut üst düzenleyici sekmeleri koruyoruz)
-        layout = QVBoxLayout()
-        layout.addWidget(self.tab_widget)
-
-        container = QWidget()
-        container.setLayout(layout)
-        self.setCentralWidget(container)
-
     def set_custom_dock_title(self, dock_widget, title, icon):
         """Dock widget başlıklarına özel stil ve ikon ekleyen fonksiyon."""
 
@@ -249,13 +247,13 @@ class EditorApp(QMainWindow):
         """Toolbar'ı oluşturur ve gerekli butonları ekler."""
 
         toolbar = self.addToolBar("Main Toolbar")
-        self.addToolBar(Qt.LeftToolBarArea, toolbar)  # Araç çubuğunu pencerenin sol tarafına yerleştir
+        self.addToolBar(editor.core.CodeEditorSettings().setToolbar_area, toolbar)  # Araç çubuğunu pencerenin sol tarafına yerleştir
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Yatay için genişler, dikey için değil
 
         # İkon boyutunu 60x60 piksel olarak ayarlıyoruz
-        toolbar.setIconSize(QSize(30, 30))
+        toolbar.setIconSize(editor.core.CodeEditorSettings().toolbar_icon_size)
         toolbar.setStyleSheet("QToolBar { spacing: 3px; }")
 
         # 1. RUN Butonu (Kod çalıştırmak için)
@@ -287,9 +285,10 @@ class EditorApp(QMainWindow):
         toolbar.addWidget(spacer)
 
         # 4. CLEAR Butonu (Output panelini temizlemek için)
-        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.svg')), '', self)  # İkon ile boş bir buton
+        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.svg')), '',
+                               self)  # İkon ile boş bir buton
         clear_action.setToolTip("Clear Output")  # Tooltip ekliyoruz
-        #clear_action.triggered.connect(self.clear_output)  # Fonksiyon bağlama
+        clear_action.triggered.connect(self.clear_output)  # Fonksiyon bağlama
         toolbar.addAction(clear_action)  # Butonu toolbara ekle
 
         # 5. SETTINGS Butonu (Ayarlar menüsüne erişim)
@@ -300,6 +299,10 @@ class EditorApp(QMainWindow):
 
         # Toolbar yönü değiştiğinde spacer widget'inin genişlik/yükseklik politikasını değiştireceğiz
         toolbar.orientationChanged.connect(lambda orientation: self.update_toolbar_spacer(orientation, spacer))
+
+    def clear_output(self):
+        """Output panelindeki tüm çıktıyı temizler."""
+        self.output_widget.clear()  # Output panelini temizler
 
     def run_code(self):
         # Output widget'ı temizle
@@ -499,6 +502,21 @@ class EditorApp(QMainWindow):
         self.new_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'new_project.png')),
                                           'New Project', self)
         self.new_project_action.setShortcut(QKeySequence("Ctrl+N"))
+
+        # New Project alt menüleri (Nuke ve Custom projeler)
+        new_project_menu = QMenu('New Project', self)  # QIcon kaldırıldı
+        nuke_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'nuke_project.png')),
+                                      'Nuke Project (.nuke)', self)
+        custom_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'custom_project.png')),
+                                        'Custom Project', self)
+
+        # Custom Project aksiyonu, new_project_dialog fonksiyonuna bağlanacak
+        custom_project_action.triggered.connect(self.new_project_dialog)
+        nuke_project_action.triggered.connect(self.open_nuke_project_dialog)
+        new_project_menu.addAction(nuke_project_action)
+        new_project_menu.addAction(custom_project_action)
+
+        # Diğer File menüsü aksiyonları
         open_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'open_project.png')), 'Open Project',
                                       self)
         new_file_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'new_file.png')), 'New File', self)
@@ -515,7 +533,7 @@ class EditorApp(QMainWindow):
         preferences_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'settings.png')), 'Preferences', self)
 
         # File menüsüne eklemeler
-        file_menu.addAction(self.new_project_action)
+        file_menu.addMenu(new_project_menu)  # New Project menüsünü ekliyoruz
         file_menu.addAction(open_project_action)
         file_menu.addSeparator()
         file_menu.addAction(new_file_action)
@@ -1004,8 +1022,11 @@ class EditorApp(QMainWindow):
 
         # Close the dialog
         dialog.close()
-    # Add the methods for Workspace menu actions
 
+    def open_nuke_project_dialog(self):
+        dialog = NewNukeProjectDialog(self)
+        if dialog.exec_():
+            print("Nuke project created successfully!")
 
     def reset_ui(self):
         """Resets the UI layout."""
@@ -1306,6 +1327,7 @@ class EditorApp(QMainWindow):
 
     def new_file(self):
         """Yeni Python dosyası oluşturur."""
+        print ("new_file 1310")
         if not self.project_dir:
             QMessageBox.warning(self, "Save Error", "Project directory is not set.")
             return
@@ -1495,13 +1517,14 @@ class EditorApp(QMainWindow):
             file.write("# New Python file\n")
 
         self.add_new_tab(full_path)  # Yeni dosya ile bir sekme aç
+        print ("add_new_tab 1500")
         self.populate_workplace(self.project_dir)  # "Workplace" görünümünü güncelle
         dialog.close()
 
     def add_new_tab(self, file_path, initial_content=""):
         """Yeni bir sekme oluşturur ve dosyayı yükler."""
         editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
-
+        print ("add_new tab 1504 Correct Completer")
 
         # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
         self.highlighter = PythonHighlighter(editor.document())
@@ -1521,6 +1544,10 @@ class EditorApp(QMainWindow):
 
         self.tab_widget.addTab(editor, self.python_icon, os.path.basename(file_path))
         self.tab_widget.setCurrentWidget(editor)
+
+        # Completer popup'ını kontrol etmeden önce niteliklerin var olup olmadığını kontrol ediyoruz
+        if hasattr(editor, 'completer') and hasattr(editor.completer, 'completion_popup'):
+            editor.completer.completion_popup.popup().hide()
 
     def mark_as_modified(self, editor):
         """Eğer sekmedeki dosya kaydedilmemişse, başlıkta '*' gösterir."""
@@ -1620,7 +1647,7 @@ class EditorApp(QMainWindow):
 
             # Aynı dosya açık değilse yeni bir sekme aç
             self.add_new_tab(file_name)
-
+            print("add_new_tab 1625")
     def save_file(self):
         """Save the current file."""
         if self.project_dir is None:
@@ -1745,11 +1772,16 @@ class EditorApp(QMainWindow):
             if editor.document().isModified():
                 self.save_file()
 
-    # "ensure_tab" fonksiyonunuza eklemeniz gerekenler
     def ensure_tab(self):
         if self.tab_widget.count() == 0:
             # Yeni bir sekme açıyoruz
+            print("add_new_tab 1755")
             self.add_new_tab("untitled.py", initial_content="import nuke\nimport nukescripts")
+
+            # Yeni tab açıldığında completer'ı gizleyelim
+            current_editor = self.tab_widget.currentWidget()
+            if isinstance(current_editor, CodeEditor):
+                current_editor.completer.completion_popup.popup().hide()
 
     def close_app(self):
         """Programı kapatır."""

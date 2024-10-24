@@ -61,7 +61,7 @@ class CodeEditor(QPlainTextEdit):
         else:
             font_families = QFontDatabase.applicationFontFamilies(font_id)
             if font_families:
-                print(f"Yüklenen font ailesi: {font_families[0]}")
+                # print(f"Yüklenen font ailesi: {font_families[0]}")
                 self.setFont(QFont(font_families[0], CodeEditorSettings().main_font_size))  # JetBrains Mono'yu 12 boyutunda ayarla
             else:
                 print("Font ailesi bulunamadı!")

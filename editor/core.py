@@ -1,6 +1,7 @@
 import os
-from PySide2.QtGui import QColor
 
+from PySide2.QtCore import QSize
+from PySide2.QtGui import QColor, Qt
 
 class PathFromOS:
     def __init__(self):
@@ -40,3 +41,8 @@ class CodeEditorSettings:
         line_opacity = 50
         self.clicked_line_color = QColor(75, 75, 75, line_opacity)
 
+        # TOOLBAR settings
+        self.setToolbar_area = Qt.TopToolBarArea
+        tb_icon_sizeX= 20
+        tb_icon_sizeY= 20
+        self.toolbar_icon_size = QSize(tb_icon_sizeX,tb_icon_sizeY)

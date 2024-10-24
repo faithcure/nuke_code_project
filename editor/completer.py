@@ -161,8 +161,8 @@ class Completer(CustomDelegate):
         cursor.select(QTextCursor.WordUnderCursor)
         current_word = cursor.selectedText()
 
-        # Eğer boşsa tamamlama yapma
-        if not current_word:
+        # Eğer metin boşsa ya da imleç başlardaysa popup'ı gizle
+        if not current_word or self.editor.toPlainText().strip() == "":
             self.completion_popup.popup().hide()
             return
 
