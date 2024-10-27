@@ -170,6 +170,13 @@ class NewNukeProjectDialog(QDialog):
         title_label.setStyleSheet("""color: #CFCFCF; font-size: 18px; font-weight: bold; font-family: 'Myriad';border: none;background-color: transparent;""")
         self.inner_layout.addWidget(title_label)
 
+        # Separator çizgisi
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet("color: rgba(255, 255, 255, 0.2);")
+        self.inner_layout.addWidget(line)
+
         # Proje ismi giriş alanı
         self.project_name_input = QLineEdit()
         self.project_name_input.setPlaceholderText("Enter Project Name")
@@ -208,9 +215,10 @@ class NewNukeProjectDialog(QDialog):
         self.menu_py_textbox = LineNumberedTextEdit()
         self.menu_py_textbox.setStyleSheet(f"""background-color: rgba(255, 255, 255, 0.08);color: #CFCFCF;font-size: 12px;""")
         self.menu_py_textbox.setFont(QFont("Consolas"))
-        self.highlighter_menu = SyntaxHighlighter(self.menu_py_textbox.document())
         self.inner_layout.addWidget(self.menu_py_textbox)
         self.menu_py_textbox.hide()  # Initially hidden
+        # Add syntax highlighting to menu.py
+        self.highlighter_menu = SyntaxHighlighter(self.menu_py_textbox.document())  # Syntax highlighting added
 
         # 2. Create init.py
         self.create_init_py_checkbox = QCheckBox("Create init.py")
@@ -221,9 +229,10 @@ class NewNukeProjectDialog(QDialog):
         self.init_py_textbox = LineNumberedTextEdit()
         self.init_py_textbox.setFont(QFont("Consolas"))
         self.init_py_textbox.setStyleSheet(f"""background-color: rgba(255, 255, 255, 0.08);color: #CFCFCF;font-size: 12px;""")
-        self.highlighter_init = SyntaxHighlighter(self.init_py_textbox.document())
         self.inner_layout.addWidget(self.init_py_textbox)
         self.init_py_textbox.hide()  # Initially hidden
+        # Add syntax highlighting to init.py
+        self.highlighter_init = SyntaxHighlighter(self.init_py_textbox.document())  # Syntax highlighting added
 
         # Çizgi separatoru
         add_separator()
@@ -241,12 +250,19 @@ class NewNukeProjectDialog(QDialog):
         # Browse button for .nuke backup location
         backup_dir_layout = QHBoxLayout()
         backup_dir_layout.addWidget(self.backup_dir_input)
-        self.browse_backup_button = QPushButton("Browse Backup Location")
+        self.browse_backup_button = QPushButton("Backup Location")
         self.browse_backup_button.setFixedHeight(37)
+        self.browse_backup_button.setFixedWidth(150)  # Daha dar genişlik
         self.browse_backup_button.setStyleSheet("""QPushButton {background-color: #4E4E4E;color: #FFFFFF;border-radius: 8px;padding: 6px 12px;font-size: 12px;} QPushButton:hover {background-color: #6E6E6E;}""")
         self.browse_backup_button.clicked.connect(self.browse_backup_directory)
         backup_dir_layout.addWidget(self.browse_backup_button)
         self.inner_layout.addLayout(backup_dir_layout)
+
+        # Backup ile ilgili açıklama
+        self.backup_explanation = QLabel("If you have an existing .nuke environment, backing it up \nwill make your work easier.")
+        self.backup_explanation.setStyleSheet("color: #CFCFCF; font-size: 12px; stroke: none; border: none;")
+        self.inner_layout.addWidget(self.backup_explanation)
+        self.backup_explanation.hide()
 
         self.backup_dir_input.hide()
         self.browse_backup_button.hide()
@@ -291,10 +307,12 @@ class NewNukeProjectDialog(QDialog):
         if state == Qt.Checked:
             self.backup_dir_input.show()
             self.browse_backup_button.show()
+            self.backup_explanation.show()  # Backup açıklamasını göster
             self.backup_dir_input.setText("")
         else:
             self.backup_dir_input.hide()
             self.browse_backup_button.hide()
+            self.backup_explanation.hide()  # Backup açıklamasını gizle
 
     def get_default_nuke_directory(self):
         """İşletim sistemine göre .nuke dizinini döndürür."""
@@ -328,4 +346,15 @@ class NewNukeProjectDialog(QDialog):
                         for file in files:
                             zf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), nuke_dir))
 
+        if self.create_menu_py_checkbox.isChecked():
+            menu_py_content = self.menu_py_textbox.toPlainText()
+            with open(os.path.join(project_dir, "menu.py"), 'w') as f:
+                f.write(menu_py_content)
+
+        if self.create_init_py_checkbox.isChecked():
+            init_py_content = self.init_py_textbox.toPlainText()
+            with open(os.path.join(project_dir, "init.py"), 'w') as f:
+                f.write(init_py_content)
+
+        os.makedirs(project_dir, exist_ok=True)
         self.accept()
