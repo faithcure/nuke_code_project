@@ -8,6 +8,8 @@ import re
 import shutil
 import webbrowser
 from functools import partial
+from multiprocessing.pool import ExceptionWithTraceback
+
 from PySide2.QtCore import QPropertyAnimation, QEasingCurve
 from PySide2.QtCore import QStringListModel
 from PySide2.QtGui import QIcon, QKeySequence
@@ -1024,9 +1026,19 @@ class EditorApp(QMainWindow):
         dialog.close()
 
     def open_nuke_project_dialog(self):
+    # Nuke'e ozel proje üretim sonucu burada workplace'i döndürüyor
         dialog = NewNukeProjectDialog(self)
         if dialog.exec_():
-            print("Nuke project created successfully!")
+            project_name = dialog.project_name_input.text().strip()
+            project_dir = dialog.project_dir_input.text().strip()
+            self.project_dir = os.path.join(project_dir, project_name)
+            if os.path.exists(self.project_dir):
+                self.populate_workplace(self.project_dir)
+                self.add_to_recent_projects(self.project_dir)
+                print ("Created: ", self.project_dir)
+            else:
+                print ("NOT Created: ", self.project_dir)
+
 
     def reset_ui(self):
         """Resets the UI layout."""
@@ -1569,22 +1581,22 @@ class EditorApp(QMainWindow):
             # Projeyi recent_projects_list'e ekleyelim
             self.add_to_recent_projects(self.project_dir)
 
-    def add_to_recent_projects(self, project_path):
-        """Projeyi recent projects listesine ekler."""
-        # Eğer proje zaten listede varsa çıkaralım
-        if project_path in self.recent_projects_list:
-            self.recent_projects_list.remove(project_path)
-
-        # En başa ekleyelim
-        self.recent_projects_list.insert(0, project_path)
-
-        # Eğer 7'den fazla proje varsa, en son projeyi çıkaralım
-        if len(self.recent_projects_list) > 7:
-            self.recent_projects_list.pop()
-
-        # Listeyi güncelle ve dosyaya kaydet
-        self.save_recent_projects()
-        self.update_recent_projects_menu()
+    # def add_to_recent_projects(self, project_path):
+    #     """Projeyi recent projects listesine ekler."""
+    #     # Eğer proje zaten listede varsa çıkaralım
+    #     if project_path in self.recent_projects_list:
+    #         self.recent_projects_list.remove(project_path)
+    #
+    #     # En başa ekleyelim
+    #     self.recent_projects_list.insert(0, project_path)
+    #
+    #     # Eğer 7'den fazla proje varsa, en son projeyi çıkaralım
+    #     if len(self.recent_projects_list) > 7:
+    #         self.recent_projects_list.pop()
+    #
+    #     # Listeyi güncelle ve dosyaya kaydet
+    #     self.save_recent_projects()
+    #     self.update_recent_projects_menu()
 
     def add_to_recent_projects(self, project_path):
         """Projeyi recent projects listesine ekler."""

@@ -2,14 +2,15 @@ import os
 import re
 import zipfile
 import importlib
-
-from PySide2.QtGui import QFont, QColor, QPainter, QTextFormat
-from PySide2.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFrame, QHBoxLayout, QFileDialog, QCheckBox, QPlainTextEdit, QTextEdit
-from PySide2.QtCore import Qt, QSize, QRect, QRegExp
-from PySide2.QtWidgets import QGraphicsDropShadowEffect
-from PySide2.QtGui import QSyntaxHighlighter, QTextCharFormat
 import editor.core
 importlib.reload(editor.core)
+from PySide2.QtGui import QFont, QColor, QPainter, QTextFormat
+from PySide2.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFrame, QHBoxLayout, QFileDialog, \
+    QCheckBox, QPlainTextEdit, QTextEdit
+from PySide2.QtCore import Qt, QSize, QRect, QRegExp
+from PySide2.QtWidgets import QGraphicsDropShadowEffect, QSizePolicy, QSpacerItem
+from PySide2.QtGui import QSyntaxHighlighter, QTextCharFormat, QTextCursor
+
 
 class LineNumberedTextEdit(QPlainTextEdit):
     def __init__(self, *args, **kwargs):
@@ -137,7 +138,7 @@ class SyntaxHighlighter(QSyntaxHighlighter):
                 index = expression.indexIn(text, index + length)
 
 class NewNukeProjectDialog(QDialog):
-    def __init__(self, parent=None, jet_fonts=None):
+    def __init__(self, editp_window, parent=None, jet_fonts=None):
         super().__init__(parent)
         self.allowed_pattern = r'^[a-zA-Z0-9_ ]+$'
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
@@ -159,7 +160,8 @@ class NewNukeProjectDialog(QDialog):
 
         # Arka plan çerçevesi
         background_frame = QFrame(self)
-        background_frame.setStyleSheet("""QFrame {background-color: rgb(50, 50, 50);border: 1px solid rgba(255, 255, 255, 0.1);border-radius: 9px;}""")
+        background_frame.setStyleSheet(
+            """QFrame {background-color: rgb(50, 50, 50);border: 1px solid rgba(255, 255, 255, 0.1);border-radius: 9px;}""")
         self.inner_layout = QVBoxLayout(background_frame)
         self.inner_layout.setContentsMargins(30, 30, 30, 20)
         self.main_layout.addWidget(background_frame)
@@ -167,9 +169,10 @@ class NewNukeProjectDialog(QDialog):
         # Başlık
         title_label = QLabel("Create New Nuke Project", background_frame)
         title_label.setAlignment(Qt.AlignLeft)
-        title_label.setStyleSheet("""color: #CFCFCF; font-size: 18px; font-weight: bold; font-family: 'Myriad';border: none;background-color: transparent;""")
+        title_label.setStyleSheet(
+            """color: #CFCFCF; font-size: 18px; font-weight: bold; font-family: 'Myriad';border: none;background-color: transparent;""")
         self.inner_layout.addWidget(title_label)
-
+        self.inner_layout.addSpacing(35)
         # Separator çizgisi
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
@@ -179,21 +182,36 @@ class NewNukeProjectDialog(QDialog):
 
         # Proje ismi giriş alanı
         self.project_name_input = QLineEdit()
+        self.project_name_input.textChanged.connect(self.update_init_py_text)
         self.project_name_input.setPlaceholderText("Enter Project Name")
         self.project_name_input.setMaxLength(20)
-        self.project_name_input.setStyleSheet("""QLineEdit {background-color: rgba(255, 255, 255, 0.08); color: #E0E0E0; padding: 10px; padding-right: 40px; border: 1px solid #5A5A5A; border-radius: 8px;}""")
+        self.project_name_input.setStyleSheet(
+            """QLineEdit {background-color: rgba(255, 255, 255, 0.08); color: #E0E0E0; padding: 10px; padding-right: 40px; border: 1px solid #5A5A5A; border-radius: 8px;}""")
         self.inner_layout.addWidget(self.project_name_input)
+
+        # Karakter sayısı göstergesi etiketi
+        self.character_count_label = QLabel("0/25")
+        self.character_count_label.setStyleSheet("color: #CFCFCF; font-size: 12px; border: 0px;")
+        char_layout = QHBoxLayout()
+        char_layout.addWidget(self.project_name_input)
+        char_layout.addWidget(self.character_count_label)
+        self.inner_layout.addLayout(char_layout)
+
+        # Proje adı alanına sınır kontrolü için textChanged sinyal bağlantısı
+        self.project_name_input.textChanged.connect(self.validate_project_name)
 
         # Proje dizini giriş alanı ve "Browse" butonu
         self.project_dir_input = QLineEdit()
         self.project_dir_input.setPlaceholderText("Select Project Directory")
         self.project_dir_input.setText(self.get_default_nuke_directory())
-        self.project_dir_input.setStyleSheet("""QLineEdit {background-color: rgba(255, 255, 255, 0.08); color: #E0E0E0; padding: 10px; border: 1px solid #5A5A5A; border-radius: 8px;}""")
+        self.project_dir_input.setStyleSheet(
+            """QLineEdit {background-color: rgba(255, 255, 255, 0.08); color: #E0E0E0; padding: 10px; border: 1px solid #5A5A5A; border-radius: 8px;}""")
         dir_layout = QHBoxLayout()
         dir_layout.addWidget(self.project_dir_input)
         browse_button = QPushButton("Browse")
         browse_button.setFixedHeight(37)
-        browse_button.setStyleSheet("""QPushButton {background-color: #4E4E4E; color: #FFFFFF; border-radius: 8px; padding: 6px 12px; font-size: 12px;} QPushButton:hover {background-color: #6E6E6E;}""")
+        browse_button.setStyleSheet(
+            """QPushButton {background-color: #4E4E4E; color: #FFFFFF; border-radius: 8px; padding: 6px 12px; font-size: 12px;} QPushButton:hover {background-color: #6E6E6E;}""")
         browse_button.clicked.connect(self.browse_directory)
         dir_layout.addWidget(browse_button)
         self.inner_layout.addLayout(dir_layout)
@@ -206,20 +224,22 @@ class NewNukeProjectDialog(QDialog):
             line.setStyleSheet("color: rgba(255, 255, 255, 0.2);")
             self.inner_layout.addWidget(line)
 
+        add_separator()
         # 1. Create Menu.py
         self.create_menu_py_checkbox = QCheckBox("Create Menu.py")
         self.create_menu_py_checkbox.setStyleSheet("color: #CFCFCF;")
         self.create_menu_py_checkbox.stateChanged.connect(self.toggle_menu_py_textbox)
         self.inner_layout.addWidget(self.create_menu_py_checkbox)
-
+        self.inner_layout.addWidget(line)
         self.menu_py_textbox = LineNumberedTextEdit()
-        self.menu_py_textbox.setStyleSheet(f"""background-color: rgba(255, 255, 255, 0.08);color: #CFCFCF;font-size: 12px;""")
+        self.menu_py_textbox.setStyleSheet(
+            f"""background-color: rgba(255, 255, 255, 0.08);color: #CFCFCF;font-size: 12px;""")
         self.menu_py_textbox.setFont(QFont("Consolas"))
         self.inner_layout.addWidget(self.menu_py_textbox)
         self.menu_py_textbox.hide()  # Initially hidden
         # Add syntax highlighting to menu.py
         self.highlighter_menu = SyntaxHighlighter(self.menu_py_textbox.document())  # Syntax highlighting added
-
+        self.inner_layout.addWidget(line)
         # 2. Create init.py
         self.create_init_py_checkbox = QCheckBox("Create init.py")
         self.create_init_py_checkbox.setStyleSheet("color: #CFCFCF;")
@@ -228,7 +248,8 @@ class NewNukeProjectDialog(QDialog):
 
         self.init_py_textbox = LineNumberedTextEdit()
         self.init_py_textbox.setFont(QFont("Consolas"))
-        self.init_py_textbox.setStyleSheet(f"""background-color: rgba(255, 255, 255, 0.08);color: #CFCFCF;font-size: 12px;""")
+        self.init_py_textbox.setStyleSheet(
+            f"""background-color: rgba(255, 255, 255, 0.08);color: #CFCFCF;font-size: 12px;""")
         self.inner_layout.addWidget(self.init_py_textbox)
         self.init_py_textbox.hide()  # Initially hidden
         # Add syntax highlighting to init.py
@@ -245,7 +266,9 @@ class NewNukeProjectDialog(QDialog):
 
         self.backup_dir_input = QLineEdit()
         self.backup_dir_input.setPlaceholderText("Select Backup Location")
-        self.backup_dir_input.setStyleSheet("""QLineEdit {background-color: rgba(255, 255, 255, 0.08);color: #E0E0E0;padding: 10px;border: 1px solid #5A5A5A;border-radius: 8px;}""")
+        self.backup_dir_input.setStyleSheet(
+            """QLineEdit {background-color: rgba(255, 255, 255, 0.08);color: #E0E0E0;padding: 10px;border: 1px solid #5A5A5A;border-radius: 8px;}""")
+
 
         # Browse button for .nuke backup location
         backup_dir_layout = QHBoxLayout()
@@ -253,19 +276,38 @@ class NewNukeProjectDialog(QDialog):
         self.browse_backup_button = QPushButton("Backup Location")
         self.browse_backup_button.setFixedHeight(37)
         self.browse_backup_button.setFixedWidth(150)  # Daha dar genişlik
-        self.browse_backup_button.setStyleSheet("""QPushButton {background-color: #4E4E4E;color: #FFFFFF;border-radius: 8px;padding: 6px 12px;font-size: 12px;} QPushButton:hover {background-color: #6E6E6E;}""")
+        self.browse_backup_button.setStyleSheet(
+            """QPushButton {background-color: #4E4E4E;color: #FFFFFF;border-radius: 8px;padding: 6px 12px;font-size: 12px;} QPushButton:hover {background-color: #6E6E6E;}""")
         self.browse_backup_button.clicked.connect(self.browse_backup_directory)
         backup_dir_layout.addWidget(self.browse_backup_button)
         self.inner_layout.addLayout(backup_dir_layout)
 
         # Backup ile ilgili açıklama
-        self.backup_explanation = QLabel("If you have an existing .nuke environment, backing it up \nwill make your work easier.")
+        self.backup_explanation = QLabel(
+            "If you have an existing .nuke environment, backing it up \nwill make your work easier.")
         self.backup_explanation.setStyleSheet("color: #CFCFCF; font-size: 12px; stroke: none; border: none;")
         self.inner_layout.addWidget(self.backup_explanation)
         self.backup_explanation.hide()
-
         self.backup_dir_input.hide()
         self.browse_backup_button.hide()
+        vertical_spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.inner_layout.addItem(vertical_spacer)
+        add_separator()
+        # Warning area with "I" icon and message
+        warning_layout = QHBoxLayout()
+        warning_icon = QLabel("ℹ ")
+        warning_icon.setStyleSheet(" font-size: 40px; font-weight: bold; border: none;")
+        warning_layout.addWidget(warning_icon)
+
+        warning_message = QLabel(
+            "For creating projects outside '.nuke', please use 'New Project > Custom Project'. \n"
+            "We disclaim liability for any damage to files in the selected directory. \n"
+            "To avoid disrupting the '.nuke' directory, please consider creating a backup.\n"
+            "Failure to select this option may result in data loss, for which we accept no liability.")
+        warning_message.setStyleSheet(
+            "color: #FFFFFF; background-color: rgba(255, 0, 0, 0.1); padding: 5px; border-radius: 5px; font-size: 11px;")
+        warning_layout.addWidget(warning_message)
+        self.inner_layout.addLayout(warning_layout)
 
         # OK ve Cancel butonları
         button_layout = QHBoxLayout()
@@ -273,12 +315,14 @@ class NewNukeProjectDialog(QDialog):
 
         ok_button = QPushButton("OK")
         ok_button.setFixedSize(80, 30)
-        ok_button.setStyleSheet("""QPushButton {background-color: #808080;color: #FFFFFF;border-radius: 10px;font-size: 14px;padding: 5px;} QPushButton:hover {background-color: #A9A9A9;}""")
+        ok_button.setStyleSheet(
+            """QPushButton {background-color: #808080;color: #FFFFFF;border-radius: 10px;font-size: 14px;padding: 5px;} QPushButton:hover {background-color: #A9A9A9;}""")
         button_layout.addWidget(ok_button)
 
         cancel_button = QPushButton("Cancel")
         cancel_button.setFixedSize(80, 30)
-        cancel_button.setStyleSheet("""QPushButton {background-color: #808080;color: #FFFFFF;border-radius: 10px;font-size: 14px;padding: 5px;} QPushButton:hover {background-color: #A9A9A9;}""")
+        cancel_button.setStyleSheet(
+            """QPushButton {background-color: #808080;color: #FFFFFF;border-radius: 10px;font-size: 14px;padding: 5px;} QPushButton:hover {background-color: #A9A9A9;}""")
         button_layout.addWidget(cancel_button)
 
         self.inner_layout.addSpacing(20)
@@ -286,6 +330,56 @@ class NewNukeProjectDialog(QDialog):
 
         ok_button.clicked.connect(self.create_project)
         cancel_button.clicked.connect(self.reject)
+
+    def validate_project_name(self):
+        text = self.project_name_input.text()
+
+        # Proje adını Python değişken adlandırma kurallarına göre kısıtla
+        if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", text):
+            text = re.sub(r"[^A-Za-z0-9_]", "", text)
+            text = re.sub(r"^[^A-Za-z_]+", "", text)
+            self.project_name_input.setText(text)
+
+        # Karakter sınırını koruma
+        if len(text) > 25:
+            text = text[:25]
+            self.project_name_input.setText(text)
+
+        # Karakter sayısı göstergesini güncelle
+        self.character_count_label.setText(f"{len(text)}/25")
+
+    def update_init_py_text(self):
+        """init.py içindeki 'your_plugin_path' ifadesini proje ismiyle günceller."""
+        project_name = self.project_name_input.text() or "your_plugin_path"
+        formatted_text = f"import nuke\nimport os\nnuke.pluginAddPath('{project_name}')"
+
+        # init_py_textbox içeriğini güncelle ve renklendir
+        self.init_py_textbox.clear()
+        cursor = QTextCursor(self.init_py_textbox.document())
+        cursor.insertText(formatted_text)
+
+        # Proje ismi kısmını turuncu renkte vurgula
+        format = QTextCharFormat()
+        format.setForeground(QColor("#ffb86c"))  # Turuncu renk
+        self.highlight_text(cursor, project_name, format)
+
+    def highlight_text(self, cursor, text, format):
+        """Metin içinde belirli bir kısmı renklendir."""
+        cursor.beginEditBlock()
+        document = self.init_py_textbox.document()
+        pattern = QRegExp(rf"\b{text}\b")
+
+        pos = 0
+        index = pattern.indexIn(document.toPlainText(), pos)
+
+        while index >= 0:
+            cursor.setPosition(index)
+            cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, len(text))
+            cursor.mergeCharFormat(format)
+            pos = index + len(text)
+            index = pattern.indexIn(document.toPlainText(), pos)
+
+        cursor.endEditBlock()
 
     def toggle_menu_py_textbox(self, state):
         if state == Qt.Checked:
@@ -298,7 +392,7 @@ class NewNukeProjectDialog(QDialog):
     def toggle_init_py_textbox(self, state):
         if state == Qt.Checked:
             self.init_py_textbox.show()
-            self.init_py_textbox.setPlainText("import nuke\nimport os\nnuke.pluginAddPath('your_plugin_path')")
+            self.init_py_textbox.setPlainText("import nuke\nimport os\nnuke.pluginAddPath('your_plugin_path}')")
         else:
             self.init_py_textbox.hide()
             self.init_py_textbox.clear()
@@ -329,32 +423,109 @@ class NewNukeProjectDialog(QDialog):
         if directory:
             self.backup_dir_input.setText(directory)
 
+    # editor_window.py içinde create_project fonksiyonunda güncellemeler
     def create_project(self):
-        project_name = self.project_name_input.text()
-        project_dir = self.project_dir_input.text()
+        import datetime
+        from PySide2.QtWidgets import QProgressDialog
+        from editor.editor_window import EditorApp  # Gerekirse yeniden import edilmesi
 
-        if not project_name or not project_dir:
-            return  # Proje adı ve dizini doğrulama eklenebilir
+        project_name = self.project_name_input.text().strip()
+        project_dir = self.project_dir_input.text().strip()
 
+        # Proje dizini kontrolü ve stil güncellemesi
+        if not project_dir or not os.path.exists(project_dir):
+            self.project_dir_input.setStyleSheet(
+                """QLineEdit {background-color: rgba(255, 150, 150, 0.08); color: #E0E0E0;
+                padding: 10px; border: 1px solid red; border-radius: 8px;}"""
+            )
+            self.project_dir_input.setPlaceholderText("Wrong 'Directory' or 'Path'")
+            return
+        else:
+            self.project_dir_input.setStyleSheet(
+                """QLineEdit {background-color: rgba(255, 255, 255, 0.08); color: #E0E0E0;
+                padding: 10px; border: 1px solid #5A5A5A; border-radius: 8px;}"""
+            )
+
+        # Proje adı kontrolü ve stil güncellemesi
+        if not project_name:
+            self.project_name_input.setStyleSheet(
+                """QLineEdit {background-color: rgba(255, 150, 150, 0.08); color: #E0E0E0;
+                padding: 10px; padding-right: 40px; border: 1px solid red; border-radius: 8px;}"""
+            )
+            return
+        else:
+            self.project_name_input.setStyleSheet(
+                """QLineEdit {background-color: rgba(255, 255, 255, 0.08); color: #E0E0E0;
+                padding: 10px; padding-right: 40px; border: 1px solid #5A5A5A; border-radius: 8px;}"""
+            )
+
+        # Proje dizin yolunu proje adıyla birleştir ve klasörü oluştur
+        project_last_path = os.path.join(project_dir, project_name)
+        os.makedirs(project_last_path, exist_ok=True)
+
+        # Tarih bilgisi ekleme
+        current_date = datetime.datetime.now().strftime("%Y_%m_%d")
+        main_init_file = os.path.join(project_last_path, "__init__.py")
+        with open(main_init_file, "w") as init_file:
+            init_file.write(f"# This directory is part of the main script. //With opened Python Code Editor.\n")
+            init_file.write(f"# Created on: {current_date}")
+
+        # Yedekleme seçeneği kontrolü
         if self.create_backup_folder_checkbox.isChecked():
-            backup_dir = self.backup_dir_input.text()
-            if backup_dir:
-                nuke_dir = self.get_default_nuke_directory()
-                backup_zip = os.path.join(backup_dir, "nuke_backup.zip")
-                with zipfile.ZipFile(backup_zip, 'w') as zf:
-                    for root, dirs, files in os.walk(nuke_dir):
-                        for file in files:
-                            zf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), nuke_dir))
+            backup_dir = self.backup_dir_input.text().strip()
+            if not backup_dir or not os.path.exists(backup_dir):
+                self.backup_dir_input.setStyleSheet(
+                    """QLineEdit {background-color: rgba(255, 150, 150, 0.08); color: #E0E0E0;
+                    padding: 10px; border: 1px solid red; border-radius: 8px;}"""
+                )
+                self.backup_dir_input.setPlaceholderText("Invalid backup directory")
+                return
+            else:
+                self.backup_dir_input.setStyleSheet(
+                    """QLineEdit {background-color: rgba(255, 255, 255, 0.08); color: #E0E0E0;
+                    padding: 10px; border: 1px solid #5A5A5A; border-radius: 8px;}"""
+                )
 
+            nuke_dir = self.get_default_nuke_directory()
+            backup_zip = os.path.join(backup_dir, f"doth_nuke_backup_{current_date}.zip")
+            file_count = sum(len(files) for _, _, files in os.walk(nuke_dir))
+            progress = QProgressDialog("Backing up files...", "Cancel", 0, file_count, self)
+            progress.setWindowTitle("Backup Progress")
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            current_progress = 0
+
+            with zipfile.ZipFile(backup_zip, 'w') as zf:
+                for root, dirs, files in os.walk(nuke_dir):
+                    for file in files:
+                        zf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), nuke_dir))
+                        current_progress += 1
+                        progress.setValue(current_progress)
+                        if progress.wasCanceled():
+                            return
+            progress.close()
+
+        # `menu.py` dosyasını oluştur
         if self.create_menu_py_checkbox.isChecked():
             menu_py_content = self.menu_py_textbox.toPlainText()
-            with open(os.path.join(project_dir, "menu.py"), 'w') as f:
-                f.write(menu_py_content)
+            menu_py_path = os.path.join(project_dir, "menu.py")
+            with open(menu_py_path, 'w') as menu_file:
+                menu_file.write(menu_py_content)
 
+        # `init.py` dosyasını oluştur
         if self.create_init_py_checkbox.isChecked():
             init_py_content = self.init_py_textbox.toPlainText()
-            with open(os.path.join(project_dir, "init.py"), 'w') as f:
-                f.write(init_py_content)
+            init_py_path = os.path.join(project_dir, "init.py")
+            with open(init_py_path, 'w') as init_file:
+                init_file.write(init_py_content)
 
-        os.makedirs(project_dir, exist_ok=True)
+        # # Mevcut EditorApp örneği ile workspace'i populate et
+        # try:
+        #     editor_app_instance = EditorApp()  # Eğer örnek zaten yoksa burada yeniden başlatılır
+        #     editor_app_instance.populate_workplace(directory=project_last_path)
+        # except AttributeError:
+        #     print("EditorApp örneği oluşturulamadı veya populate_workplace işlevine erişilemiyor.")
+        #     return
+
+        # Tüm koşullar sağlandığında dialog'u kapat ve işlemi onayla
         self.accept()
