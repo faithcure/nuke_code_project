@@ -6,14 +6,17 @@ import builtins
 import keyword
 import types
 import sys
+import json
+import os
 from collections import deque
 from difflib import get_close_matches
-from PySide2.QtWidgets import QCompleter, QListView, QStyledItemDelegate, QStyleOptionViewItem, QLabel
+from PySide2.QtWidgets import QCompleter, QListView, QStyledItemDelegate, QStyleOptionViewItem, QLabel, QVBoxLayout
 from PySide2.QtCore import QStringListModel, Qt, QSize, QPoint
 from PySide2.QtGui import QTextCursor, QFont, QColor, QPainter
 from editor.core import CodeEditorSettings
 from PySide2.QtGui import QColor, QFont, QPainter
 from PySide2.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem
+import webbrowser
 
 class CustomDelegate(QStyledItemDelegate):
     """Her item'ı özel şekilde çizerek tür bilgisi ekleyen delegate"""
@@ -114,9 +117,85 @@ class Completer(CustomDelegate):
         self.completion_popup.popup().setItemDelegate(CustomDelegate())  # Özel delegate ekliyoruz
         self.completion_popup.popup().setFont(self.get_custom_font())  # Özel yazı tipi ekliyoruz
         self.completion_popup.activated[str].connect(self.insert_completion)  # Seçilen öneriyi yakala
-
         # Geçmiş için deque tanımlanıyor (max 10 son tamamlamayı saklayacak)
         self.recent_completions = deque(maxlen=10)
+
+        # Status bar ve soru işareti simgesi
+        self.status_bar = QLabel("Description will appear here.")
+        self.status_bar.setFixedHeight(27)
+        self.status_bar.setAlignment(Qt.AlignLeft)
+        self.status_bar.setStyleSheet("background-color: #4a4a4a; color: #fff; padding: 5px; font-size: 24;")
+        self.status_bar.setFont("Consolas")
+
+        # İkonun tıklama olayını kontrol etmek için bir değişken ekliyoruz
+        self.current_source = None
+        popup_height = self.completion_popup.popup().sizeHint().height()
+
+        # Icon tıklama olayını işlemek için mousePressEvent ekleyelim
+        self.status_bar.mousePressEvent = self.open_help_link
+        layout = QVBoxLayout(self.completion_popup.popup())
+        layout.setContentsMargins(0, popup_height - self.status_bar.height(), 0, 0)  # Alt margin ayarı
+        layout.addWidget(self.completion_popup.popup())
+        layout.addWidget(self.status_bar)
+
+        # Kod önerisine geldiğinde açıklamaları güncelle
+        self.completion_popup.popup().setMouseTracking(True)
+        self.completion_popup.popup().entered.connect(self.show_item_description)
+
+    def show_item_description(self, index):
+        """Popup üzerindeki öneri metni üzerine gelindiğinde açıklamayı günceller"""
+        item_text = index.data()
+        description = self.get_description(item_text)
+        self.status_bar.setText(description)
+
+        # Her açıklamanın kaynağını belirle
+        if item_text in keyword.kwlist:
+            self.current_source = "https://docs.python.org/3/reference/lexical_analysis.html#keywords"
+        elif item_text in sys.modules:
+            self.current_source = f"https://docs.python.org/3/library/{item_text}.html"
+        else:
+            self.current_source = None  # Bilinmeyen bir öğe ise kaynak yok
+
+    def open_help_link(self, event):
+        """Status bar'a tıklandığında kaynağa gitmek için bağlantıyı açar"""
+        if self.current_source:
+            webbrowser.open(self.current_source)
+
+    def get_description(self, item_text):
+        """Öneri için açıklama alır"""
+        from editor.code_editor import PathFromOS
+        # JSON dosyasından anahtar kelime açıklamalarını yükleme
+        keyword_file_path = os.path.join(PathFromOS().json_path, "keywords.json")
+
+        try:
+            with open(keyword_file_path, "r", encoding="utf-8") as file:
+                keyword_descriptions = json.load(file)
+        except Exception as e:
+            print(f"Keyword file could not be loaded: {e}")
+            keyword_descriptions = {}
+
+        try:
+            # Nuke fonksiyonu veya knob kontrolü
+            if hasattr(nuke, item_text):
+                return getattr(nuke, item_text).__doc__ or "Nuke function or knob."
+
+            # Yerleşik Python fonksiyonu veya nesnesi kontrolü
+            elif hasattr(builtins, item_text):
+                return getattr(builtins, item_text).__doc__ or "Python keyword."
+
+            # Python anahtar kelimesi kontrolü
+            elif item_text in keyword.kwlist:
+                return keyword_descriptions.get(item_text, "Python anahtar kelimesi.")
+
+            # Python modülü kontrolü
+            elif item_text in sys.modules:
+                module = sys.modules[item_text]
+                return module.__doc__ or "No information available about the Python module."
+
+        except Exception:
+            pass
+
+        return "Description not found."
 
     def insert_completion(self, completion: str):
         """Tamamlanan metni editöre yerleştir, mevcut kelimenin üzerine yaz ve geçmişi güncelle"""
@@ -137,7 +216,7 @@ class Completer(CustomDelegate):
         if completion not in self.recent_completions:
             self.recent_completions.appendleft(completion)
 
-        print(f"Completion: {completion}")
+        # print(f"Completion: {completion}")
 
     def get_popup_styles(self):
         """Tamamlama popup'u için stil şeması"""
