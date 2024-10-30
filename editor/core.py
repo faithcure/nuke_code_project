@@ -1,7 +1,17 @@
 import os
-
 from PySide2.QtCore import QSize
 from PySide2.QtGui import QColor, Qt
+import json
+
+
+def load_nuke_function_descriptions(json_path):
+    """Nuke işlev açıklamalarını JSON'dan yükler."""
+    with open(json_path, "r") as file:
+        data = json.load(file)
+    return {func["name"]: func["doc"] for func in data}
+
+
+
 
 class PathFromOS:
     def __init__(self):
@@ -46,3 +56,6 @@ class CodeEditorSettings:
         tb_icon_sizeX= 20
         tb_icon_sizeY= 20
         self.toolbar_icon_size = QSize(tb_icon_sizeX,tb_icon_sizeY)
+
+        #COMPLETER SETTINGS
+        self.ENABLE_FUZZY_COMPLETION = True # Fuzzy filter ON/OFF

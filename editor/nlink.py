@@ -5,8 +5,23 @@ from editor.core import PathFromOS
 
 # Nuke fonksiyonlarını çekme fonksiyonu
 def get_nuke_functions():
-    """Nuke fonksiyonlarını dinamik olarak çeker."""
-    nuke_functions = [attr for attr in dir(nuke) if callable(getattr(nuke, attr))]
+    """Nuke fonksiyonlarının isim, tür ve dokümantasyon bilgilerini döndürür."""
+    nuke_functions = []
+    if nuke:
+        for func_name in dir(nuke):
+            func = getattr(nuke, func_name)
+            if callable(func):
+                nuke_functions.append({
+                    "name": func_name,
+                    "type": "Function",
+                    "doc": func.__doc__ or "No documentation available."
+                })
+            elif isinstance(func, (nuke.Knob, nuke.Node)):
+                nuke_functions.append({
+                    "name": func_name,
+                    "type": "Knob" if isinstance(func, nuke.Knob) else "Node",
+                    "doc": func.__doc__ or "No documentation available."
+                })
     return nuke_functions
 
 # Nuke fonksiyonlarını JSON dosyasına yazma

@@ -448,7 +448,7 @@ class EditorApp(QMainWindow):
             # Mevcut OUTLINER'a fonksiyonları ekleyin
             for func in nuke_functions:
                 func_item = QTreeWidgetItem(parent_item)
-                func_item.setText(0, func)  # Fonksiyon adı
+                func_item.setText(0, func["name"])  # `func` dict olduğundan `func["name"]` olarak düzelttik
                 func_item.setIcon(0, QIcon(
                     os.path.join(PathFromOS().icons_path, 'M_red.svg')))  # Yanına M_red.svg ikonunu ekleyin
 
