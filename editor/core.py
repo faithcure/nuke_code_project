@@ -10,9 +10,6 @@ def load_nuke_function_descriptions(json_path):
         data = json.load(file)
     return {func["name"]: func["doc"] for func in data}
 
-
-
-
 class PathFromOS:
     def __init__(self):
         self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,6 +22,7 @@ class PathFromOS:
         # Getting dynamic fonts from JetBrains Mono
         self.jet_fonts = os.path.join(self.project_root, 'assets', 'jetBrains','ttf')
         self.jet_fonts_var = os.path.join(self.project_root, 'assets', 'jetBrains','ttf',"variable")
+        self.jet_fonts_italic = os.path.join(self.project_root, 'assets', 'jetBrains','ttf')
 
 class CodeEditorSettings:
     def __init__(self):
@@ -59,3 +57,7 @@ class CodeEditorSettings:
 
         #COMPLETER SETTINGS
         self.ENABLE_FUZZY_COMPLETION = True # Fuzzy filter ON/OFF
+        self.ENABLE_COMPLETER = True  # Completer varsayılan olarak açık
+        self.ENABLE_INLINE_GHOSTING = True # Inline suggestion ON/OFF
+        self.GHOSTING_OPACITY = 100
+        self.GHOSTING_COLOR = QColor(175, 175, 175, self.GHOSTING_OPACITY) # Inline Color settings.

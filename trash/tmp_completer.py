@@ -278,19 +278,17 @@ class Completer(CustomDelegate):
 
     def update_completions(self):
         """Editördeki metne göre tamamlama önerilerini al ve popup göster"""
-        if not CodeEditorSettings().ENABLE_COMPLETER:  # Completer özelliği kapalıysa pop-up gösterme
-            self.completion_popup.popup().hide()
-            return
-
         cursor = self.editor.textCursor()
         cursor.select(QTextCursor.WordUnderCursor)
         current_word = cursor.selectedText()
+
 
         if not current_word or self.editor.toPlainText().strip() == "":
             self.completion_popup.popup().hide()
             return
 
         completions = self.get_all_python_completions()
+
         exact_matches = [comp for comp in completions if comp.startswith(current_word)]
 
         if CodeEditorSettings().ENABLE_FUZZY_COMPLETION:
@@ -310,7 +308,7 @@ class Completer(CustomDelegate):
                 max_type_width = max(max_type_width, type_width)
 
             cr = self.editor.cursorRect()
-            cr.translate(35, 5)
+            cr.translate(35,5) # Öneri popup pozisyonu xy bazından!
             cr.setWidth(self.completion_popup.popup().sizeHintForColumn(0)
                         + self.completion_popup.popup().verticalScrollBar().sizeHint().width()
                         + max_type_width + 20)

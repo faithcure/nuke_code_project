@@ -9,16 +9,20 @@ from PySide2.QtGui import QFont, QPalette, QTextOption
 from PySide2.QtGui import QPainter, QTextFormat, QFontDatabase, QTextBlockFormat
 from PySide2.QtWidgets import *
 import editor.completer
+import editor.inline_ghosting
 from editor.core import CodeEditorSettings
 from editor.core import PathFromOS
 importlib.reload(editor.completer)
+importlib.reload(editor.inline_ghosting)
 from editor.completer import Completer
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QTextCursor
+from editor.inline_ghosting import InlineGhosting
 
-class CodeEditor(QPlainTextEdit):
+class CodeEditor(InlineGhosting):
     def __init__(self, *args):
-        super(CodeEditor, self).__init__(*args)
+
+        super().__init__( *args)  # InlineGhosting başlatılırken öneriler aktarılıyor
         self.setup_fonts()
         self.set_background_color()
         self.completer = Completer(self)  # Completer sınıfını başlatıyoruz
@@ -39,6 +43,13 @@ class CodeEditor(QPlainTextEdit):
     def handle_text_change(self):
         """Yazarken tamamlayıcıyı her harf değişiminde tetikleme"""
         self.completer.update_completions()
+
+        # Inline ghosting ayarını kontrol et
+        if CodeEditorSettings().ENABLE_INLINE_GHOSTING:
+            self.update_ghost_text()  # inline ghost text özelliğini tetikle
+        else:
+            self.ghost_text = ""  # Ghost text özelliği kapalıysa boş bırak
+            self.viewport().update()  # Görüntüyü güncelle
 
     def set_background_color(self):
         """Kod panelinin arkaplan rengini ayarlar"""
@@ -80,7 +91,7 @@ class CodeEditor(QPlainTextEdit):
 
         # Eğer tamamlama popup'ı açık ise Enter/Return tuşunu popup ile kullanmak
         if self.completer.completion_popup.popup().isVisible():
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab):
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
                 # Seçilen öneriyi al
                 selected_index = self.completer.completion_popup.popup().currentIndex()
                 if selected_index.isValid():
