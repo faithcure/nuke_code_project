@@ -15,6 +15,7 @@ class PathFromOS:
         self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.icons_path = os.path.join(self.project_root, 'ui', 'icons')
         self.json_path = os.path.join(self.project_root, 'assets')
+        self.json_dynamic_path = os.path.join(self.project_root, 'assets', 'dynamic_data')
         self.nuke_ref_path = os.path.join(self.project_root, 'assets', 'nuke.py')
         self.nukescripts_ref_path = os.path.join(self.project_root, 'assets', 'nukescripts.py')
         self.assets_path = os.path.join(self.project_root, 'assets')

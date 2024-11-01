@@ -19,9 +19,9 @@ from PySide2.QtCore import Qt
 from PySide2.QtGui import QTextCursor
 from editor.inline_ghosting import InlineGhosting
 
+
 class CodeEditor(InlineGhosting):
     def __init__(self, *args):
-
         super().__init__( *args)  # InlineGhosting başlatılırken öneriler aktarılıyor
         self.setup_fonts()
         self.set_background_color()
@@ -39,6 +39,7 @@ class CodeEditor(InlineGhosting):
         self.cursorPositionChanged.connect(self.update_line_and_character_count)  # İmleç pozisyonu değişince
         self.textChanged.connect(self.handle_text_change)  # Her yazımda tetiklenecek
         self.update_line_number_area_width(0)
+
 
     def handle_text_change(self):
         """Yazarken tamamlayıcıyı her harf değişiminde tetikleme"""

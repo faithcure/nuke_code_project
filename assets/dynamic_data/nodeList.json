@@ -1,0 +1,236 @@
+[
+    {
+        "name": "Constant",
+        "category": "Generator",
+        "description": "Generates a constant color image.",
+        "color": "#F1C40F"
+    },
+    {
+        "name": "CheckerBoard",
+        "category": "Generator",
+        "description": "Creates a checkerboard pattern.",
+        "color": "#3498DB"
+    },
+    {
+        "name": "Noise",
+        "category": "Generator",
+        "description": "Generates random noise in the image.",
+        "color": "#9B59B6"
+    },
+    {
+        "name": "Text",
+        "category": "Generator",
+        "description": "Creates text overlays in the image.",
+        "color": "#2ECC71"
+    },
+    {
+        "name": "ColorWheel",
+        "category": "Generator",
+        "description": "Creates a color wheel pattern.",
+        "color": "#E67E22"
+    },
+    {
+        "name": "Ramp",
+        "category": "Generator",
+        "description": "Generates a gradient ramp pattern.",
+        "color": "#E74C3C"
+    },
+    {
+        "name": "Radial",
+        "category": "Generator",
+        "description": "Generates a radial gradient pattern.",
+        "color": "#34495E"
+    },
+    {
+        "name": "Grade",
+        "category": "Color",
+        "description": "Adjusts the color and contrast of the input image.",
+        "color": "#8E44AD"
+    },
+    {
+        "name": "ColorCorrect",
+        "category": "Color",
+        "description": "Applies color correction adjustments.",
+        "color": "#1ABC9C"
+    },
+    {
+        "name": "HueCorrect",
+        "category": "Color",
+        "description": "Applies hue-based color correction.",
+        "color": "#C0392B"
+    },
+    {
+        "name": "Invert",
+        "category": "Color",
+        "description": "Inverts the colors of the input image.",
+        "color": "#2980B9"
+    },
+    {
+        "name": "Exposure",
+        "category": "Color",
+        "description": "Adjusts the exposure of the input image.",
+        "color": "#D35400"
+    },
+    {
+        "name": "Saturation",
+        "category": "Color",
+        "description": "Adjusts the saturation of the input image.",
+        "color": "#F39C12"
+    },
+    {
+        "name": "Posterize",
+        "category": "Color",
+        "description": "Reduces the number of colors in the image for a posterized look.",
+        "color": "#8E44AD"
+    },
+    {
+        "name": "Blur",
+        "category": "Filter",
+        "description": "Applies a Gaussian blur to the input image.",
+        "color": "#2ECC71"
+    },
+    {
+        "name": "Sharpen",
+        "category": "Filter",
+        "description": "Enhances the edges in the input image.",
+        "color": "#3498DB"
+    },
+    {
+        "name": "Defocus",
+        "category": "Filter",
+        "description": "Simulates out-of-focus effects in the input image.",
+        "color": "#E74C3C"
+    },
+    {
+        "name": "DilateErode",
+        "category": "Filter",
+        "description": "Expands or contracts the alpha channel of the input image.",
+        "color": "#9B59B6"
+    },
+    {
+        "name": "Transform",
+        "category": "Transform",
+        "description": "Performs a 2D transformation on the input.",
+        "color": "#34495E"
+    },
+    {
+        "name": "CornerPin",
+        "category": "Transform",
+        "description": "Pins the corners of the input to specified points.",
+        "color": "#F1C40F"
+    },
+    {
+        "name": "Reformat",
+        "category": "Transform",
+        "description": "Changes the format of the input image.",
+        "color": "#C0392B"
+    },
+    {
+        "name": "Crop",
+        "category": "Transform",
+        "description": "Crops the image to a specified region.",
+        "color": "#2980B9"
+    },
+    {
+        "name": "Resize",
+        "category": "Transform",
+        "description": "Resizes the input image.",
+        "color": "#E67E22"
+    },
+    {
+        "name": "Merge",
+        "category": "Merge",
+        "description": "Combines two images using various blend modes.",
+        "color": "#8E44AD"
+    },
+    {
+        "name": "KeyMix",
+        "category": "Merge",
+        "description": "Merges images based on a key.",
+        "color": "#1ABC9C"
+    },
+    {
+        "name": "Primatte",
+        "category": "Keyer",
+        "description": "Performs chroma keying to extract foreground elements.",
+        "color": "#D35400"
+    },
+    {
+        "name": "FrameHold",
+        "category": "Time",
+        "description": "Holds a specific frame from the input sequence.",
+        "color": "#F39C12"
+    },
+    {
+        "name": "TimeOffset",
+        "category": "Time",
+        "description": "Offsets the timing of the input sequence.",
+        "color": "#2ECC71"
+    },
+    {
+        "name": "Roto",
+        "category": "Draw",
+        "description": "Allows creating custom shapes and masks.",
+        "color": "#3498DB"
+    },
+    {
+        "name": "RotoPaint",
+        "category": "Draw",
+        "description": "Enables painting and creating shapes directly on the image.",
+        "color": "#E74C3C"
+    },
+    {
+        "name": "Camera",
+        "category": "3D",
+        "description": "Creates a virtual camera for 3D scenes.",
+        "color": "#9B59B6"
+    },
+    {
+        "name": "Light",
+        "category": "3D",
+        "description": "Adds a light source to a 3D scene.",
+        "color": "#34495E"
+    },
+    {
+        "name": "Sphere",
+        "category": "3D",
+        "description": "Generates a 3D sphere object.",
+        "color": "#C0392B"
+    },
+    {
+        "name": "Axis",
+        "category": "3D",
+        "description": "Creates a transform axis for 3D objects.",
+        "color": "#2980B9"
+    },
+    {
+        "name": "Shuffle",
+        "category": "Channel",
+        "description": "Reorders or extracts channels in the image.",
+        "color": "#8E44AD"
+    },
+    {
+        "name": "Remove",
+        "category": "Channel",
+        "description": "Removes specific channels from the input image.",
+        "color": "#E67E22"
+    },
+    {
+        "name": "DeepRead",
+        "category": "Deep",
+        "description": "Reads a deep image format file.",
+        "color": "#1ABC9C"
+    },
+    {
+        "name": "DeepToImage",
+        "category": "Deep",
+        "description": "Converts a deep image to a standard 2D image.",
+        "color": "#F1C40F"
+    },
+    {
+        "name": "ZDefocus",
+        "category": "Lens",
+        "description": "Simulates depth-based defocus effects.",
+        "color": "#E74C3C"
+    }
+]

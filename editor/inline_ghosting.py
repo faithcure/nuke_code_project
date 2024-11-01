@@ -1,84 +1,148 @@
+import inspect
 from PySide2.QtGui import QColor, QPainter, QTextCursor, QFont
-from PySide2.QtWidgets import QPlainTextEdit
-from PySide2.QtCore import Qt
+from PySide2.QtWidgets import QPlainTextEdit, QListWidget, QListWidgetItem
+from PySide2.QtCore import Qt, QPoint
 import importlib
 import editor.core
+import os
 
 try:
-    import nuke  # Attempt to import the nuke module
+    import nuke
 except ImportError:
-    nuke = None  # If not found, set nuke to None
+    nuke = None
 
 importlib.reload(editor.core)
 from editor.core import CodeEditorSettings, PathFromOS
 
+
 class InlineGhosting(QPlainTextEdit):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.suggestions = self.load_suggestions_from_modules()  # Suggestions from `nuke` and `nukescripts` only
+
+        self.suggestions = self.load_suggestions_from_modules()
+        self.usage_count = {key: 0 for key in self.suggestions}  # Komut kullanım sayısını takip eder
         self.ghost_text = ""
+        self.accepting_suggestion = False
         self.textChanged.connect(self.update_ghost_text)
 
+        self.node_list_popup = QListWidget(self)
+        self.node_list_popup.hide()
+        self.node_list_popup.itemClicked.connect(self.insert_selected_node)
+
     def load_suggestions_from_modules(self):
-        """Load class and function names from `nuke` and `nukescripts` modules."""
-        suggestions = []
+        suggestions = {}
 
-        # Add all items from the `nuke` module if available
         if nuke:
-            suggestions.extend([attr for attr in dir(nuke) if not attr.startswith("_")])
+            for attr in dir(nuke):
+                if not attr.startswith("_"):
+                    suggestions[attr] = self.get_completion_text(nuke, attr)
 
-        # If nukescripts is available, add its items similarly
         try:
             import nukescripts
-            suggestions.extend([attr for attr in dir(nukescripts) if not attr.startswith("_")])
+            for attr in dir(nukescripts):
+                if not attr.startswith("_"):
+                    suggestions[attr] = self.get_completion_text(nukescripts, attr)
         except ImportError:
             pass
 
         return suggestions
 
-    def set_suggestions(self, new_suggestions):
-        """Dynamically update the suggestion list."""
-        self.suggestions = new_suggestions
+    def get_completion_text(self, module, attr):
+        item = getattr(module, attr)
+        if inspect.isfunction(item) or inspect.ismethod(item):
+            try:
+                params = inspect.signature(item).parameters
+                param_list = ", ".join(param.name for param in params.values())
+                return f"{attr}({param_list})"
+            except (ValueError, TypeError):  # Bu hata, bazı modüller için signature alınamazsa çıkar
+                # Eğer signature alınamazsa, __doc__ üzerinden bir tahmin yapmaya çalış
+                docstring = getattr(item, "__doc__", "")
+                if docstring:
+                    first_line = docstring.splitlines()[0]
+                    return f"{attr}({first_line})"
+                else:
+                    return f"{attr}()"
+        elif isinstance(item, str):
+            return f"{attr}('')"
+        elif isinstance(item, (int, float)):
+            return f"{attr}"
+        else:
+            return f"{attr}()"
 
     def update_ghost_text(self):
-        """Update inline ghost suggestion based on the current word."""
         cursor = self.textCursor()
         cursor.select(QTextCursor.WordUnderCursor)
         current_word = cursor.selectedText()
 
-        # Suggestion based only on keywords from `nuke` or `nukescripts`
-        if current_word and any(current_word.startswith(suggestion) for suggestion in self.suggestions):
-            self.ghost_text = self.find_suggestion(current_word)
+        # Öneri listesini kullanım sayısına göre sıralar
+        sorted_suggestions = dict(sorted(self.suggestions.items(), key=lambda item: -self.usage_count[item[0]]))
+
+        if current_word and any(current_word.startswith(suggestion) for suggestion in sorted_suggestions):
+            self.ghost_text = self.find_suggestion(current_word, sorted_suggestions)
         else:
             self.ghost_text = ""
 
-        self.viewport().update()  # Trigger a repaint for ghost text
+        self.viewport().update()
 
-    def find_suggestion(self, word):
-        """Find a relevant suggestion based on the typed word."""
-        for suggestion in self.suggestions:
-            if suggestion.startswith(word) and suggestion != word:
-                return suggestion[len(word):]  # Return the missing part of the suggestion
+    def find_suggestion(self, word, sorted_suggestions):
+        """Find a relevant suggestion based on the typed word, including partial matches."""
+        for suggestion, completion_text in sorted_suggestions.items():
+            if word in suggestion and suggestion != word:
+                # Kullanım sayısını arttır
+                self.usage_count[suggestion] += 1
+                return completion_text[len(word):]
         return ""
 
     def keyPressEvent(self, event):
-        """Accept suggestion with Alt + Enter."""
         if event.key() == Qt.Key_Return and event.modifiers() == Qt.AltModifier and self.ghost_text:
-            # Insert the ghost text suggestion at the cursor
+            self.accepting_suggestion = True
             cursor = self.textCursor()
             cursor.insertText(self.ghost_text)
             self.ghost_text = ""
-            self.viewport().update()  # Refresh to clear ghost text
-            return  # Stop event propagation for Alt + Enter
-        else:
-            super().keyPressEvent(event)  # Default behavior for other keys
+            self.accepting_suggestion = False
+            self.viewport().update()
+            return
+
+        elif event.key() == Qt.Key_ParenRight:
+            cursor = self.textCursor()
+            cursor.select(QTextCursor.WordUnderCursor)
+            word = cursor.selectedText()
+
+            if word in self.suggestions and callable(getattr(nuke, word, None)):
+                cursor.movePosition(QTextCursor.EndOfWord)
+                cursor.insertText("()")
+                cursor.movePosition(QTextCursor.Left)
+                self.setTextCursor(cursor)
+
+                if word == "createNode":
+                    self.show_node_list_popup(cursor)
+                return
+
+        super().keyPressEvent(event)
+
+    def show_node_list_popup(self, cursor):
+        if nuke:
+            self.node_list_popup.clear()
+            node_classes = [attr for attr in dir(nuke) if "Node" in attr]
+            for node in node_classes:
+                QListWidgetItem(node, self.node_list_popup)
+
+            cursor_rect = self.cursorRect(cursor)
+            popup_position = self.mapToGlobal(cursor_rect.bottomRight())
+            self.node_list_popup.move(popup_position + QPoint(0, 2))
+            self.node_list_popup.show()
+
+    def insert_selected_node(self, item):
+        cursor = self.textCursor()
+        cursor.movePosition(QTextCursor.PreviousCharacter, QTextCursor.KeepAnchor, 1)
+        cursor.insertText(item.text())
+        self.node_list_popup.hide()
 
     def paintEvent(self, event):
-        """Custom paintEvent to display ghost text."""
         super().paintEvent(event)
         if self.ghost_text:
             painter = QPainter(self.viewport())
-            painter.setPen(CodeEditorSettings().GHOSTING_COLOR)  # Color for ghost text
+            painter.setPen(CodeEditorSettings().GHOSTING_COLOR)
 
             cursor_rect = self.cursorRect(self.textCursor())
             x_offset, y_offset = cursor_rect.x(), cursor_rect.y() + self.fontMetrics().ascent()

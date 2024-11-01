@@ -1,15 +1,11 @@
 import ast
 import importlib
 import json
-import sys
 import os
-import io
 import re
 import shutil
 import webbrowser
 from functools import partial
-from multiprocessing.pool import ExceptionWithTraceback
-
 from PySide2.QtCore import QPropertyAnimation, QEasingCurve
 from PySide2.QtCore import QStringListModel
 from PySide2.QtGui import QIcon, QKeySequence
@@ -36,10 +32,9 @@ import traceback
 import platform
 import socket
 import nuke
-from editor.completer import Completer
 from editor.output import execute_python_code, execute_nuke_code  # output.py dosyasından fonksiyonları çekiyoruz
 from editor.console import ConsoleWidget
-from editor.new_nuke_project import NewNukeProjectDialog
+
 
 class EditorApp(QMainWindow):
     def __init__(self):
