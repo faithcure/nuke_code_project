@@ -62,3 +62,5 @@ class CodeEditorSettings:
         self.ENABLE_INLINE_GHOSTING = True # Inline suggestion ON/OFF
         self.GHOSTING_OPACITY = 100
         self.GHOSTING_COLOR = QColor(175, 175, 175, self.GHOSTING_OPACITY) # Inline Color settings.
+
+        self.CREATE_NODE_COMPLETER = True # Sadece createNode ile çalışır.

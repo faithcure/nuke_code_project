@@ -384,5 +384,6 @@ class Completer(CustomDelegate):
         except Exception as e:
             print(f"Python istisna hatası: {e}")
 
+
         completions.extend(self.extract_existing_variables())
         return completions

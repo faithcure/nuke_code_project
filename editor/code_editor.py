@@ -10,14 +10,17 @@ from PySide2.QtGui import QPainter, QTextFormat, QFontDatabase, QTextBlockFormat
 from PySide2.QtWidgets import *
 import editor.completer
 import editor.inline_ghosting
+import nodes.crtNode
 from editor.core import CodeEditorSettings
 from editor.core import PathFromOS
 importlib.reload(editor.completer)
 importlib.reload(editor.inline_ghosting)
+importlib.reload(nodes.crtNode)
 from editor.completer import Completer
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QTextCursor
 from editor.inline_ghosting import InlineGhosting
+from nodes.crtNode import createNodeCompleter
 
 
 class CodeEditor(InlineGhosting):
@@ -40,6 +43,11 @@ class CodeEditor(InlineGhosting):
         self.textChanged.connect(self.handle_text_change)  # Her yazımda tetiklenecek
         self.update_line_number_area_width(0)
 
+        # `createNodeCompleter` nesnesini oluştur
+        self.createNodeCompleter = createNodeCompleter(self)
+
+        # `textChanged` sinyalini `createNodeCompleter` ile bağla
+        self.textChanged.connect(self.createNodeCompleter.check_for_create_node)
 
     def handle_text_change(self):
         """Yazarken tamamlayıcıyı her harf değişiminde tetikleme"""

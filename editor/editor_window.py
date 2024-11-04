@@ -34,7 +34,7 @@ import socket
 import nuke
 from editor.output import execute_python_code, execute_nuke_code  # output.py dosyasından fonksiyonları çekiyoruz
 from editor.console import ConsoleWidget
-
+from editor.new_nuke_project import NewNukeProjectDialog
 
 class EditorApp(QMainWindow):
     def __init__(self):
