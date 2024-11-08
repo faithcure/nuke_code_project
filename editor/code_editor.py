@@ -115,18 +115,6 @@ class CodeEditor(InlineGhosting):
                 self.completer.completion_popup.popup().keyPressEvent(event)
                 return  # Varsayılan davranışı atla
 
-        # Ctrl+Enter kombinasyonu ile kod çalıştırma
-        if event.key() == Qt.Key_Return and event.modifiers() == Qt.ControlModifier:
-            main_window = self.get_main_window()
-            if main_window:
-                selected_text = cursor.selectedText()  # Seçili metni al
-                if selected_text:
-                    main_window.run_selected_code(selected_text)  # Eğer seçili metin varsa sadece onu çalıştır
-                else:
-                    pass
-                    #main_window.run_code()  # Seçili metin yoksa tüm kodu çalıştır
-            return  # Varsayılan davranışı engellemek için return ekliyoruz
-
         if event.key() == Qt.Key_F and event.modifiers() == Qt.ControlModifier:
             main_window = self.get_main_window()
             if main_window:

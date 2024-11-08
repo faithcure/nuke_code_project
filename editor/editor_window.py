@@ -135,6 +135,16 @@ class EditorApp(QMainWindow):
         self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
 
         self.create_bottom_tabs() # Conolse ve Output penceresi
+        # Ctrl+Enter kısayolunu tanımla ve run_code işlevine bağla
+        run_shortcut = QShortcut(QKeySequence("Ctrl+Enter"), self)
+        run_shortcut.activated.connect(self.run_code)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_R and event.modifiers() == Qt.ControlModifier:
+            self.run_code()
+        else:
+            super().keyPressEvent(event)
+        super().keyPressEvent(event)
 
     def add_new_tab(self, file_path, initial_content=""):
         """Yeni bir sekme oluşturur ve dosyayı yükler."""
@@ -176,42 +186,86 @@ class EditorApp(QMainWindow):
             dock.setWindowTitle(f"{os.path.basename(file_path)}*")
 
     def create_bottom_tabs(self):
-        """Alt kısma 'Output' ve 'Console' sekmelerini ekleyen ve hareket ettirilebilir yapan fonksiyon."""
+        """Alt kısma 'Output', 'Console' ve 'NukeAI' sekmelerini ekleyen ve hareket ettirilebilir yapan fonksiyon."""
 
         # Output Dock Widget
         self.output_dock = QDockWidget("Output", self)
         self.output_widget = OutputWidget()
-        title_font = QFont("JetBrains Mono", 10)  # JetBrains Mono fontunu ayarladık
+        title_font = QFont("JetBrains Mono", 10)
         self.output_widget.setFont(title_font)
         self.output_widget.setReadOnly(True)
         self.output_dock.setWidget(self.output_widget)
-        self.output_dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her alana yerleştirilebilir
-        self.output_dock.setFloating(False)  # Varsayılan olarak yüzer durumda olmasın
+        self.output_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.output_dock.setFloating(False)
 
         # Output başlık stil ayarı ve ikon ekleme
-        output_icon = QIcon(os.path.join(PathFromOS().icons_path, "play_orange.svg"))  # İkon yolunu burada belirtin
+        output_icon = QIcon(os.path.join(PathFromOS().icons_path, "play_orange.svg"))
         self.set_custom_dock_title(self.output_dock, "OUTPUT", output_icon)
-
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.output_dock)  # Alt kısma yerleştir
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.output_dock)
 
         # Console Dock Widget
         self.console_dock = QDockWidget("Console", self)
         self.console_widget = ConsoleWidget()
         self.console_dock.setWidget(self.console_widget)
-        self.console_dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her alana yerleştirilebilir
-        self.console_dock.setFloating(False)  # Varsayılan olarak yüzer durumda olmasın
+        self.console_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+        self.console_dock.setFloating(False)
 
         # Console başlık stil ayarı ve ikon ekleme
-        console_icon = QIcon(os.path.join(PathFromOS().icons_path, "python_tab.svg"))  # İkon yolunu burada belirtin
+        console_icon = QIcon(os.path.join(PathFromOS().icons_path, "python_tab.svg"))
         self.set_custom_dock_title(self.console_dock, "CONSOLE", console_icon)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.console_dock)
 
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.console_dock)  # Alt kısma yerleştir
+        # NukeAI Dock Widget
+        self.nuke_ai_dock = QDockWidget("NukeAI", self)
+        self.nuke_ai_widget = QWidget()
+        nuke_ai_layout = QVBoxLayout(self.nuke_ai_widget)
 
-        # Dock widget'ları alt kısımda tab şeklinde grupla
+        # NukeAI Yanıt Penceresi (üst kısımda)
+        self.ai_response = QTextEdit()
+        self.ai_response.setReadOnly(True)
+        self.ai_response.setFont(title_font)
+        self.ai_response.setStyleSheet("border: none;")  # Çerçevesiz yapıyoruz
+        nuke_ai_layout.addWidget(self.ai_response)
+
+        # NukeAI Girdi ve Buton (alt kısımda yan yana)
+        input_layout = QHBoxLayout()
+        self.ai_input = QLineEdit()
+        self.ai_input.setPlaceholderText("Komutunuzu buraya girin (örneğin: Blur nodu oluştur)")
+        self.ai_input.setStyleSheet("border: none;")  # Çerçevesiz yapıyoruz
+        input_layout.addWidget(self.ai_input)
+
+        self.ai_button = QPushButton("Send")
+        self.ai_button.setFlat(True)
+        self.ai_button.setStyleSheet("""
+            QPushButton {
+                color: #FFA500;
+                padding: 6px 12px;
+                font-weight: bold;
+            }
+        """)
+        self.ai_button.clicked.connect(self.process_ai_request)
+        input_layout.addWidget(self.ai_button)
+
+        nuke_ai_layout.addLayout(input_layout)
+        self.nuke_ai_dock.setWidget(self.nuke_ai_widget)
+        self.nuke_ai_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+
+        # NukeAI sekmesine özel başlık stili ve ikon ekleme
+        nuke_ai_icon = QIcon(os.path.join(PathFromOS().icons_path, "ai_icon.svg"))
+        self.set_custom_dock_title(self.nuke_ai_dock, "NUKEAI", nuke_ai_icon)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.nuke_ai_dock)
+
+        # Dockları alt kısımda sekmeli bir yapı ile gruplandırın
         self.tabifyDockWidget(self.output_dock, self.console_dock)
+        self.tabifyDockWidget(self.output_dock, self.nuke_ai_dock)
+        self.output_dock.raise_()  # Output sekmesini öne alıyoruz
 
-        # Output tabını aktif yapıyoruz
-        self.output_dock.raise_()  # Output tabını ön plana alıyoruz
+    def process_ai_request(self):
+        """NukeAI sekmesinde, kullanıcı komutunu işleyip yanıt döner."""
+        prompt = self.ai_input.text()
+        response = f"AI yanıtı: '{prompt}' komutunu işliyorum."  # Test yanıtı
+        self.ai_response.setText(response)
+        self.ai_input.clear()
 
     def set_custom_dock_title(self, dock_widget, title, icon):
         """Dock widget başlıklarına özel stil ve ikon ekleyen fonksiyon."""
@@ -278,6 +332,9 @@ class EditorApp(QMainWindow):
         update_action.triggered.connect(update_nuke_functions)  # Butona fonksiyonu bağlama
         toolbar.addAction(update_action)
 
+        # Separator |
+        toolbar.addSeparator()
+
         # Boş widget ekleyerek butonları sağa veya alta iteceğiz (spacer)
         toolbar.addWidget(spacer)
 
@@ -331,8 +388,8 @@ class EditorApp(QMainWindow):
         current_editor = self.tab_widget.currentWidget()
 
         if isinstance(current_editor, QPlainTextEdit):
-            code = current_editor.toPlainText()
-
+            cursor = current_editor.textCursor()
+            code = cursor.selectedText().strip() or current_editor.toPlainText()
             try:
                 if "nuke." in code:
                     # Nuke kodunu çalıştır
