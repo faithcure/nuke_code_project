@@ -24,7 +24,7 @@ importlib.reload(editor.code_editor)
 importlib.reload(editor.output)
 importlib.reload(editor.new_nuke_project)
 importlib.reload(editor.dialogs.searchDialogs)
-from editor.core import PathFromOS
+from editor.core import PathFromOS, CodeEditorSettings
 from editor.code_editor import CodeEditor,  PythonHighlighter
 from PySide2.QtWidgets import QDockWidget, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QWidget
 from PySide2.QtCore import Qt, QRect, QSize
@@ -39,10 +39,16 @@ from editor.console import ConsoleWidget
 from editor.new_nuke_project import NewNukeProjectDialog
 from editor.dialogs.searchDialogs import SearchDialog
 from editor.dialogs.replaceDialogs import ReplaceDialogs  # Döngüsel içe aktarma sorununu çözmek için fonksiyon içinde import
+from editor.dialogs.goToLineDialogs import GoToLineDialog
+
 
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        #Settings Var
+        self.settings = CodeEditorSettings()  # Ayarları başlatıyoruz ve kalıcı hale getiriyoruz
+
 
         # Window başlık değişkeni
         self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
@@ -62,6 +68,9 @@ class EditorApp(QMainWindow):
         # Status bar oluşturma
         self.status_bar = self.statusBar()  # Status bar oluşturma
         self.status_bar.showMessage("Ready")  # İlk mesajı göster
+        self.font_size_label = QLabel(f"Font Size: {self.settings.main_font_size} | ", self)
+        self.status_bar.addPermanentWidget(self.font_size_label)
+        self.status_bar = self.statusBar()
 
         # Sağ tarafa replace işlemi için bir label ekleyelim
         self.replace_status_label = QLabel()
@@ -562,7 +571,7 @@ class EditorApp(QMainWindow):
     def create_menu(self):
         """Genişletilmiş ve yeniden düzenlenmiş menü çubuğunu oluşturur."""
         menubar = self.menuBar()
-        menubar.setStyleSheet("QMenuBar { padding: 4px 4px; font-size: 8pt; }")  # Eski boyutlara geri döndürüldü
+        menubar.setStyleSheet("QMenuBar { padding: 4px 4px; font-size: 8pt; }")  # Menü çubuğu boyutu
 
         # 1. File Menüsü
         file_menu = menubar.addMenu('File')
@@ -571,19 +580,18 @@ class EditorApp(QMainWindow):
         self.new_project_action.setShortcut(QKeySequence("Ctrl+N"))
 
         # New Project alt menüleri (Nuke ve Custom projeler)
-        new_project_menu = QMenu('New Project', self)  # QIcon kaldırıldı
+        new_project_menu = QMenu('New Project', self)
         nuke_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'nuke_project.png')),
                                       'Nuke Project (.nuke)', self)
         custom_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'custom_project.png')),
                                         'Custom Project', self)
 
-        # Custom Project aksiyonu, new_project_dialog fonksiyonuna bağlanacak
         custom_project_action.triggered.connect(self.new_project_dialog)
         nuke_project_action.triggered.connect(self.open_nuke_project_dialog)
         new_project_menu.addAction(nuke_project_action)
         new_project_menu.addAction(custom_project_action)
 
-        # Diğer File menüsü aksiyonları
+        # File menüsü diğer aksiyonlar
         open_project_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'open_project.png')), 'Open Project',
                                       self)
         new_file_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'new_file.png')), 'New File', self)
@@ -596,11 +604,11 @@ class EditorApp(QMainWindow):
         exit_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'exit.png')), 'Exit', self)
         exit_action.setShortcut(QKeySequence("Ctrl+Q"))
 
-        # Preferences menü öğesini ekle
+        # Preferences öğesi
         preferences_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'settings.png')), 'Preferences', self)
 
         # File menüsüne eklemeler
-        file_menu.addMenu(new_project_menu)  # New Project menüsünü ekliyoruz
+        file_menu.addMenu(new_project_menu)
         file_menu.addAction(open_project_action)
         file_menu.addSeparator()
         file_menu.addAction(new_file_action)
@@ -609,7 +617,7 @@ class EditorApp(QMainWindow):
         file_menu.addAction(save_action)
         file_menu.addAction(save_as_action)
         file_menu.addSeparator()
-        file_menu.addAction(preferences_action)  # Preferences öğesi eklendi
+        file_menu.addAction(preferences_action)
         file_menu.addSeparator()
         self.recent_projects = file_menu.addMenu('Recent Projects')
         file_menu.addSeparator()
@@ -621,6 +629,11 @@ class EditorApp(QMainWindow):
         undo_action.setShortcut(QKeySequence("Ctrl+Z"))
         redo_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'redo.png')), 'Redo', self)
         redo_action.setShortcut(QKeySequence("Ctrl+Y"))
+
+        # Go To Line öğesi
+        go_to_line_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'goto_line.png')), 'Go To Line', self)
+        go_to_line_action.setShortcut(QKeySequence("Ctrl+G"))
+
         find_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.svg')), 'Find', self)
         find_action.setShortcut(QKeySequence("Ctrl+F"))
         replace_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'replace.png')), 'Replace', self)
@@ -641,26 +654,38 @@ class EditorApp(QMainWindow):
         edit_menu.addAction(copy_action)
         edit_menu.addAction(paste_action)
         edit_menu.addSeparator()
+        edit_menu.addAction(go_to_line_action)  # Go To Line eklenmesi
         edit_menu.addAction(find_action)
         edit_menu.addAction(replace_action)
         edit_menu.addSeparator()
         edit_menu.addAction(clear_action)
 
-        # 3. View Menüsü (Görünüm yönetim işlemleri)
+        # 3. View Menüsü
         view_menu = menubar.addMenu('View')
+
+        # Zoom işlemleri
         zoom_in_action = QAction('Zoom In', self)
         zoom_in_action.setShortcut(QKeySequence("Ctrl++"))
         zoom_out_action = QAction('Zoom Out', self)
         zoom_out_action.setShortcut(QKeySequence("Ctrl+-"))
-        reset_ui_action = QAction('Reset UI', self)
-        set_default_ui_action = QAction('Set Default UI', self)
+        reset_zoom_action = QAction('Reset Zoom', self)  # Reset Zoom eklendi
 
         # View menüsüne eklemeler
         view_menu.addAction(zoom_in_action)
         view_menu.addAction(zoom_out_action)
+        view_menu.addAction(reset_zoom_action)  # Reset Zoom menüye eklendi
         view_menu.addSeparator()
+
+        # Reset ve Varsayılan UI aksiyonları
+        reset_ui_action = QAction('Reset UI', self)
+        set_default_ui_action = QAction('Set Default UI', self)
         view_menu.addAction(reset_ui_action)
         view_menu.addAction(set_default_ui_action)
+
+        # Zoom işlevlerini bağlama
+        zoom_in_action.triggered.connect(self.zoom_in)
+        zoom_out_action.triggered.connect(self.zoom_out)
+        reset_zoom_action.triggered.connect(self.reset_zoom)  # Reset Zoom işlevine bağlama
 
         # 4. Run Menüsü
         run_menu = menubar.addMenu('Run')
@@ -670,7 +695,7 @@ class EditorApp(QMainWindow):
         run_menu.addAction(run_action)
         run_menu.addAction(stop_action)
 
-        # 5. Tools Menüsü (GitHub İşlemleri ve PyCharm Bağlantısı ile)
+        # 5. Tools Menüsü
         tools_menu = menubar.addMenu('Tools')
         live_connection_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'pycharm.png')), 'LCV PyCharm',
                                          self)
@@ -682,7 +707,6 @@ class EditorApp(QMainWindow):
         git_pull_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'pull.png')), 'Pull', self)
         git_status_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'status.png')), 'Status', self)
 
-        # GitHub menüsüne eklemeler
         github_menu.addAction(git_commit_action)
         github_menu.addAction(git_push_action)
         github_menu.addAction(git_pull_action)
@@ -698,11 +722,10 @@ class EditorApp(QMainWindow):
         about_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'about.png')), 'About', self)
         update_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'update.png')), 'Update', self)
 
-        # Help menüsüne eklemeler
         help_menu.addAction(documentation_action)
         help_menu.addAction(licence_action)
         help_menu.addAction(about_action)
-        help_menu.addSeparator()  # Update üstüne ayraç eklendi
+        help_menu.addSeparator()
         help_menu.addAction(update_action)
 
         # İşlevleri Fonksiyonlara Bağlama
@@ -722,7 +745,46 @@ class EditorApp(QMainWindow):
         stop_action.triggered.connect(self.stop_code)
         reset_ui_action.triggered.connect(self.reset_ui)
         set_default_ui_action.triggered.connect(self.set_default_ui)
-        preferences_action.triggered.connect(self.open_settings)  # Settings işlevi Preferences altında
+        preferences_action.triggered.connect(self.open_settings)
+
+        # Go To Line işlevini bağlama
+        go_to_line_action.triggered.connect(self.show_go_to_line_dialog)
+
+    def zoom_in(self):
+        """Yazı boyutunu büyütür."""
+        self.settings.main_font_size += 1
+        self.apply_font_size()
+
+    def zoom_out(self):
+        """Yazı boyutunu küçültür."""
+        if self.settings.main_font_size > 1:  # En küçük yazı boyutu kontrolü
+            self.settings.main_font_size -= 1
+        self.apply_font_size()
+
+    def reset_zoom(self):
+        """Yazı boyutunu varsayılan değere sıfırlar."""
+        self.settings.main_font_size = 11  # Varsayılan font boyutunu ayarla
+        self.apply_font_size()
+
+    def apply_font_size(self):
+        """Kod editöründeki yazı boyutunu günceller ve status barda gösterir."""
+        for index in range(self.tab_widget.count()):
+            editor = self.tab_widget.widget(index)
+            if isinstance(editor, CodeEditor):
+                font = editor.font()
+                font.setPointSize(self.settings.main_font_size)
+                editor.setFont(font)
+
+        # Durum çubuğundaki yazı boyutu bilgisini güncelle
+        self.font_size_label.setText(f"Font Size: {self.settings.main_font_size}")
+
+    def show_go_to_line_dialog(self):
+        """Go To Line diyalogunu gösterir."""
+        current_editor = self.tab_widget.currentWidget()
+        if current_editor:
+            dialog = GoToLineDialog(current_editor)
+            dialog.exec_()
+
 
     def stop_code(self):
         # Kodun çalışmasını durdurmak için işlemleri buraya yazın
@@ -739,7 +801,7 @@ class EditorApp(QMainWindow):
     def new_project_dialog(self):
         self.allowed_pattern = r'^[a-zA-Z0-9_ ]+$'
         """Yeni proje oluşturmak için diyalog kutusu."""
-        bg_image_path = os.path.join(PathFromOS().project_root, 'ui', 'icons', 'nuke_logo_bg_01.png')
+        bg_image_path = os.path.join(PathFromOS().icons_path, 'nuke_logo_bg_01.png')
         dialog = QDialog(self)
         dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         dialog.setAttribute(Qt.WA_TranslucentBackground)

@@ -27,11 +27,14 @@ from editor.dialogs.replaceDialogs import ReplaceDialogs
 
 
 class CodeEditor(InlineGhosting):
-    def __init__(self, *args):
-        super().__init__( *args)  # InlineGhosting başlatılırken öneriler aktarılıyor
+    def __init__(self, editor_window=None, *args):
+        super().__init__(*args)
+        self.editor_window = editor_window  # Store a reference to the EditorApp instance
+        self.font_size = CodeEditorSettings().main_font_size  # Default font size
+        self.ctrl_wheel_enabled = CodeEditorSettings().ctrlWheel  # Control + Wheel feature check
         self.setup_fonts()
         self.set_background_color()
-        self.completer = Completer(self)  # Completer sınıfını başlatıyoruz
+        self.completer = Completer(self)  # Initialize Completer
         self.setWordWrapMode(QTextOption.NoWrap)
         self.set_line_spacing(CodeEditorSettings().line_spacing_size)
         self.line_number_area = LineNumberArea(self)
@@ -39,11 +42,11 @@ class CodeEditor(InlineGhosting):
         self.updateRequest.connect(self.update_line_number_area)
         self.cursorPositionChanged.connect(self.highlight_current_line)
         self.cursorPositionChanged.connect(self.highlight_current_word)
-        self.cursorPositionChanged.connect(self.update_cursor_position)  # Cursor pozisyonu güncelleme
-        self.blockCountChanged.connect(self.update_line_and_character_count)  # Satır sayısı güncellenince
-        self.textChanged.connect(self.update_line_and_character_count)  # Karakter değişikliklerinde
-        self.cursorPositionChanged.connect(self.update_line_and_character_count)  # İmleç pozisyonu değişince
-        self.textChanged.connect(self.handle_text_change)  # Her yazımda tetiklenecek
+        self.cursorPositionChanged.connect(self.update_cursor_position)
+        self.blockCountChanged.connect(self.update_line_and_character_count)
+        self.textChanged.connect(self.update_line_and_character_count)
+        self.cursorPositionChanged.connect(self.update_line_and_character_count)
+        self.textChanged.connect(self.handle_text_change)
         self.update_line_number_area_width(0)
 
         # `createNodeCompleter` nesnesini oluştur
@@ -84,10 +87,32 @@ class CodeEditor(InlineGhosting):
         else:
             font_families = QFontDatabase.applicationFontFamilies(font_id)
             if font_families:
-                # print(f"Yüklenen font ailesi: {font_families[0]}")
-                self.setFont(QFont(font_families[0], CodeEditorSettings().main_font_size))  # JetBrains Mono'yu 12 boyutunda ayarla
+                font_family = font_families[0]
+                self.setFont(QFont(font_family, self.font_size))  # Başlangıç font boyutunu ayarla
             else:
                 print("Font ailesi bulunamadı!")
+
+    def wheelEvent(self, event):
+        """Adjust font size with CTRL + Wheel"""
+        if self.ctrl_wheel_enabled and event.modifiers() == Qt.ControlModifier:
+            if event.angleDelta().y() > 0:
+                self.font_size += 1
+            elif event.angleDelta().y() < 0 and self.font_size > 1:
+                self.font_size -= 1
+
+            # Update font size in the editor
+            font = self.font()
+            font.setPointSize(self.font_size)
+            self.setFont(font)
+
+            # Update the font size display in EditorApp's status bar
+            if self.editor_window:
+                self.editor_window.font_size_label.setText(f"Font Size: {self.font_size} | ")
+
+            event.accept()
+        else:
+            # Call the default wheel event if CTRL + Wheel is not enabled
+            super().wheelEvent(event)
 
     def set_line_spacing(self, line_spacing_factor):
         # TextCursor ve TextBlockFormat kullanarak satır aralığını ayarlıyoruz

@@ -28,8 +28,10 @@ class PathFromOS:
 class CodeEditorSettings:
     def __init__(self):
         """Kod yazım ayarları burada döner"""
+
         # GENEL KODLAMA AYARLARI
-        self.main_font_size = 11
+        self.main_font_size = 11 # Default font size
+        self.ctrlWheel = True # Ctrl Whell Zoom Settings Default!
 
         # BACKGROUND COLOR SETTIGS
         self.code_background_color = QColor(45, 45, 45)
