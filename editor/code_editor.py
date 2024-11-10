@@ -11,16 +11,19 @@ from PySide2.QtWidgets import *
 import editor.completer
 import editor.inline_ghosting
 import nodes.crtNode
+import editor.dialogs.replaceDialogs
 from editor.core import CodeEditorSettings
 from editor.core import PathFromOS
 importlib.reload(editor.completer)
 importlib.reload(editor.inline_ghosting)
 importlib.reload(nodes.crtNode)
+importlib.reload(editor.dialogs.replaceDialogs)
 from editor.completer import Completer
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QTextCursor
 from editor.inline_ghosting import InlineGhosting
 from nodes.crtNode import createNodeCompleter
+from editor.dialogs.replaceDialogs import ReplaceDialogs
 
 
 class CodeEditor(InlineGhosting):
@@ -114,19 +117,6 @@ class CodeEditor(InlineGhosting):
                 # Eğer yukarı/aşağı ok tuşuna basılmışsa popup'ta gezinme işlemini yap
                 self.completer.completion_popup.popup().keyPressEvent(event)
                 return  # Varsayılan davranışı atla
-
-        if event.key() == Qt.Key_F and event.modifiers() == Qt.ControlModifier:
-            main_window = self.get_main_window()
-            if main_window:
-                main_window.show_search_dialog()
-            return
-
-        # Eğer Ctrl+H kombinasyonuna basıldıysa replace diyalogunu aç
-        if event.key() == Qt.Key_H and event.modifiers() == Qt.ControlModifier:
-            main_window = self.get_main_window()
-            if main_window:
-                main_window.trigger_replace_in_active_editor()
-            return
 
         # Otomatik kapanan karakterler için kontrol
         if event.key() in (Qt.Key_ParenLeft, Qt.Key_BraceLeft, Qt.Key_BracketLeft,
@@ -224,45 +214,22 @@ class CodeEditor(InlineGhosting):
         menu.addAction(search_action)  # Menüye ekle
 
         # Replace All seçeneği
-        replace_action = QAction("Replace All", self)
-        replace_action.setShortcut("Ctrl+H")  # Kısa yol atama
-        replace_action.triggered.connect(self.replace_selected_word)  # Replace All fonksiyonunu bağla
-        menu.addAction(replace_action)
+        replace_action = QAction("Replace", self)
+        replace_action.triggered.connect(
+            lambda: ReplaceDialogs(self).show()
+            if self.textCursor().selectedText().strip()
+            else self.get_main_window().status_bar.showMessage("Please select the text you want to replace.", 5000)
+        )
 
+        menu.addAction(replace_action)
         # Menüyü göster
         menu.exec_(event.globalPos())
 
-    def replace_selected_word(self):
-        selected_text = self.textCursor().selectedText()
-
-        if not selected_text:
-            self.get_main_window().status_bar.showMessage("Lütfen değiştirmek istediğiniz kelimeyi seçin.", 5000)
-            return
-
-        # Yeni kelimeyi almak için diyalog kutusu açıyoruz
-        new_word, ok = QInputDialog.getText(self, "Replace All", f"{selected_text} kelimesini değiştirin:")
-
-        if ok and new_word:  # Kullanıcı "Tamam" demişse ve yeni kelime varsa
-            document = self.document()
-            cursor = QTextCursor(document)
-            cursor.beginEditBlock()  # Toplu işlem başlat
-
-            # Belge metnini alıyoruz
-            text = self.toPlainText()
-
-            # Seçili kelimeyi tüm belgede değiştiriyoruz
-            new_text = text.replace(selected_text, new_word)
-
-            # Tüm belgeyi seçip yeni metni yerleştiriyoruz
-            cursor.select(QTextCursor.Document)
-            cursor.insertText(new_text)
-
-            cursor.endEditBlock()  # Toplu işlem sonlandır
-
-            # Başarı mesajı
-            self.get_main_window().status_bar.showMessage(
-                f"Tüm '{selected_text}' kelimeleri '{new_word}' ile değiştirildi.", 5000
-            )
+    def get_main_window(self):
+        parent = self.parent()
+        while parent and not isinstance(parent, QMainWindow):
+            parent = parent.parent()
+        return parent
 
     def highlight_current_word(self):
         extra_selections = []

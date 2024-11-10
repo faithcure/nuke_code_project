@@ -17,11 +17,13 @@ import editor.code_editor
 import editor.core
 import editor.output
 import editor.new_nuke_project
+import editor.dialogs.searchDialogs
 from editor.nlink import update_nuke_functions, load_nuke_functions
 importlib.reload(editor.core)
 importlib.reload(editor.code_editor)
 importlib.reload(editor.output)
 importlib.reload(editor.new_nuke_project)
+importlib.reload(editor.dialogs.searchDialogs)
 from editor.core import PathFromOS
 from editor.code_editor import CodeEditor,  PythonHighlighter
 from PySide2.QtWidgets import QDockWidget, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QWidget
@@ -35,6 +37,8 @@ import nuke
 from editor.output import execute_python_code, execute_nuke_code  # output.py dosyasından fonksiyonları çekiyoruz
 from editor.console import ConsoleWidget
 from editor.new_nuke_project import NewNukeProjectDialog
+from editor.dialogs.searchDialogs import SearchDialog
+from editor.dialogs.replaceDialogs import ReplaceDialogs  # Döngüsel içe aktarma sorununu çözmek için fonksiyon içinde import
 
 class EditorApp(QMainWindow):
     def __init__(self):
@@ -138,6 +142,9 @@ class EditorApp(QMainWindow):
         # Ctrl+Enter kısayolunu tanımla ve run_code işlevine bağla
         run_shortcut = QShortcut(QKeySequence("Ctrl+Enter"), self)
         run_shortcut.activated.connect(self.run_code)
+        # Ctrl + Shift + R kısayolunu replace_selected_word ile bağla
+        self.replace_shortcut = QShortcut(QKeySequence("Ctrl+Shift+R"), self)
+        self.replace_shortcut.activated.connect(self.open_replace_dialog)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_R and event.modifiers() == Qt.ControlModifier:
@@ -332,7 +339,7 @@ class EditorApp(QMainWindow):
         update_action.triggered.connect(update_nuke_functions)  # Butona fonksiyonu bağlama
         toolbar.addAction(update_action)
 
-        # Separator |
+        #
         toolbar.addSeparator()
 
         # Boş widget ekleyerek butonları sağa veya alta iteceğiz (spacer)
@@ -417,14 +424,20 @@ class EditorApp(QMainWindow):
             spacer.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
     def show_search_dialog(self):
-        """Arama diyalogu oluşturur ve sonuçları vurgular."""
-        text, ok = QInputDialog.getText(self, 'Arama', 'Aranacak kelimeyi girin:')
-        if ok and text:
-            self.find_and_highlight(text)
+        """Arama dialogunu açar ve arama işlemi gerçekleştirir."""
+        dialog = SearchDialog(self)  # Ana pencere referansını gönderiyoruz
+        dialog.exec_()  # Dialogu modal olarak aç
 
     def show_settings_dialog(self):
         """Ayarlar diyalogu açılır."""
-        QMessageBox.information(self, 'Ayarlar', 'Ayarlar henüz eklenmedi.')
+        QMessageBox.information(self, 'Aya'
+                                      ''
+                                      'rlar', 'Ayarlar henüz eklenmedi.')
+    # def show_search_dialog(self):
+    #     """Arama diyalogu oluşturur ve sonuçları vurgular."""
+    #     text, ok = QInputDialog.getText(self, 'Arama', 'Aranacak kelimeyi girin:')
+    #     if ok and text:
+    #         self.find_and_highlight(text)
 
     def find_and_highlight(self, search_term):
         """Kod düzenleyicide arama terimiyle eşleşen kelimeleri vurgular."""
@@ -1118,13 +1131,29 @@ class EditorApp(QMainWindow):
         if isinstance(current_editor, CodeEditor):
             current_editor.paste()
 
+    def open_replace_dialog(self):
+        current_editor = self.tab_widget.currentWidget()
+        if current_editor:
+            # Seçili metni kontrol et
+            if current_editor.textCursor().selectedText().strip():
+                dialog = ReplaceDialogs(current_editor)
+                dialog.show()
+            else:
+                # Eğer metin seçili değilse uyarı göster
+                self.status_bar.showMessage("Please select the text you want to replace.", 5000)
+
     def trigger_replace_in_active_editor(self):
         # Mevcut aktif sekmedeki editor'ü alalım
         current_editor = self.tab_widget.currentWidget()
 
-        # Eğer aktif düzenleyici bir CodeEditor ise, onun 'replace_selected_word' fonksiyonunu çağırıyoruz
+        # Eğer aktif düzenleyici bir CodeEditor ise ve metin seçiliyse ReplaceDialogs fonksiyonunu çağırıyoruz
         if isinstance(current_editor, CodeEditor):
-            current_editor.replace_selected_word()
+            if current_editor.textCursor().selectedText().strip():
+                dialog = ReplaceDialogs(current_editor)  # current_editor'ü parametre olarak geçiyoruz
+                dialog.show()  # Diyaloğu gösteriyoruz
+            else:
+                # Eğer metin seçili değilse uyarı göster
+                self.status_bar.showMessage("Please select the text you want to replace.", 5000)
         else:
             # Eğer geçerli düzenleyici CodeEditor değilse hata mesajı göster
             self.status_bar.showMessage("Lütfen bir düzenleyici sekmesi açın.", 5000)
