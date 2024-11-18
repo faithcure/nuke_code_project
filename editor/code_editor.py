@@ -14,10 +14,12 @@ import nodes.crtNode
 import editor.dialogs.replaceDialogs
 from editor.core import CodeEditorSettings
 from editor.core import PathFromOS
+import settings.settings_ui
 importlib.reload(editor.completer)
 importlib.reload(editor.inline_ghosting)
 importlib.reload(nodes.crtNode)
 importlib.reload(editor.dialogs.replaceDialogs)
+importlib.reload(settings.settings_ui)
 from editor.completer import Completer
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QTextCursor

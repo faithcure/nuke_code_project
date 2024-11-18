@@ -785,18 +785,17 @@ class EditorApp(QMainWindow):
             dialog = GoToLineDialog(current_editor)
             dialog.exec_()
 
-
     def stop_code(self):
         # Kodun çalışmasını durdurmak için işlemleri buraya yazın
-        print("Execution stopped.")
+        print("Execution stopped FUNC.")
 
     def open_settings(self):
-        # Ayarlar penceresi açılacaksa buraya kod ekleyin
-        print("Settings opened.")
-
-    def switch_theme(self):
-        # Ayarlar penceresi açılacaksa buraya kod ekleyin
-        print("Settings opened.")
+        """Preferences menüsüne tıklanınca settings_ui.py'yi açar."""
+        try:
+            import settings.settings_ui
+            settings.settings_ui.launch_settings()
+        except Exception as e:
+            print(f"Error while opening settings UI: {e}")
 
     def new_project_dialog(self):
         self.allowed_pattern = r'^[a-zA-Z0-9_ ]+$'
