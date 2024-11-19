@@ -364,7 +364,7 @@ class EditorApp(QMainWindow):
         # 5. SETTINGS Butonu (Ayarlar menüsüne erişim)
         settings_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'settings.png')), '', self)  # İkon ile boş bir buton
         settings_action.setToolTip("Settings")  # Tooltip ekliyoruz
-        settings_action.triggered.connect(self.show_settings_dialog)  # Fonksiyon bağlama
+        settings_action.triggered.connect(self.open_settings)  # Fonksiyon bağlama
         toolbar.addAction(settings_action)  # Butonu toolbara ekle
 
         # Toolbar yönü değiştiğinde spacer widget'inin genişlik/yükseklik politikasını değiştireceğiz
@@ -436,17 +436,6 @@ class EditorApp(QMainWindow):
         """Arama dialogunu açar ve arama işlemi gerçekleştirir."""
         dialog = SearchDialog(self)  # Ana pencere referansını gönderiyoruz
         dialog.exec_()  # Dialogu modal olarak aç
-
-    def show_settings_dialog(self):
-        """Ayarlar diyalogu açılır."""
-        QMessageBox.information(self, 'Aya'
-                                      ''
-                                      'rlar', 'Ayarlar henüz eklenmedi.')
-    # def show_search_dialog(self):
-    #     """Arama diyalogu oluşturur ve sonuçları vurgular."""
-    #     text, ok = QInputDialog.getText(self, 'Arama', 'Aranacak kelimeyi girin:')
-    #     if ok and text:
-    #         self.find_and_highlight(text)
 
     def find_and_highlight(self, search_term):
         """Kod düzenleyicide arama terimiyle eşleşen kelimeleri vurgular."""

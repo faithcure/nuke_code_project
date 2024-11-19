@@ -1,19 +1,76 @@
+import subprocess
 import sys
+import os
+import sys
+import requests
 from PySide2.QtWidgets import (
     QApplication, QMainWindow, QListWidget, QStackedWidget, QWidget,
     QVBoxLayout, QLabel, QComboBox, QLineEdit, QCheckBox, QSpinBox, QPushButton,
     QHBoxLayout, QFormLayout, QDialogButtonBox, QGroupBox, QTextEdit, QFrame, QFontComboBox, QFileDialog, QSpacerItem,
-    QSizePolicy
+    QSizePolicy, QMessageBox, QProgressBar, QProgressDialog
 )
-from PySide2.QtCore import Qt
+from PySide2.QtCore import Qt, QThread, Signal
 from PySide2.QtGui import QFontDatabase, QFont
 import os
 import json
+import tempfile
+import tarfile
+import shutil
+import time
+import re
+
+
+class ModuleInstallerThread(QThread):
+    progress_updated = Signal(int, str)  # Signal for progress bar
+    download_info = Signal(str)  # Signal for detailed download info
+    completed = Signal()  # Signal when installation completes
+    error_occurred = Signal(str)  # Signal for errors
+
+    def __init__(self, install_path, required_modules, python_path):
+        super().__init__()
+        self.install_path = install_path
+        self.required_modules = required_modules
+        self.python_path = python_path
+
+    def run(self):
+        try:
+            for i, module in enumerate(self.required_modules):
+                self.progress_updated.emit(i, f"Installing {module}...")
+
+                # Start the pip process
+                process = subprocess.Popen(
+                    [self.python_path, "-m", "pip", "install", module, "--target", self.install_path, "--progress-bar", "off"],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                )
+
+                # Parse the output of pip to extract download details
+                for line in process.stdout:
+                    match = re.search(r"(\d+\.?\d*)\s?([kMG]B)\s?/?\s?(\d+\.?\d*)?\s?([kMG]B)?", line)
+                    if match:
+                        downloaded = match.group(1) + " " + match.group(2)
+                        total = match.group(3) + " " + match.group(4) if match.group(3) else "unknown"
+                        self.download_info.emit(f"Downloading {module}: {downloaded} of {total}")
+                    if "Installing collected packages" in line:
+                        self.download_info.emit(f"Installing package files for {module}...")
+
+                # Wait for the process to complete
+                process.wait()
+
+                # Check if the process exited with an error
+                if process.returncode != 0:
+                    raise subprocess.CalledProcessError(process.returncode, process.args)
+
+                time.sleep(0.5)  # Simulate delay for better progress visualization
+
+            self.completed.emit()
+        except subprocess.CalledProcessError as e:
+            self.error_occurred.emit(f"Error while installing {module}:\n{str(e)}")
+        except Exception as ex:
+            self.error_occurred.emit(f"Unexpected error:\n{str(ex)}")
 
 
 class SettingsWindow(QMainWindow):
     SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
-    print(SETTINGS_FILE)
 
     def __init__(self):
         super().__init__()
@@ -347,40 +404,199 @@ class SettingsWindow(QMainWindow):
         panel = QWidget()
         layout = QVBoxLayout()
 
-        # Github Bilgilendirme Metni
-        github_info = QLabel("Github Ayarları: Github entegrasyonu için gerekli bilgileri ve token ayarlarını yapılandırabilirsiniz.")
+        # Agreement Checkbox
+        agreement_group = QGroupBox("Terms and Agreement")
+        agreement_layout = QVBoxLayout()
+        agreement_checkbox = QCheckBox(
+            "By proceeding, you confirm that you have the advanced technical knowledge required to configure\n"
+            "and use this integration. You accept that any unintended issues or damages are at your own \n"
+            "responsibility. Please proceed cautiously. By using this integration, you acknowledge that unexpected\n"
+            "issues may arise and agree that the provider is not responsible for any losses or damages incurred."
+        )
+        agreement_checkbox.setChecked(True)
+        agreement_checkbox.setEnabled(False)
+        agreement_layout.addWidget(agreement_checkbox)
+        agreement_group.setLayout(agreement_layout)
+        layout.addWidget(agreement_group)
+
+        # GitHub Information
+        github_info = QLabel(
+            "GitHub Settings: Configure your GitHub integration with username and personal access token.")
+        github_info.setEnabled(False)
         github_info.setWordWrap(True)
         layout.addWidget(github_info)
         layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
-        # Github Kullanıcı Adı
-        username_group = QGroupBox("Github Username")
-        username_layout = QFormLayout()
+        # GitHub Credentials Group
+        credentials_group = QGroupBox("GitHub Credentials")
+        credentials_layout = QFormLayout()
+
+        # Username Input
         username_input = QLineEdit()
-        username_layout.addRow("Username:", username_input)
-        username_group.setLayout(username_layout)
-        layout.addWidget(username_group)
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        credentials_layout.addRow("Username:", username_input)
 
-        # GitHub Token
-        token_group = QGroupBox("Github Token")
-        token_layout = QFormLayout()
+        # Token Input
         token_input = QLineEdit()
-        token_input.setEchoMode(QLineEdit.Password)  # Güvenlik için gizli giriş
-        token_layout.addRow("Token:", token_input)
-        token_group.setLayout(token_layout)
-        layout.addWidget(token_group)
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        token_input.setEchoMode(QLineEdit.Password)
+        credentials_layout.addRow("Token:", token_input)
 
-        # Daha Fazla Bilgi Linki
-        more_info_label = QLabel()
-        more_info_label.setText('''<a href='#', 
-                                 style=color:white>Get Help...</a>''')
-        more_info_label.setOpenExternalLinks(True)
-        layout.addWidget(more_info_label)
+        # Token Description
+        token_description = QLabel(
+            "Provide a personal access token to enable secure GitHub operations.\n"
+            "Ensure the token has the necessary scopes for your integration (e.g., repo, workflow)."
+        )
+        token_description.setWordWrap(True)
+        credentials_layout.addRow(token_description)
+
+        # Documentation Link
+        documentation_label = QLabel(
+            "<a href='https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token' "
+            "style='color:white;'>Learn how to create a personal access token</a>"
+        )
+        documentation_label.setOpenExternalLinks(True)
+        credentials_layout.addRow(documentation_label)
+
+        credentials_group.setLayout(credentials_layout)
+        layout.addWidget(credentials_group)
+
+        # Add spacer
+        layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Fixed))
+
+        # Environment Check Group
+        environment_group = QGroupBox("Environment Check")
+        environment_layout = QVBoxLayout()
+
+        # Modules Message
+        modules_message = QLabel()
+        modules_message.setWordWrap(True)
+
+        # Modül kontrolü
+        install_path = os.path.join(os.path.dirname(__file__), "modules")
+        required_modules = ["gitdb", "GitPython"]
+        installed_modules = self.check_github_modules(install_path, required_modules)
+
+        if installed_modules:
+            modules_message.setText("All required GitHub modules are installed and working.")
+            modules_message.setStyleSheet("color: palegreen;")
+        else:
+            modules_message.setText("Required GitHub modules are missing in the specified environment.")
+            modules_message.setStyleSheet("color: lightcoral;")
+
+        environment_layout.addWidget(modules_message)
+
+        # Install Button
+        install_button = QPushButton("Install GitHub Modules")
+        install_button.setEnabled(not installed_modules)
+        install_button.clicked.connect(self.install_github_modules)
+        environment_layout.addWidget(install_button)
+
+        # Update Button
+        update_button = QPushButton("Update GitHub Modules")
+        update_button.setEnabled(installed_modules)
+        update_button.clicked.connect(lambda: self.update_github_modules(install_path, required_modules))
+        environment_layout.addWidget(update_button)
+
+        # Explanation
+        explanation_label = QLabel(
+            "The GitHub integration requires specific modules to function. If they are missing, install them using the button above."
+        )
+        explanation_label.setWordWrap(True)
+        environment_layout.addWidget(explanation_label)
+
+        environment_group.setLayout(environment_layout)
+        layout.addWidget(environment_group)
+
+        # Documentation Link
+        doc_link = QLabel("<a href='https://docs.github.com/en' style='color:white;'>GitHub Documentation</a>")
+        doc_link.setOpenExternalLinks(True)
+        layout.addWidget(doc_link)
 
         panel.setLayout(layout)
         return panel
+
+    def install_github_modules(self):
+        """
+        Install GitHub modules to the 'modules' directory using a background thread and show detailed progress.
+        """
+        # Hedef dizini belirle
+        install_path = os.path.join(os.path.dirname(__file__), "modules")
+        required_modules = ["gitdb", "GitPython"]
+
+        # 'modules' klasörü yoksa oluştur
+        if not os.path.exists(install_path):
+            os.makedirs(install_path)
+
+        # Sistem Python yorumlayıcısını bul
+        python_path = "python"
+        if "PYTHON_HOME" in os.environ:
+            python_path = os.path.join(os.environ["PYTHON_HOME"], "python.exe")
+        else:
+            possible_paths = [
+                r"C:\Users\User\AppData\Local\Programs\Python\Python39\python.exe",
+                r"C:\Python39\python.exe",
+                r"C:\Python38\python.exe"
+            ]
+            for path in possible_paths:
+                if os.path.exists(path):
+                    python_path = path
+                    break
+
+        # Progress Dialog oluştur
+        progress = QProgressDialog("Installing GitHub modules...", "Cancel", 0, len(required_modules))
+        progress.setWindowTitle("Installation Progress")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+
+        # Thread oluştur
+        thread = ModuleInstallerThread(install_path, required_modules, python_path)
+
+        # Progress bar güncellemeleri için sinyal bağlama
+        thread.progress_updated.connect(lambda value, text: (
+            progress.setValue(value),
+            progress.setLabelText(text)
+        ))
+
+        # İndirme detaylarını göstermek için sinyal bağlama
+        thread.download_info.connect(lambda info: progress.setLabelText(info))
+
+        # İşlem tamamlandığında
+        thread.completed.connect(lambda: (
+            progress.setValue(len(required_modules)),
+            QMessageBox.information(self, "Installation Complete", "Modules have been successfully installed.")
+        ))
+
+        # Hata durumunda
+        thread.error_occurred.connect(lambda error: (
+            progress.close(),
+            QMessageBox.critical(self, "Installation Error", error)
+        ))
+
+        # İşlem iptal edilirse
+        progress.canceled.connect(lambda: (
+            thread.terminate(),
+            QMessageBox.warning(self, "Installation Canceled", "Module installation has been canceled.")
+        ))
+
+        # Thread başlat
+        thread.start()
+
+    def check_github_modules(self, install_path, required_modules):
+        """
+        Check if required modules are present in the specified folder.
+        Args:
+            install_path (str): Path to the target folder where modules are installed.
+            required_modules (list): List of required module names.
+        Returns:
+            bool: True if all required modules are found, False otherwise.
+        """
+        if not os.path.exists(install_path):
+            return False
+
+        installed_modules = os.listdir(install_path)  # List all directories/files in the install path
+        for module in required_modules:
+            if not any(module.lower() in item.lower() for item in installed_modules):
+                return False
+        return True
 
     def other_apps_settings(self):
         panel = QWidget()
@@ -455,10 +671,13 @@ class SettingsWindow(QMainWindow):
         # General Panel
         general_panel = self.settings_panels.widget(0)
         general_data = self.settings.get("General", {})
+        for widget in general_panel.findChildren(QCheckBox):
+            if widget.objectName() and widget.objectName() in general_data:
+                widget.setChecked(general_data[widget.objectName()])
         for widget in general_panel.findChildren(QComboBox):
             if widget.objectName() and widget.objectName() in general_data:
                 index = widget.findText(general_data[widget.objectName()])
-                if index != -1:  # Değer bulunursa
+                if index != -1:  # Ensure the value exists
                     widget.setCurrentIndex(index)
 
         # Code Editor Panel
@@ -576,4 +795,3 @@ def launch_settings():
     settings_window = SettingsWindow()
     settings_window.show()
     app.exec_()
-
