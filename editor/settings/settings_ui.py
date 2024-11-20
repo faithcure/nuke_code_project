@@ -74,6 +74,7 @@ class SettingsWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.status_label = None
         self.setWindowTitle("Settings")
         self.setGeometry(100, 100, 800, 600)
         self.setStyleSheet("QLabel { color: white; }")
@@ -433,12 +434,24 @@ class SettingsWindow(QMainWindow):
 
         # Username Input
         username_input = QLineEdit()
+        username_input.setObjectName("github_username")
         credentials_layout.addRow("Username:", username_input)
 
         # Token Input
         token_input = QLineEdit()
+        token_input.setObjectName("github_token")
         token_input.setEchoMode(QLineEdit.Password)
         credentials_layout.addRow("Token:", token_input)
+
+        # Validate Button
+        validate_button = QPushButton("Validate")
+        validate_button.clicked.connect(lambda: self.validate_credentials(username_input, token_input))
+        credentials_layout.addRow(validate_button)
+
+        # Status Label
+        self.status_label = QLabel("Not validated")
+        self.status_label.setStyleSheet("color: #ff6f61; font-weight: bold;")  # Pastel kırmızı
+        credentials_layout.addRow(self.status_label)
 
         # Token Description
         token_description = QLabel(
@@ -527,6 +540,82 @@ class SettingsWindow(QMainWindow):
 
         panel.setLayout(layout)
         return panel
+
+    def validate_credentials(self, username_input, token_input):
+        """
+        Kullanıcıdan gelen GitHub kullanıcı adı ve token bilgilerini doğrular.
+        """
+        username = username_input.text().strip()
+        token = token_input.text().strip()
+
+        if not username or not token:
+            QMessageBox.warning(self, "Validation Failed", "Username or token cannot be empty.")
+            return
+
+        if self.check_github_credentials(username, token):
+            # Doğrulama başarılıysa
+            self.status_label.setText("Validated successfully")
+            self.status_label.setStyleSheet("color: #8bc34a; font-weight: bold;")  # Pastel yeşil
+            # QMessageBox.information(self, "Validation Successful", "The GitHub credentials are valid.")
+        else:
+            # Doğrulama başarısızsa
+            self.status_label.setText("Validation failed")
+            self.status_label.setStyleSheet("color: #ff6f61; font-weight: bold;")  # Pastel kırmızı
+            QMessageBox.critical(self, "Validation Failed", "Invalid GitHub credentials. Please try again.")
+
+    def check_github_credentials(self, username, token):
+        """
+        GitHub kullanıcı adı ve token doğrulama işlevi.
+        """
+        if not username or not token:
+            QMessageBox.critical(
+                self,
+                "Validation Error",
+                "Please enter both username and token."
+            )
+            return False
+
+        try:
+            url = "https://api.github.com/user"
+            response = requests.get(url, auth=(username, token))
+
+            if response.status_code == 200:
+                # API'den dönen kullanıcı adı
+                api_username = response.json().get('login', '')
+
+                # Kullanıcı adı eşleşiyor mu?
+                if username == api_username:
+                    QMessageBox.information(
+                        self,
+                        "Validation Successful",
+                        f"Welcome, {api_username}!, The GitHub credentials are valid."
+                    )
+                    return True
+                else:
+                    QMessageBox.critical(
+                        self,
+                        "Username Mismatch",
+                        f"Provided username does not match the token owner.\n"
+                        f"Expected: {api_username}\nProvided: {username}"
+                    )
+                    return False
+            elif response.status_code == 401:
+                QMessageBox.critical(
+                    self,
+                    "Authentication Failed",
+                    "Authentication failed. Please check your username and token."
+                )
+                return False
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Authentication Error",
+                    f"Unexpected error: {response.json().get('message', 'Unknown error')}."
+                )
+                return False
+        except requests.exceptions.RequestException as e:
+            QMessageBox.critical(self, "Network Error", f"An error occurred: {e}")
+            return False
 
     def show_fix_instructions(self, install_path):
         """
@@ -834,11 +923,19 @@ class SettingsWindow(QMainWindow):
             progress.setValue(value),
             progress.setLabelText(text)
         ))
+
+        def on_cancel():
+            if thread.isRunning():
+                thread.terminate()
+            progress.close()
+
         thread.download_info.connect(lambda info: progress.setLabelText(info))
         thread.completed.connect(on_completed)
         thread.error_occurred.connect(on_error)
         progress.canceled.connect(lambda: thread.terminate())
+        progress.canceled.connect(on_cancel)
         thread.start()
+
 
     def prompt_restart_nuke(self):
         """
@@ -951,7 +1048,19 @@ class SettingsWindow(QMainWindow):
         self.settings_panels.setCurrentIndex(index)
 
     def apply_settings_to_widgets(self):
-        """Applies loaded settings to widgets."""
+        """
+        Applies settings from the loaded JSON file to the widgets in the settings panels.
+
+        This function maps each widget's objectName to the corresponding setting key in the JSON data.
+        The settings panels are indexed in the following order:
+        - 0: General
+        - 1: Code Editor
+        - 2: Environment
+        - 3: Licence
+        - 4: GitHub
+        - 5: Other Apps
+        """
+
         # General Panel
         general_panel = self.settings_panels.widget(0)
         general_data = self.settings.get("General", {})
