@@ -18,12 +18,14 @@ import editor.core
 import editor.output
 import editor.new_nuke_project
 import editor.dialogs.searchDialogs
+import settings.github_utils
 from editor.nlink import update_nuke_functions, load_nuke_functions
 importlib.reload(editor.core)
 importlib.reload(editor.code_editor)
 importlib.reload(editor.output)
 importlib.reload(editor.new_nuke_project)
 importlib.reload(editor.dialogs.searchDialogs)
+importlib.reload(settings.github_utils)
 from editor.core import PathFromOS, CodeEditorSettings
 from editor.code_editor import CodeEditor,  PythonHighlighter
 from PySide2.QtWidgets import QDockWidget, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QWidget
@@ -40,6 +42,7 @@ from editor.new_nuke_project import NewNukeProjectDialog
 from editor.dialogs.searchDialogs import SearchDialog
 from editor.dialogs.replaceDialogs import ReplaceDialogs  # Döngüsel içe aktarma sorununu çözmek için fonksiyon içinde import
 from editor.dialogs.goToLineDialogs import GoToLineDialog
+from settings.github_utils import commit_changes, push_to_github, pull_from_github, get_status
 
 
 class EditorApp(QMainWindow):
@@ -48,7 +51,6 @@ class EditorApp(QMainWindow):
 
         #Settings Var
         self.settings = CodeEditorSettings()  # Ayarları başlatıyoruz ve kalıcı hale getiriyoruz
-
 
         # Window başlık değişkeni
         self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
@@ -700,6 +702,12 @@ class EditorApp(QMainWindow):
         github_menu.addAction(git_push_action)
         github_menu.addAction(git_pull_action)
         github_menu.addAction(git_status_action)
+
+        # Menü eylemleri için fonksiyon bağlama
+        git_commit_action.triggered.connect(lambda: commit_changes(self))
+        git_push_action.triggered.connect(lambda: push_to_github(self))
+        git_pull_action.triggered.connect(lambda: pull_from_github(self))
+        git_status_action.triggered.connect(lambda: get_status(self))
 
         tools_menu.addAction(live_connection_action)
 

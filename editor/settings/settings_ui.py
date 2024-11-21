@@ -1,6 +1,5 @@
 import subprocess
-import sys
-import os
+import json
 import sys
 import requests
 from PySide2.QtWidgets import (
@@ -12,13 +11,8 @@ from PySide2.QtWidgets import (
 from PySide2.QtCore import Qt, QThread, Signal
 from PySide2.QtGui import QFontDatabase, QFont
 import os
-import json
-import tempfile
-import tarfile
-import shutil
 import time
 import re
-
 
 class ModuleInstallerThread(QThread):
     progress_updated = Signal(int, str)  # Signal for progress bar
@@ -68,7 +62,6 @@ class ModuleInstallerThread(QThread):
         except Exception as ex:
             self.error_occurred.emit(f"Unexpected error:\n{str(ex)}")
 
-
 class SettingsWindow(QMainWindow):
     SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
 
@@ -81,6 +74,11 @@ class SettingsWindow(QMainWindow):
 
         # **self.settings Özelliğini İlk Olarak Tanımlayın**
         self.settings = self.load_settings()
+
+        # Arama Kutusu
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("Search in settings...")
+        self.search_box.textChanged.connect(self.filter_settings)
 
         # Category List
         self.category_list = QListWidget()
@@ -102,24 +100,48 @@ class SettingsWindow(QMainWindow):
         button_box.button(QDialogButtonBox.Cancel).clicked.connect(self.close)
 
         # Main Layout
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(self.category_list, 1)
-        main_layout.addWidget(self.settings_panels, 3)
-
-        central_widget = QWidget()
-        central_widget.setLayout(main_layout)
-
-        # Bottom Layout (buttons)
-        layout = QVBoxLayout()
-        layout.addWidget(central_widget)
-        layout.addWidget(button_box)
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.search_box)  # Arama kutusunu üst kısma ekle
+        main_content_layout = QHBoxLayout()
+        main_content_layout.addWidget(self.category_list, 1)
+        main_content_layout.addWidget(self.settings_panels, 3)
+        main_layout.addLayout(main_content_layout)
+        main_layout.addWidget(button_box)
 
         container = QWidget()
-        container.setLayout(layout)
+        container.setLayout(main_layout)
         self.setCentralWidget(container)
 
         # Apply settings to widgets
         self.apply_settings_to_widgets()
+
+    def filter_settings(self, search_text):
+        """Highlights matching widgets based on the search text or resets styles when empty."""
+        search_text = search_text.lower()
+
+        DEFAULT_STYLE = "background-color: none; "  # Varsayılan stil
+        HIGHLIGHT_STYLE = "background-color: rgba(247, 153, 42, 0.5); "  # Saydam turuncu
+
+        for category_index in range(self.settings_panels.count()):
+            panel = self.settings_panels.widget(category_index)
+            found = False  # Panelde herhangi bir eşleşme olup olmadığını takip etmek için
+
+            for widget_type in [QLabel, QLineEdit, QComboBox, QCheckBox, QSpinBox]:
+                for widget in panel.findChildren(widget_type):
+                    widget_name = widget.objectName().lower() if widget.objectName() else ""
+                    widget_text = widget.text().lower() if hasattr(widget, "text") else ""
+
+                    if search_text:  # Eğer arama metni varsa
+                        if search_text in widget_name or search_text in widget_text:
+                            widget.setStyleSheet(HIGHLIGHT_STYLE)
+                            found = True
+                        else:
+                            widget.setStyleSheet(DEFAULT_STYLE)
+                    else:  # Arama kutusu boşsa
+                        widget.setStyleSheet(DEFAULT_STYLE)
+
+            # Kategori gizlenmesin ama highlight durumu ayarlansın
+            self.category_list.item(category_index).setHidden(False)
 
     def load_settings(self):
         """Loads settings from a JSON file if it exists, otherwise returns default settings."""
@@ -443,8 +465,14 @@ class SettingsWindow(QMainWindow):
         token_input.setEchoMode(QLineEdit.Password)
         credentials_layout.addRow("Token:", token_input)
 
+        # Repository URL Input
+        repo_url_input = QLineEdit()
+        repo_url_input.setObjectName("github_repo_url")
+        repo_url_input.setPlaceholderText("https://github.com/username/repository.git")
+        credentials_layout.addRow("Repository URL:", repo_url_input)
+
         # Validate Button
-        validate_button = QPushButton("Validate")
+        validate_button = QPushButton("Test Connection")
         validate_button.clicked.connect(lambda: self.validate_credentials(username_input, token_input))
         credentials_layout.addRow(validate_button)
 
