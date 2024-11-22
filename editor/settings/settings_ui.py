@@ -1011,49 +1011,54 @@ class SettingsWindow(QMainWindow):
         panel = QWidget()
         layout = QVBoxLayout()
 
-        # PyCharm Ayarları
-        pycharm_group = QGroupBox("PyCharm")
+        # Description Group
+        description_group = QGroupBox("Description Live Links for other Apps.")
+        description_layout = QVBoxLayout()
+        description_label = QLabel(
+            "<div style='line-height:1.3;'>"
+            "For those who wish to use an external program at higher standards, this panel contains the necessary explanations. "
+            "Thanks to a plugin developed by me, you can dynamically develop Python code within Nuke and perform Node manipulations "
+            "using PyCharm or VS Code.<br><br>"
+            "You can find the necessary information for setting up VS Code and PyCharm LL here:<br>"
+            "<a href='https://example.com/vscode-docs' style='color:white;'>VS Code LL Documentation</a><br>"
+            "<a href='https://example.com/pycharm-docs' style='color:white;'>PyCharm LL Documentation</a>"
+            "</div>"
+        )
+        description_label.setWordWrap(True)
+        description_layout.addWidget(description_label)
+        description_label.setOpenExternalLinks(True)
+        description_group.setLayout(description_layout)
+        layout.addWidget(description_group)
+
+        # PyCharm Group
+        pycharm_group = QGroupBox("Configure PyCharm")
         pycharm_layout = QVBoxLayout()
-        pycharm_description = QLabel("PyCharm, Python geliştirmeleri için güçlü bir IDE'dir. "
-                                     "Yüksek performans, entegre hata ayıklama ve otomatik tamamlama sağlar.")
-        pycharm_description.setWordWrap(True)
-        pycharm_layout.addWidget(pycharm_description)
+        pycharm_label = QLabel(
+            "You can find the necessary information for setting up PyCharm Live Link here: "
+            "<a href='https://example.com/pycharm-docs' style='color:white;'>PyCharm Live Link Documentation</a>"
+        )
+        pycharm_label.setOpenExternalLinks(True)
+        pycharm_label.setWordWrap(True)
+        pycharm_layout.addWidget(pycharm_label)
         pycharm_group.setLayout(pycharm_layout)
         layout.addWidget(pycharm_group)
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
-        # VS Code Ayarları
-        vscode_group = QGroupBox("VS Code")
+        # VS Code Group
+        vscode_group = QGroupBox("Configure VS Code")
         vscode_layout = QVBoxLayout()
-        vscode_description = QLabel("VS Code, hafif ama güçlü bir editördür. Çeşitli programlama dilleriyle uyumludur "
-                                    "ve zengin eklenti desteğine sahiptir.")
-        vscode_description.setWordWrap(True)
-        vscode_layout.addWidget(vscode_description)
+        vscode_label = QLabel(
+            "You can find the necessary information for setting up VS Code Live Link here: "
+            "<a href='https://example.com/vscode-docs' style='color:white;'>VS Code Live Link Documentation</a>"
+        )
+        vscode_label.setOpenExternalLinks(True)
+        vscode_label.setWordWrap(True)
+        vscode_layout.addWidget(vscode_label)
         vscode_group.setLayout(vscode_layout)
         layout.addWidget(vscode_group)
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
 
-        # Atom Ayarları
-        atom_group = QGroupBox("Atom")
-        atom_layout = QVBoxLayout()
-        atom_description = QLabel("Atom, açık kaynaklı ve modern bir metin editörüdür. "
-                                  "Özelleştirilebilir ve geniş bir eklenti yelpazesine sahiptir.")
-        atom_description.setWordWrap(True)
-        atom_layout.addWidget(atom_description)
-        atom_group.setLayout(atom_layout)
-        layout.addWidget(atom_group)
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
-
-        # Sublime Editor Ayarları
-        sublime_group = QGroupBox("Sublime Editor")
-        sublime_layout = QVBoxLayout()
-        sublime_description = QLabel("Sublime Text, hızlı ve verimli bir metin editörüdür. "
-                                     "Sade arayüzü ve güçlü özellikleriyle tanınır.")
-        sublime_description.setWordWrap(True)
-        sublime_layout.addWidget(sublime_description)
-        sublime_group.setLayout(sublime_layout)
-        layout.addWidget(sublime_group)
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        # Add spacer to push Groups upward
+        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        layout.addItem(spacer)
 
         panel.setLayout(layout)
         return panel
