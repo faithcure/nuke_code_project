@@ -159,24 +159,40 @@ class SettingsWindow(QMainWindow):
 
     def general_settings(self):
         panel = QWidget()
-        layout = QFormLayout()
+        layout = QVBoxLayout()
 
-        # Language & Theme settings (existing)
+        # Language & Theme settings in a horizontal layout
+        lang_theme_layout = QHBoxLayout()
+
         language_combobox = QComboBox()
         language_combobox.setObjectName("default_language")
         language_combobox.addItem("English")
         language_combobox.setEnabled(False)
-        layout.addRow("Language:", language_combobox)
 
         theme_combobox = QComboBox()
-        theme_combobox.addItem("Nuke Default")
         theme_combobox.setObjectName("default_theme")
+        theme_combobox.addItem("Nuke Default")
         theme_combobox.setEnabled(False)
-        layout.addRow("Theme:", theme_combobox)
 
+        # Separator between language and theme
         separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        layout.addRow("Other Settings:", separator)
+        separator.setFrameShape(QFrame.VLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("color: lightgrey;")
+
+        lang_theme_layout.addWidget(QLabel("Language:"))
+        lang_theme_layout.addWidget(language_combobox)
+        lang_theme_layout.addWidget(separator)
+        lang_theme_layout.addWidget(QLabel("Theme:"))
+        lang_theme_layout.addWidget(theme_combobox)
+        lang_theme_layout.addStretch()  # Push to the left
+        layout.addLayout(lang_theme_layout)
+
+        # Add explanatory text below language and theme
+        settings_note = QLabel("Some settings are mandatory for Nuke because you are working in the Nuke environment.")
+        settings_note.setStyleSheet("color: Grey;")
+        settings_note.setWordWrap(True)
+        layout.addWidget(settings_note)
 
         # Start at Login
         start_group = QGroupBox("Start at Login")
@@ -184,13 +200,15 @@ class SettingsWindow(QMainWindow):
         startup_checkbox = QCheckBox("Enable start at login")
         startup_checkbox.setObjectName("startup_checkbox")
         start_description = QLabel("Automatically start the application when logging into the system.")
+        start_description.setStyleSheet("color: Grey;")
         start_description.setWordWrap(True)
         start_layout.addWidget(startup_checkbox)
         start_layout.addWidget(start_description)
         start_group.setLayout(start_layout)
+        start_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(start_group)
 
-        # New UI Settings Group for Code Editor Default Interface
+        # UI Settings Group for Code Editor Default Interface
         ui_settings_group = QGroupBox("UI Settings")
         ui_settings_layout = QFormLayout()
 
@@ -201,18 +219,26 @@ class SettingsWindow(QMainWindow):
         interface_mode_combobox.setToolTip("Set the default startup interface mode for the code editor.")
         ui_settings_layout.addRow("Default Interface Mode:", interface_mode_combobox)
 
-        # Add the UI settings group to layout
         ui_settings_group.setLayout(ui_settings_layout)
+        ui_settings_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(ui_settings_group)
 
-        # Warning box for mandatory settings
-        warning_box = QGroupBox("Notice")
-        warning_layout = QVBoxLayout()
-        warning_label = QLabel("Some settings are mandatory for Nuke because you are working in the Nuke environment.")
-        warning_label.setStyleSheet("color: Grey;")
-        warning_layout.addWidget(warning_label)
-        warning_box.setLayout(warning_layout)
-        layout.addWidget(warning_box)
+        # Add "Resume Last Project" Option
+        last_project_group = QGroupBox("Project Settings")
+        last_project_layout = QVBoxLayout()
+        last_project_checkbox = QCheckBox("Resume with last worked project")
+        last_project_checkbox.setObjectName("resume_last_project")
+        last_project_note = QLabel("Otherwise, the IDE will start with an empty session.")
+        last_project_note.setStyleSheet("color: Grey;")
+        last_project_note.setWordWrap(True)
+        last_project_layout.addWidget(last_project_checkbox)
+        last_project_layout.addWidget(last_project_note)
+        last_project_group.setLayout(last_project_layout)
+        last_project_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        layout.addWidget(last_project_group)
+
+        # Add spacer for pushing elements up in the window
+        layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
         panel.setLayout(layout)
         return panel
@@ -647,17 +673,53 @@ class SettingsWindow(QMainWindow):
 
     def show_fix_instructions(self, install_path):
         """
-        Show instructions on how to manually add the modules path to sys.path.
+        Provide a clear explanation and option to automatically add the modules path.
+        Ensures compatibility across all platforms (Windows, macOS, Linux).
         """
-        code_to_add = f"sys.path.append('{install_path}')"
-        QMessageBox.information(
+        confirmation = QMessageBox.question(
             self,
-            "Fix Instructions",
-            f"The following code needs to be added to your init.py file:\n\n"
-            f"{code_to_add}\n\n"
-            "Path to init.py: ~/.nuke/init.py\n\n"
-            "Make sure to restart Nuke after making these changes."
+            "Fix Path Confirmation",
+            f"The required modules path is not in sys.path. It may be corrupted.\n\n"
+            f"We can correct the following files:\n\n"
+            f"{install_path}\n\n"
+            "Would you like to proceed with this change?\n\n"
+            "You will need to restart Nuke to apply the changes.",
+            QMessageBox.Yes | QMessageBox.No
         )
+
+        if confirmation == QMessageBox.Yes:
+            try:
+                # Determine the init_ide.py path
+                nuke_code_project_dir = os.path.join(os.path.expanduser("~"), ".nuke", "nuke_code_project")
+                ide_init_path = os.path.join(nuke_code_project_dir, "init_ide.py")
+
+                # Ensure the directory exists
+                os.makedirs(nuke_code_project_dir, exist_ok=True)
+
+                # Check if the file exists and is writable
+                if os.path.exists(ide_init_path) and not os.access(ide_init_path, os.W_OK):
+                    raise PermissionError(f"Cannot write to {ide_init_path}. Check file permissions.")
+
+                # Append the install path to init_ide.py
+                with open(ide_init_path, "a") as ide_init_file:
+                    ide_init_file.write(f"\n# Automatically added modules path\n")
+                    ide_init_file.write(f"import sys\n")
+                    ide_init_file.write(f"sys.path.append({repr(install_path)})\n")
+
+
+
+                self.prompt_restart_nuke()
+
+            except PermissionError as pe:
+                QMessageBox.critical(self, "Permission Error", str(pe))
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to update init_ide.py: {e}")
+        else:
+            QMessageBox.information(
+                self,
+                "Action Canceled",
+                "The path was not added. If you change your mind, you can use the Fix Path option again."
+            )
 
     def install_github_modules(self):
         """
@@ -787,35 +849,38 @@ class SettingsWindow(QMainWindow):
         thread.download_info.connect(lambda info: progress.setLabelText(info))
 
         def on_completed():
-            # init.py'yi güncelle
             try:
+                ide_init_path = os.path.join(os.path.dirname(init_path), "init_ide.py")  # Yeni dosya adı ve konumu
+
+                # init_ide.py dosyasını oluştur veya mevcut dosyayı güncelle
+                if not os.path.exists(ide_init_path):
+                    with open(ide_init_path, "w") as ide_init_file:
+                        ide_init_file.write(f"# Added modules path\n")
+                        ide_init_file.write(f"import sys\n")
+                        ide_init_file.write(f"sys.path.append({repr(install_path)})\n")
+
+                # init.py dosyasını güncelle (import işlemi kontrolü)
                 if os.path.exists(init_path):
-                    # Dosya yazılabilir mi kontrol et
-                    if not os.access(init_path, os.W_OK):
-                        raise PermissionError(f"Cannot write to {init_path}. Check file permissions.")
+                    with open(init_path, "r+") as init_file:
+                        content = init_file.read()
+                        import_statement = "exec(open(os.path.join(os.path.dirname(__file__), 'init_ide.py')).read())"
+                        if import_statement not in content:
+                            init_file.write(f"\n# Import init_ide.py\n")
+                            init_file.write(f"import os\n")
+                            init_file.write(f"{import_statement}\n")
 
-                    with open(init_path, "a") as init_file:
-                        init_file.write(f"\n# Automatically added modules path\n")
-                        init_file.write(f"import sys\n")
-                        init_file.write(f"sys.path.append({repr(install_path)})\n")  # Kaçış karakterlerini düzelt
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    "Modules installed and linked successfully."
+                )
 
-                    QMessageBox.information(
-                        self,
-                        "Installation Complete",
-                        f"Modules have been successfully installed, and the path was added to {init_path}.\n"
-                        "Please restart Nuke to apply changes."
-                    )
-                else:
-                    QMessageBox.warning(
-                        self,
-                        "init.py Not Found",
-                        f"Could not locate {init_path}. Please manually add the following line to your init.py:\n"
-                        f"sys.path.append({repr(install_path)})"
-                    )
-            except PermissionError as pe:
-                QMessageBox.critical(self, "Permission Error", str(pe))
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to update init.py: {e}")
+            except Exception:
+                QMessageBox.warning(
+                    self,
+                    "Error",
+                    "An error occurred during the installation process."
+                )
 
             progress.setValue(len(required_modules))
             self.prompt_restart_nuke()

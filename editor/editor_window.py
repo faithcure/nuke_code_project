@@ -2182,7 +2182,6 @@ class EditorApp(QMainWindow):
             QTreeWidget {
                 border: none;
                 font-size: 9pt;  /* Yazı boyutu */
-                
             }
         """)
         self.header_tree.setRootIsDecorated(False)
