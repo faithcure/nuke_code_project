@@ -58,11 +58,63 @@ class CodeEditorSettings:
         tb_icon_sizeY= 20
         self.toolbar_icon_size = QSize(tb_icon_sizeX,tb_icon_sizeY)
 
-        #COMPLETER SETTINGS
+        # COMPLETER SETTINGS
         self.ENABLE_FUZZY_COMPLETION = True # Fuzzy filter ON/OFF
         self.ENABLE_COMPLETER = True  # Completer varsayılan olarak açık
         self.ENABLE_INLINE_GHOSTING = True # Inline suggestion ON/OFF
         self.GHOSTING_OPACITY = 100
         self.GHOSTING_COLOR = QColor(175, 175, 175, self.GHOSTING_OPACITY) # Inline Color settings.
-
         self.CREATE_NODE_COMPLETER = True # Sadece createNode ile çalışır.
+
+        # UI / UX SETTINGS
+        self.ui_layout = {
+            "main_window": {
+                "default_width": 1024,
+                "default_height": 768,
+                "min_width": 800,
+                "min_height": 600
+            },
+            "docks": {
+                "workplace_dock": Qt.RightDockWidgetArea,
+                "outliner_dock": Qt.LeftDockWidgetArea,
+                "header_dock": Qt.LeftDockWidgetArea,
+                "console_dock": Qt.BottomDockWidgetArea,
+                "nuke_ai_dock": Qt.BottomDockWidgetArea,
+                "output_dock": Qt.BottomDockWidgetArea
+            },
+            "dock_styles": {
+                "tabify_docks": True,  # Default olarak dockları sekmeli yap
+                "default_tab_order": ["console_dock", "output_dock", "nuke_ai_dock"],  # Sekme sırası
+                "tab_highlight_color": QColor(50, 50, 50),
+                "tab_text_color": QColor(200, 200, 200),
+            },
+            "toolbar": {
+                "default_position": Qt.TopToolBarArea,
+                "movable": True,
+                "icon_spacing": 4,
+                "icon_size": QSize(25, 25),
+            },
+            "menus": {
+                "file_menu": True,  # File menüsü açık
+                "edit_menu": True,  # Edit menüsü açık
+                "view_menu": True,  # View menüsü açık
+                "custom_menus": [
+                    {"name": "Mode Switcher", "items": ["Default Mode", "Compact Mode", "Focus Mode", "Expanded Mode"]}
+                ]
+            },
+        }
+
+        # DOCK POSITION OVERRIDES
+        self.override_dock_positions = {
+            "compact_mode": {
+                "all_tabs_at_bottom": True,  # Compact mode'da tüm paneller aşağıda sekmeli olur
+            },
+            "expanded_mode": {
+                "console_dock": Qt.BottomDockWidgetArea,
+                "output_dock": Qt.BottomDockWidgetArea,
+                "nuke_ai_dock": Qt.BottomDockWidgetArea,
+                "workplace_dock": Qt.RightDockWidgetArea,
+                "outliner_dock": Qt.LeftDockWidgetArea,
+                "header_dock": Qt.LeftDockWidgetArea,
+            },
+        }

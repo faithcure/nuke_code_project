@@ -19,6 +19,7 @@ import editor.output
 import editor.new_nuke_project
 import editor.dialogs.searchDialogs
 import settings.github_utils
+import main_toolbar
 from editor.nlink import update_nuke_functions, load_nuke_functions
 importlib.reload(editor.core)
 importlib.reload(editor.code_editor)
@@ -26,6 +27,7 @@ importlib.reload(editor.output)
 importlib.reload(editor.new_nuke_project)
 importlib.reload(editor.dialogs.searchDialogs)
 importlib.reload(settings.github_utils)
+importlib.reload(main_toolbar)
 from editor.core import PathFromOS, CodeEditorSettings
 from editor.code_editor import CodeEditor,  PythonHighlighter
 from PySide2.QtWidgets import QDockWidget, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QWidget
@@ -43,11 +45,13 @@ from editor.dialogs.searchDialogs import SearchDialog
 from editor.dialogs.replaceDialogs import ReplaceDialogs  # Döngüsel içe aktarma sorununu çözmek için fonksiyon içinde import
 from editor.dialogs.goToLineDialogs import GoToLineDialog
 from settings.github_utils import commit_changes, push_to_github, pull_from_github, get_status
-
+from main_toolbar import MainToolbar
 
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        MainToolbar.create_toolbar(self)
 
         #Settings Var
         self.settings = CodeEditorSettings()  # Ayarları başlatıyoruz ve kalıcı hale getiriyoruz
@@ -147,8 +151,6 @@ class EditorApp(QMainWindow):
         # Program başlarken recent projects listesini yükleyelim
         self.load_recent_projects()
 
-        self.create_toolbar()  # Toolbar ekleme fonksiyonunu çağırıyoruz
-
         self.create_bottom_tabs() # Conolse ve Output penceresi
         # Ctrl+Enter kısayolunu tanımla ve run_code işlevine bağla
         run_shortcut = QShortcut(QKeySequence("Ctrl+Enter"), self)
@@ -207,7 +209,7 @@ class EditorApp(QMainWindow):
         """Alt kısma 'Output', 'Console' ve 'NukeAI' sekmelerini ekleyen ve hareket ettirilebilir yapan fonksiyon."""
 
         # Output Dock Widget
-        self.output_dock = QDockWidget("Output", self)
+        self.output_dock = QDockWidget("OUTPUT", self)
         self.output_widget = OutputWidget()
         title_font = QFont("JetBrains Mono", 10)
         self.output_widget.setFont(title_font)
@@ -222,7 +224,7 @@ class EditorApp(QMainWindow):
         self.addDockWidget(Qt.BottomDockWidgetArea, self.output_dock)
 
         # Console Dock Widget
-        self.console_dock = QDockWidget("Console", self)
+        self.console_dock = QDockWidget("CONSOLE", self)
         self.console_widget = ConsoleWidget()
         self.console_dock.setWidget(self.console_widget)
         self.console_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
@@ -234,7 +236,7 @@ class EditorApp(QMainWindow):
         self.addDockWidget(Qt.BottomDockWidgetArea, self.console_dock)
 
         # NukeAI Dock Widget
-        self.nuke_ai_dock = QDockWidget("NukeAI", self)
+        self.nuke_ai_dock = QDockWidget("NUKEAI", self)
         self.nuke_ai_widget = QWidget()
         nuke_ai_layout = QVBoxLayout(self.nuke_ai_widget)
 
@@ -312,65 +314,6 @@ class EditorApp(QMainWindow):
         # Özel başlık widget'ını dock widget başlığı olarak ayarla
         dock_widget.setTitleBarWidget(title_bar)
 
-    def create_toolbar(self):
-        """Toolbar'ı oluşturur ve gerekli butonları ekler."""
-
-        toolbar = self.addToolBar("Main Toolbar")
-        self.addToolBar(editor.core.CodeEditorSettings().setToolbar_area, toolbar)  # Araç çubuğunu pencerenin sol tarafına yerleştir
-
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Yatay için genişler, dikey için değil
-
-        # İkon boyutunu 60x60 piksel olarak ayarlıyoruz
-        toolbar.setIconSize(editor.core.CodeEditorSettings().toolbar_icon_size)
-        toolbar.setStyleSheet("QToolBar { spacing: 3px; }")
-
-        # 1. RUN Butonu (Kod çalıştırmak için)
-        run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.svg')), '', self)  # İkon ile boş bir buton
-        run_action.setToolTip("Run Current Code")  # Butona tooltip ekliyoruz
-        run_action.triggered.connect(self.run_code)  # Fonksiyon bağlama
-        toolbar.addAction(run_action)  # Butonu toolbara ekle
-
-
-        # 2. SAVE Butonu (Kod kaydetmek için)
-        save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.svg')), '', self)  # İkon ile boş bir buton
-        save_action.setToolTip("Save Current File")  # Tooltip ekliyoruz
-        save_action.triggered.connect(self.save_file)  # Fonksiyon bağlama
-        toolbar.addAction(save_action)  # Butonu toolbara ekle
-
-        # 3. ARAMA Butonu (Kod içinde arama yapmak için)
-        search_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.svg')), '', self)  # İkon ile boş bir buton
-        search_action.setToolTip("Search in Code")  # Tooltip ekliyoruz
-        search_action.triggered.connect(self.show_search_dialog)  # Fonksiyon bağlama
-        toolbar.addAction(search_action)  # Butonu toolbara ekle
-
-        # 6. Update internat things like nuke update
-        update_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'update.svg')), 'Update NLink', self)
-        update_action.setToolTip("Update Nuke Functions List (NLink!)")
-        update_action.triggered.connect(update_nuke_functions)  # Butona fonksiyonu bağlama
-        toolbar.addAction(update_action)
-
-        #
-        toolbar.addSeparator()
-
-        # Boş widget ekleyerek butonları sağa veya alta iteceğiz (spacer)
-        toolbar.addWidget(spacer)
-
-        # 4. CLEAR Butonu (Output panelini temizlemek için)
-        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.svg')), '',
-                               self)  # İkon ile boş bir buton
-        clear_action.setToolTip("Clear Output")  # Tooltip ekliyoruz
-        clear_action.triggered.connect(self.clear_output)  # Fonksiyon bağlama
-        toolbar.addAction(clear_action)  # Butonu toolbara ekle
-
-        # 5. SETTINGS Butonu (Ayarlar menüsüne erişim)
-        settings_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'settings.png')), '', self)  # İkon ile boş bir buton
-        settings_action.setToolTip("Settings")  # Tooltip ekliyoruz
-        settings_action.triggered.connect(self.open_settings)  # Fonksiyon bağlama
-        toolbar.addAction(settings_action)  # Butonu toolbara ekle
-
-        # Toolbar yönü değiştiğinde spacer widget'inin genişlik/yükseklik politikasını değiştireceğiz
-        toolbar.orientationChanged.connect(lambda orientation: self.update_toolbar_spacer(orientation, spacer))
 
     def clear_output(self):
         """Output panelindeki tüm çıktıyı temizler."""
@@ -1945,7 +1888,7 @@ class EditorApp(QMainWindow):
     def create_docks(self):
         """Sol tarafa dockable listeleri ekler."""
         # Workplace dock widget
-        self.workplace_dock = QDockWidget("", self)
+        self.workplace_dock = QDockWidget("WORKPLACE", self)
         expand_icon_path = os.path.join(PathFromOS().icons_path, 'expand_icon.svg')
         collapse_icon_path = os.path.join(PathFromOS().icons_path, 'collapse_icon.svg')
 
@@ -1955,7 +1898,7 @@ class EditorApp(QMainWindow):
         self.workplace_tree.customContextMenuRequested.connect(self.context_menu)
         self.workplace_tree.itemDoubleClicked.connect(self.on_workplace_item_double_clicked)
         self.workplace_dock.setWidget(self.workplace_tree)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.workplace_dock)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.workplace_dock)
         self.workplace_tree.setAlternatingRowColors(True)
 
         # Başlık oluşturma
@@ -2006,7 +1949,7 @@ class EditorApp(QMainWindow):
 
     def create_outliner_dock(self, expand_icon_path, collapse_icon_path):
         """OUTLINER dock widget'ını oluşturur ve başlığı özelleştirir."""
-        self.outliner_dock = QDockWidget("", self)
+        self.outliner_dock = QDockWidget("OUTLINER", self)
         outliner_widget = QWidget()
         outliner_layout = QVBoxLayout(outliner_widget)
         outliner_layout.setContentsMargins(0, 0, 0, 0)  # Tüm kenarlardan sıfır boşluk
@@ -2429,3 +2372,5 @@ class EditorApp(QMainWindow):
     def show_python_naming_info(self):
         QMessageBox.information(self, "Python Naming Info",
                                 "Python file names must:\n- Start with a letter or underscore\n- Contain only letters, numbers, or underscores\n- Not be a reserved keyword")
+
+from PySide2.QtWidgets import QWidget, QTreeWidget, QTextEdit, QVBoxLayout

@@ -13,6 +13,7 @@ from PySide2.QtGui import QFontDatabase, QFont
 import os
 import time
 import re
+from editor.settings.settings_ux import ui_modes
 
 class ModuleInstallerThread(QThread):
     progress_updated = Signal(int, str)  # Signal for progress bar
@@ -215,10 +216,13 @@ class SettingsWindow(QMainWindow):
         # Default Interface Mode ComboBox
         interface_mode_combobox = QComboBox()
         interface_mode_combobox.setObjectName("default_interface_mode")
-        interface_mode_combobox.addItems(["Default", "Focus Coding", "Project Management", "Debug"])
+        interface_label = QLabel("Set default UX automatically when this ide is open.")
+        interface_label.setStyleSheet("color: Grey;")
+
+        interface_mode_combobox.addItems(ui_modes.keys())
         interface_mode_combobox.setToolTip("Set the default startup interface mode for the code editor.")
         ui_settings_layout.addRow("Default Interface Mode:", interface_mode_combobox)
-
+        ui_settings_layout.addRow(interface_label)
         ui_settings_group.setLayout(ui_settings_layout)
         ui_settings_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(ui_settings_group)
