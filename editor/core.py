@@ -2,7 +2,8 @@ import os
 from PySide2.QtCore import QSize
 from PySide2.QtGui import QColor, Qt
 import json
-
+from init_ide import settings_path
+from editor.settings.settings_ux import set_focus_mode, set_expanded_mode, set_compact_mode, set_default_mode
 
 def load_nuke_function_descriptions(json_path):
     """Nuke işlev açıklamalarını JSON'dan yükler."""
@@ -66,55 +67,41 @@ class CodeEditorSettings:
         self.GHOSTING_COLOR = QColor(175, 175, 175, self.GHOSTING_OPACITY) # Inline Color settings.
         self.CREATE_NODE_COMPLETER = True # Sadece createNode ile çalışır.
 
-        # UI / UX SETTINGS
-        self.ui_layout = {
-            "main_window": {
-                "default_width": 1024,
-                "default_height": 768,
-                "min_width": 800,
-                "min_height": 600
-            },
-            "docks": {
-                "workplace_dock": Qt.RightDockWidgetArea,
-                "outliner_dock": Qt.LeftDockWidgetArea,
-                "header_dock": Qt.LeftDockWidgetArea,
-                "console_dock": Qt.BottomDockWidgetArea,
-                "nuke_ai_dock": Qt.BottomDockWidgetArea,
-                "output_dock": Qt.BottomDockWidgetArea
-            },
-            "dock_styles": {
-                "tabify_docks": True,  # Default olarak dockları sekmeli yap
-                "default_tab_order": ["console_dock", "output_dock", "nuke_ai_dock"],  # Sekme sırası
-                "tab_highlight_color": QColor(50, 50, 50),
-                "tab_text_color": QColor(200, 200, 200),
-            },
-            "toolbar": {
-                "default_position": Qt.TopToolBarArea,
-                "movable": True,
-                "icon_spacing": 4,
-                "icon_size": QSize(25, 25),
-            },
-            "menus": {
-                "file_menu": True,  # File menüsü açık
-                "edit_menu": True,  # Edit menüsü açık
-                "view_menu": True,  # View menüsü açık
-                "custom_menus": [
-                    {"name": "Mode Switcher", "items": ["Default Mode", "Compact Mode", "Focus Mode", "Expanded Mode"]}
-                ]
-            },
-        }
+        # TEMP UI SETTINGS DONT TOUCH
+        self.OUTLINER_DOCK_POS = Qt.LeftDockWidgetArea
+        self.HEADER_DOCK_POS = Qt.LeftDockWidgetArea
+        self.WORKPLACE_DOCK_POS = Qt.RightDockWidgetArea
+        self.OUTPUT_DOCK_POS = Qt.BottomDockWidgetArea
+        self.CONSOLE_DOCK_POS = Qt.BottomDockWidgetArea
+        self.NUKEAI_DOCK_POS = Qt.BottomDockWidgetArea
 
-        # DOCK POSITION OVERRIDES
-        self.override_dock_positions = {
-            "compact_mode": {
-                "all_tabs_at_bottom": True,  # Compact mode'da tüm paneller aşağıda sekmeli olur
-            },
-            "expanded_mode": {
-                "console_dock": Qt.BottomDockWidgetArea,
-                "output_dock": Qt.BottomDockWidgetArea,
-                "nuke_ai_dock": Qt.BottomDockWidgetArea,
-                "workplace_dock": Qt.RightDockWidgetArea,
-                "outliner_dock": Qt.LeftDockWidgetArea,
-                "header_dock": Qt.LeftDockWidgetArea,
-            },
-        }
+        self.OUTLINER_VISIBLE = True
+        self.HEADER_VISIBLE = True
+        self.WORKPLACE_VISIBLE = True
+        self.OUTPUT_VISIBLE = True
+        self.CONSOLE_VISIBLE = True
+        self.NUKEAI_VISIBLE = True
+
+        # # JSON dosyasını oku
+        # with open(settings_path) as file:
+        #     data = json.load(file)
+        #
+        # # "default_interface_mode" bilgisini al
+        # interface_mode = data.get("General", {}).get("default_interface_mode", "")
+        #
+        # if interface_mode == "Default Mode":
+        #     set_default_mode()
+        #     print(f"Default interface Mode: {interface_mode}")
+        #
+        # elif interface_mode == "Focus Mode":
+        #         set_focus_mode()
+        #         print (f"Default interface Mode: {interface_mode}")
+        #
+        # elif interface_mode == "Expanded Mode":
+        #     set_expanded_mode()
+        #     print(f"Default interface Mode: {interface_mode}")
+        #
+        # elif interface_mode == "Compact Mode":
+        #     set_compact_mode()
+        #     print(f"Default interface Mode: {interface_mode}")
+        #

@@ -13,8 +13,10 @@ from PySide2.QtGui import QFontDatabase, QFont
 import os
 import time
 import re
-from editor.settings.settings_ux import ui_modes
-
+import importlib
+import editor.settings.settings_ux
+from editor.settings import settings_ux
+importlib.reload(editor.settings.settings_ux)
 class ModuleInstallerThread(QThread):
     progress_updated = Signal(int, str)  # Signal for progress bar
     download_info = Signal(str)  # Signal for detailed download info
@@ -219,7 +221,7 @@ class SettingsWindow(QMainWindow):
         interface_label = QLabel("Set default UX automatically when this ide is open.")
         interface_label.setStyleSheet("color: Grey;")
 
-        interface_mode_combobox.addItems(ui_modes.keys())
+        interface_mode_combobox.addItems(settings_ux.ui_modes.keys())
         interface_mode_combobox.setToolTip("Set the default startup interface mode for the code editor.")
         ui_settings_layout.addRow("Default Interface Mode:", interface_mode_combobox)
         ui_settings_layout.addRow(interface_label)

@@ -221,7 +221,9 @@ class EditorApp(QMainWindow):
         # Output başlık stil ayarı ve ikon ekleme
         output_icon = QIcon(os.path.join(PathFromOS().icons_path, "play_orange.svg"))
         self.set_custom_dock_title(self.output_dock, "OUTPUT", output_icon)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.output_dock)
+        self.addDockWidget(self.settings.OUTPUT_DOCK_POS, self.output_dock)
+        self.output_dock.setVisible(self.settings.OUTPUT_VISIBLE)
+
 
         # Console Dock Widget
         self.console_dock = QDockWidget("CONSOLE", self)
@@ -233,7 +235,8 @@ class EditorApp(QMainWindow):
         # Console başlık stil ayarı ve ikon ekleme
         console_icon = QIcon(os.path.join(PathFromOS().icons_path, "python_tab.svg"))
         self.set_custom_dock_title(self.console_dock, "CONSOLE", console_icon)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.console_dock)
+        self.addDockWidget(self.settings.CONSOLE_DOCK_POS, self.console_dock)
+        self.console_dock.setVisible(self.settings.CONSOLE_VISIBLE)
 
         # NukeAI Dock Widget
         self.nuke_ai_dock = QDockWidget("NUKEAI", self)
@@ -273,7 +276,8 @@ class EditorApp(QMainWindow):
         # NukeAI sekmesine özel başlık stili ve ikon ekleme
         nuke_ai_icon = QIcon(os.path.join(PathFromOS().icons_path, "ai_icon.svg"))
         self.set_custom_dock_title(self.nuke_ai_dock, "NUKEAI", nuke_ai_icon)
-        self.addDockWidget(Qt.BottomDockWidgetArea, self.nuke_ai_dock)
+        self.addDockWidget(self.settings.NUKEAI_DOCK_POS, self.nuke_ai_dock)
+        self.nuke_ai_dock.setVisible(self.settings.NUKEAI_VISIBLE)
 
         # Dockları alt kısımda sekmeli bir yapı ile gruplandırın
         self.tabifyDockWidget(self.output_dock, self.console_dock)
@@ -313,7 +317,6 @@ class EditorApp(QMainWindow):
 
         # Özel başlık widget'ını dock widget başlığı olarak ayarla
         dock_widget.setTitleBarWidget(title_bar)
-
 
     def clear_output(self):
         """Output panelindeki tüm çıktıyı temizler."""
@@ -1898,10 +1901,11 @@ class EditorApp(QMainWindow):
         self.workplace_tree.customContextMenuRequested.connect(self.context_menu)
         self.workplace_tree.itemDoubleClicked.connect(self.on_workplace_item_double_clicked)
         self.workplace_dock.setWidget(self.workplace_tree)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.workplace_dock)
+        self.addDockWidget(self.settings.WORKPLACE_DOCK_POS, self.workplace_dock)
+        self.workplace_dock.setVisible(self.settings.WORKPLACE_VISIBLE)
         self.workplace_tree.setAlternatingRowColors(True)
 
-        # Başlık oluşturma
+        # Başlık oluşturmaOUTPUT_DOCK_POS
         self.create_dock_title("WORKSPACE", self.workplace_dock, expand_icon_path, collapse_icon_path)
 
         # OUTLINER ve HEADER widget'larını oluşturma
@@ -1955,14 +1959,12 @@ class EditorApp(QMainWindow):
         outliner_layout.setContentsMargins(0, 0, 0, 0)  # Tüm kenarlardan sıfır boşluk
         outliner_layout.setSpacing(0)  # Öğeler arasında boşluk yok
 
-
         # PathFromOS sınıfının bir örneğini oluşturuyoruz
         path_from_os = PathFromOS()
 
         # İkon yolunu alıyoruz
         expand_icon = os.path.join(path_from_os.icons_path, 'expand_icon.svg')
         collapse_icon = os.path.join(path_from_os.icons_path, 'collapse_icon.svg')
-
 
         # OUTLINER QTreeWidget tanımla
         self.outliner_list = QTreeWidget()
@@ -2019,7 +2021,9 @@ class EditorApp(QMainWindow):
 
         # OUTLINER widget'ını Outliner dock'a bağla
         self.outliner_dock.setWidget(outliner_widget)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.outliner_dock)
+        self.addDockWidget(self.settings.OUTLINER_DOCK_POS, self.outliner_dock)
+        self.outliner_dock.setVisible(self.settings.OUTLINER_VISIBLE)
+
         self.populate_outliner_with_functions()
         # Sağ tıklama menüsü ekle (Context Menu)
         self.outliner_list.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -2129,7 +2133,8 @@ class EditorApp(QMainWindow):
         """)
         self.header_tree.setRootIsDecorated(False)
         self.header_dock.setWidget(self.header_tree)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.header_dock)
+        self.addDockWidget(self.settings.HEADER_DOCK_POS, self.header_dock)
+        self.header_dock.setVisible(self.settings.HEADER_VISIBLE)
 
         self.header_tree.itemClicked.connect(self.go_to_line_from_header)
 
