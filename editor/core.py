@@ -3,7 +3,6 @@ from PySide2.QtCore import QSize
 from PySide2.QtGui import QColor, Qt
 import json
 from init_ide import settings_path
-from editor.settings.settings_ux import set_focus_mode, set_expanded_mode, set_compact_mode, set_default_mode
 
 def load_nuke_function_descriptions(json_path):
     """Nuke işlev açıklamalarını JSON'dan yükler."""
@@ -21,6 +20,9 @@ class PathFromOS:
         self.nukescripts_ref_path = os.path.join(self.project_root, 'assets', 'nukescripts.py')
         self.assets_path = os.path.join(self.project_root, 'assets')
 
+        # Gettings dynamic path settings
+        self.settings_db = os.path.join(self.project_root, 'editor', 'settings')
+
         # Getting dynamic fonts from JetBrains Mono
         self.jet_fonts = os.path.join(self.project_root, 'assets', 'jetBrains','ttf')
         self.jet_fonts_var = os.path.join(self.project_root, 'assets', 'jetBrains','ttf',"variable")
@@ -29,6 +31,10 @@ class PathFromOS:
 class CodeEditorSettings:
     def __init__(self):
         """Kod yazım ayarları burada döner"""
+
+        # TEMP CODES
+        self.temp_codes = ("# -*- coding: utf-8 -*-\n"
+                           "#import love")
 
         # GENEL KODLAMA AYARLARI
         self.main_font_size = 11 # Default font size
@@ -82,26 +88,33 @@ class CodeEditorSettings:
         self.CONSOLE_VISIBLE = True
         self.NUKEAI_VISIBLE = True
 
-        # # JSON dosyasını oku
-        # with open(settings_path) as file:
-        #     data = json.load(file)
-        #
-        # # "default_interface_mode" bilgisini al
-        # interface_mode = data.get("General", {}).get("default_interface_mode", "")
-        #
-        # if interface_mode == "Default Mode":
-        #     set_default_mode()
-        #     print(f"Default interface Mode: {interface_mode}")
-        #
-        # elif interface_mode == "Focus Mode":
-        #         set_focus_mode()
-        #         print (f"Default interface Mode: {interface_mode}")
-        #
-        # elif interface_mode == "Expanded Mode":
-        #     set_expanded_mode()
-        #     print(f"Default interface Mode: {interface_mode}")
-        #
-        # elif interface_mode == "Compact Mode":
-        #     set_compact_mode()
-        #     print(f"Default interface Mode: {interface_mode}")
-        #
+        def set_focus_mode():
+            self.OUTLINER_VISIBLE = False
+            self.HEADER_VISIBLE = False
+            self.WORKPLACE_VISIBLE = False
+            self.OUTPUT_VISIBLE = False
+            self.CONSOLE_VISIBLE = False
+            self.NUKEAI_VISIBLE = False
+
+        def set_default_mode():
+            self.OUTLINER_VISIBLE = True
+            self.HEADER_VISIBLE = True
+            self.WORKPLACE_VISIBLE = True
+            self.OUTPUT_VISIBLE = True
+            self.CONSOLE_VISIBLE = True
+            self.NUKEAI_VISIBLE = True
+
+
+        # JSON dosyasını oku
+        with open(settings_path) as file:
+            data = json.load(file)
+
+        interface_mode = data.get("General", {}).get("default_interface_mode", "")
+
+        if interface_mode == "Mumen Rider (Professional)":
+            set_default_mode()
+
+        elif interface_mode == "Saitama (immersive)":
+            set_focus_mode()
+
+

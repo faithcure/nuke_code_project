@@ -21,13 +21,6 @@ import editor.dialogs.searchDialogs
 import settings.github_utils
 import main_toolbar
 from editor.nlink import update_nuke_functions, load_nuke_functions
-importlib.reload(editor.core)
-importlib.reload(editor.code_editor)
-importlib.reload(editor.output)
-importlib.reload(editor.new_nuke_project)
-importlib.reload(editor.dialogs.searchDialogs)
-importlib.reload(settings.github_utils)
-importlib.reload(main_toolbar)
 from editor.core import PathFromOS, CodeEditorSettings
 from editor.code_editor import CodeEditor,  PythonHighlighter
 from PySide2.QtWidgets import QDockWidget, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QWidget
@@ -44,17 +37,27 @@ from editor.new_nuke_project import NewNukeProjectDialog
 from editor.dialogs.searchDialogs import SearchDialog
 from editor.dialogs.replaceDialogs import ReplaceDialogs  # Döngüsel içe aktarma sorununu çözmek için fonksiyon içinde import
 from editor.dialogs.goToLineDialogs import GoToLineDialog
+# from init_ide import settings_path
 from settings.github_utils import commit_changes, push_to_github, pull_from_github, get_status
 from main_toolbar import MainToolbar
+importlib.reload(editor.core)
+importlib.reload(editor.code_editor)
+importlib.reload(editor.output)
+importlib.reload(editor.new_nuke_project)
+importlib.reload(editor.dialogs.searchDialogs)
+importlib.reload(settings.github_utils)
+importlib.reload(main_toolbar)
 
 class EditorApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        # Main Toolbar
         MainToolbar.create_toolbar(self)
 
         #Settings Var
-        self.settings = CodeEditorSettings()  # Ayarları başlatıyoruz ve kalıcı hale getiriyoruz
+        self.settings = CodeEditorSettings()
+
 
         # Window başlık değişkeni
         self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
@@ -68,7 +71,7 @@ class EditorApp(QMainWindow):
         self.move(qr.topLeft())
 
         # Yeni proje ve dosya işlemleri için dizin ve dosya değişkenleri
-        self.project_dir = None  # Proje dizini
+        self.project_dir = None
         self.current_file_path = None  # Mevcut dosya
 
         # Status bar oluşturma
@@ -86,6 +89,7 @@ class EditorApp(QMainWindow):
         # Renkleri kaydetmek için bir dictionary
         self.item_colors = {}
         self.color_settings_path = os.path.join(os.getcwd(), "assets", "item_colors.json")
+        self.settings_path = os.path.join(PathFromOS().settings_db, "settings.json")
 
         # Sekmeli düzenleyici (Tab Widget) oluşturma
         self.tab_widget = QTabWidget()
@@ -138,7 +142,7 @@ class EditorApp(QMainWindow):
         self.create_docks()
 
         # Başlangıçta boş bir "untitled.py" sekmesi açılıyor
-        self.add_new_tab("untitled.py", initial_content="import nuke\nimport nukescripts")
+        self.add_new_tab("untitled.py", initial_content= CodeEditorSettings().temp_codes)
 
         # Program başlarken renkleri yükle
         self.load_colors_from_file()
@@ -146,11 +150,11 @@ class EditorApp(QMainWindow):
         # Son açılan projeler bu listeye JSON olarak atanır
         # Recent Projects ile ilgili değişkenler
         self.recent_projects_list = []  # Projeleri listelemek için boş bir liste
-        self.recent_projects_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "./",  "assets", "recent_projects.json")  # Dosya yolu
-
+        # self.recent_projects_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "./",  "assets", "recent_projects.json")
+        self.recent_projects_path = os.path.join(PathFromOS().json_path, "recent_projects.json")
         # Program başlarken recent projects listesini yükleyelim
         self.load_recent_projects()
-
+        self.load_last_project()
         self.create_bottom_tabs() # Conolse ve Output penceresi
         # Ctrl+Enter kısayolunu tanımla ve run_code işlevine bağla
         run_shortcut = QShortcut(QKeySequence("Ctrl+Enter"), self)
@@ -1164,8 +1168,7 @@ class EditorApp(QMainWindow):
 
     def update_recent_projects_menu(self):
         """Recent Projects menüsünü günceller."""
-        self.recent_projects.clear()  # Menü öğelerini temizleyelim
-
+        self.recent_projects.clear()
         # Her proje için menüye bir eylem ekleyelim
         for project_path in self.recent_projects_list:
             action = QAction(project_path, self)
@@ -1173,21 +1176,72 @@ class EditorApp(QMainWindow):
             action.triggered.connect(partial(self.open_project_from_path, project_path))
             self.recent_projects.addAction(action)
 
-    def open_project_from_path(self, project_path):
-        """Verilen dosya yoluna göre bir projeyi açar."""
-        if os.path.exists(project_path):
-            self.project_dir = project_path  # Proje dizinini güncelle
-            self.populate_workplace(project_path)  # Workspace'i proje ile doldur
-            self.setWindowTitle(
-                self.empty_project_win_title + os.path.basename(project_path))  # Pencere başlığını güncelle
-        else:
-            QMessageBox.warning(self, "Hata", f"Proje dizini {project_path} mevcut değil.")
+    def load_last_project(self):
+        """recent_paths listesinin ilk elemanını settings.json'daki resume_last_project durumuna göre yükler."""
+        # Settings.json kontrolü
+        resume_last_project = False
+        if os.path.exists(self.settings_path):
+            try:
+                with open(self.settings_path, 'r') as settings_file:
+                    settings_data = json.load(settings_file)
+                    resume_last_project = settings_data["General"].get("resume_last_project", False)
+            except Exception as e:
+                print(f"Error reading settings.json: {e}")
+        # Eğer settings.json'daki resume_last_project false ise işlem yapma
+        if not resume_last_project:
+            print("Resume last project is disabled in settings.json.!!")
+            return
+        # Recent projects.json kontrolü
+        if os.path.exists(self.recent_projects_path):
+            try:
+                with open(self.recent_projects_path, 'r') as file:
+                    data = json.load(file)
+                    recent_paths = data.get("recent_paths", [])
 
-    def browse_directory(self, input_field):
-        """Proje dizini seçmek için bir dizin tarayıcı aç."""
-        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
-        if directory:
-            input_field.setText(directory)
+                    # recent_paths'in ilk elemanını kontrol et ve yükle
+                    if recent_paths:
+                        last_project = recent_paths[0]
+                        if os.path.exists(last_project):
+                            self.project_dir = last_project
+                            self.populate_workplace(self.project_dir)
+                            self.setWindowTitle(self.empty_project_win_title + os.path.basename(self.project_dir))
+                            print(f"Last project loaded: {last_project}")
+                        else:
+                            print(f"Last project path does not exist: {last_project}")
+                    else:
+                        print("No recent projects found in recent_projects.json.")
+            except Exception as e:
+                print(f"Error loading recent projects: {e}")
+        else:
+            print("recent_projects.json does not exist.")
+
+    def open_project_from_path(self, project_path):
+        """
+        Opens a project from the given file path, updates the recent projects list,
+        and dynamically refreshes the menu.
+        """
+        if os.path.exists(project_path):
+            # Proje yolunu aç
+            self.project_dir = project_path
+            self.populate_workplace(project_path)
+            self.setWindowTitle(self.empty_project_win_title + os.path.basename(project_path))
+
+            # Recent Projects listesine güncel projeyi ekle
+            if project_path in self.recent_projects_list:
+                self.recent_projects_list.remove(project_path)  # Zaten varsa kaldır
+            self.recent_projects_list.insert(0, project_path)  # En üste ekle
+
+            # Güncellenen listeyi recent_projects.json'a kaydet
+            try:
+                with open(self.recent_projects_path, 'w') as file:
+                    json.dump({"recent_paths": self.recent_projects_list}, file, indent=4, ensure_ascii=False)
+            except Exception as e:
+                print(f"Error updating recent projects file: {e}")
+
+            # Menüdeki Recent Projects listesini dinamik olarak güncelle
+            self.update_recent_projects_menu()
+        else:
+            QMessageBox.warning(self, "Error", f"Project directory {project_path} does not exist.")
 
     def new_project(self):
         """Yeni bir proje dizini seçer ve doğrudan dosya sistemine yansıtır."""
@@ -1666,23 +1720,6 @@ class EditorApp(QMainWindow):
             # Projeyi recent_projects_list'e ekleyelim
             self.add_to_recent_projects(self.project_dir)
 
-    # def add_to_recent_projects(self, project_path):
-    #     """Projeyi recent projects listesine ekler."""
-    #     # Eğer proje zaten listede varsa çıkaralım
-    #     if project_path in self.recent_projects_list:
-    #         self.recent_projects_list.remove(project_path)
-    #
-    #     # En başa ekleyelim
-    #     self.recent_projects_list.insert(0, project_path)
-    #
-    #     # Eğer 7'den fazla proje varsa, en son projeyi çıkaralım
-    #     if len(self.recent_projects_list) > 7:
-    #         self.recent_projects_list.pop()
-    #
-    #     # Listeyi güncelle ve dosyaya kaydet
-    #     self.save_recent_projects()
-    #     self.update_recent_projects_menu()
-
     def add_to_recent_projects(self, project_path):
         """Projeyi recent projects listesine ekler."""
         # Eğer proje zaten listede varsa çıkaralım
@@ -1700,20 +1737,23 @@ class EditorApp(QMainWindow):
         self.save_recent_projects()
         self.update_recent_projects_menu()
 
-    def open_project_from_path(self, project_path):
-        """Verilen dosya yoluna göre bir projeyi açar."""
-        if os.path.exists(project_path):
-            self.project_dir = project_path
-            self.populate_workplace(project_path)
-            self.setWindowTitle(self.empty_project_win_title + os.path.basename(project_path))
-        else:
-            QMessageBox.warning(self, "Error", f"Project directory {project_path} does not exist.")
 
     def save_recent_projects(self):
-        """Recent Projects listesini JSON dosyasına kaydeder."""
+        """Recent Projects listesini JSON dosyasına düzenli bir formatta kaydeder ve tekrar eden yolları kaldırır."""
         try:
+            # Platform bağımsız yollar için normalize et ve tekrar edenleri kaldır
+            normalized_paths = list(dict.fromkeys(
+                [os.path.normpath(path) for path in self.recent_projects_list]
+            ))
+
+            # Son eklenen yolu listenin en üstüne taşı
+            if normalized_paths:
+                most_recent = normalized_paths.pop()  # Son yolu al
+                normalized_paths.insert(0, most_recent)  # En üste ekle
+
+            # JSON dosyasına recent_paths anahtarı altında kaydet
             with open(self.recent_projects_path, 'w') as file:
-                json.dump(self.recent_projects_list, file)
+                json.dump({"recent_paths": normalized_paths}, file, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"Error saving recent projects: {e}")
 
@@ -1722,9 +1762,11 @@ class EditorApp(QMainWindow):
         if os.path.exists(self.recent_projects_path):
             try:
                 with open(self.recent_projects_path, 'r') as file:
-                    self.recent_projects_list = json.load(file)
+                    data = json.load(file)
+                    self.recent_projects_list = data.get("recent_paths", [])
             except Exception as e:
                 print(f"Error loading recent projects: {e}")
+                self.recent_projects_list = []  # Hata durumunda boş listeye geç
 
         # Menüde göstermek için listeyi güncelle
         self.update_recent_projects_menu()
@@ -1745,6 +1787,7 @@ class EditorApp(QMainWindow):
             # Aynı dosya açık değilse yeni bir sekme aç
             self.add_new_tab(file_name)
             print("add_new_tab 1625")
+
     def save_file(self):
         """Save the current file."""
         if self.project_dir is None:
@@ -1873,7 +1916,7 @@ class EditorApp(QMainWindow):
         if self.tab_widget.count() == 0:
             # Yeni bir sekme açıyoruz
             print("add_new_tab 1755")
-            self.add_new_tab("untitled.py", initial_content="import nuke\nimport nukescripts")
+            self.add_new_tab("untitled.py", initial_content=CodeEditorSettings().temp_codes)
 
             # Yeni tab açıldığında completer'ı gizleyelim
             current_editor = self.tab_widget.currentWidget()

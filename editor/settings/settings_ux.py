@@ -54,8 +54,6 @@ def set_expanded_mode(main_window):
     """
     print("Expanded Mode Activated")
 
-    # Dock widget'ların isimleri
-
     # Tüm widget'ları görünür yap
     for dock_name in dock_names:
         if hasattr(main_window, dock_name):
@@ -76,7 +74,7 @@ def set_expanded_mode(main_window):
     # Alt: Console, Output ve NukeAI ayrı ayrı
     if hasattr(main_window, 'console_dock') and hasattr(main_window, 'output_dock') and hasattr(main_window,
                                                                                                 'nuke_ai_dock'):
-        main_window.addDockWidget(Qt.BottomDockWidgetArea, main_window.console_dock)
+        main_window.ddDockWidget(Qt.BottomDockWidgetArea, main_window.console_dock)
         main_window.addDockWidget(Qt.BottomDockWidgetArea, main_window.output_dock)
         main_window.addDockWidget(Qt.BottomDockWidgetArea, main_window.nuke_ai_dock)
 
@@ -86,7 +84,6 @@ def set_expanded_mode(main_window):
 
     # İlk tab olarak Console'u seç
     main_window.console_dock.raise_()
-
     print("Expanded Mode: Panels arranged in an expanded layout.")
 
 
@@ -140,4 +137,9 @@ ui_modes = {
     "Expanded Mode": set_expanded_mode,
     "Focus Mode": set_focus_mode,
     "Compact Mode": set_compact_mode
+}
+root_modes = {
+    "Mumen Rider (Professional)": set_default_mode,
+    "Saitama (immersive)": set_focus_mode,
+
 }

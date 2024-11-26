@@ -164,8 +164,12 @@ class SettingsWindow(QMainWindow):
         panel = QWidget()
         layout = QVBoxLayout()
 
-        # Language & Theme settings in a horizontal layout
-        lang_theme_layout = QHBoxLayout()
+        # GroupBox for Language & Theme settings
+        lang_theme_group = QGroupBox(r"Language && Theme Settings")
+        lang_theme_layout = QVBoxLayout()
+
+        # Horizontal layout for Language & Theme
+        lang_theme_inner_layout = QHBoxLayout()
 
         language_combobox = QComboBox()
         language_combobox.setObjectName("default_language")
@@ -183,19 +187,24 @@ class SettingsWindow(QMainWindow):
         separator.setFrameShadow(QFrame.Sunken)
         separator.setStyleSheet("color: lightgrey;")
 
-        lang_theme_layout.addWidget(QLabel("Language:"))
-        lang_theme_layout.addWidget(language_combobox)
-        lang_theme_layout.addWidget(separator)
-        lang_theme_layout.addWidget(QLabel("Theme:"))
-        lang_theme_layout.addWidget(theme_combobox)
-        lang_theme_layout.addStretch()  # Push to the left
-        layout.addLayout(lang_theme_layout)
+        lang_theme_inner_layout.addWidget(QLabel("Language:"))
+        lang_theme_inner_layout.addWidget(language_combobox)
+        lang_theme_inner_layout.addWidget(separator)
+        lang_theme_inner_layout.addWidget(QLabel("Theme:"))
+        lang_theme_inner_layout.addWidget(theme_combobox)
+        lang_theme_inner_layout.addStretch()  # Push to the left
 
-        # Add explanatory text below language and theme
+        lang_theme_layout.addLayout(lang_theme_inner_layout)
+
+        # Explanatory text for Language & Theme
         settings_note = QLabel("Some settings are mandatory for Nuke because you are working in the Nuke environment.")
         settings_note.setStyleSheet("color: Grey;")
         settings_note.setWordWrap(True)
-        layout.addWidget(settings_note)
+        lang_theme_layout.addWidget(settings_note)
+
+        lang_theme_group.setLayout(lang_theme_layout)
+        lang_theme_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        layout.addWidget(lang_theme_group)
 
         # Start at Login
         start_group = QGroupBox("Start at Login")
@@ -218,10 +227,10 @@ class SettingsWindow(QMainWindow):
         # Default Interface Mode ComboBox
         interface_mode_combobox = QComboBox()
         interface_mode_combobox.setObjectName("default_interface_mode")
-        interface_label = QLabel("Set default UX automatically when this ide is open.")
+        interface_label = QLabel("Are you 'Saitama' or 'Mumen Rider'? Make your choise for the default UI.\n If you want to change UI dynamically you cna do this in the main menu.")
         interface_label.setStyleSheet("color: Grey;")
 
-        interface_mode_combobox.addItems(settings_ux.ui_modes.keys())
+        interface_mode_combobox.addItems(settings_ux.root_modes.keys())
         interface_mode_combobox.setToolTip("Set the default startup interface mode for the code editor.")
         ui_settings_layout.addRow("Default Interface Mode:", interface_mode_combobox)
         ui_settings_layout.addRow(interface_label)
@@ -301,6 +310,8 @@ class SettingsWindow(QMainWindow):
 
         # Tab Size Ayarı
         tab_size_spinbox = QSpinBox()
+        tab_size_spinbox.setMinimumWidth(100)
+        tab_size_spinbox.setMinimumHeight(30)
         tab_size_spinbox.setObjectName("default_tab_size")
         tab_size_spinbox.setRange(2, 8)
         tab_size_layout = QHBoxLayout()
