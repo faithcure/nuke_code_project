@@ -3,6 +3,7 @@ from PySide2.QtCore import QSize
 from PySide2.QtGui import QColor, Qt
 import json
 from init_ide import settings_path
+from editor.settings.settings_ui import SettingsWindow
 
 def load_nuke_function_descriptions(json_path):
     """Nuke işlev açıklamalarını JSON'dan yükler."""
@@ -23,6 +24,7 @@ class PathFromOS:
         # Gettings dynamic path settings
         self.settings_db = os.path.join(self.project_root, 'editor', 'settings')
 
+
         # Getting dynamic fonts from JetBrains Mono
         self.jet_fonts = os.path.join(self.project_root, 'assets', 'jetBrains','ttf')
         self.jet_fonts_var = os.path.join(self.project_root, 'assets', 'jetBrains','ttf',"variable")
@@ -31,14 +33,23 @@ class PathFromOS:
 class CodeEditorSettings:
     def __init__(self):
         """Kod yazım ayarları burada döner"""
-
+        self.settings_json = os.path.join(PathFromOS().settings_db, "settings.json")
         # TEMP CODES
         self.temp_codes = ("# -*- coding: utf-8 -*-\n"
-                           "#import love")
+                           "#import love, StopWars")
 
-        # GENEL KODLAMA AYARLARI
-        self.main_font_size = 11 # Default font size
-        self.ctrlWheel = True # Ctrl Whell Zoom Settings Default!
+        # GENERAL CODING HELPERS
+        self.main_font_size = 14  # Varsayılan font boyutu
+        self.main_default_font = "Consolas"  # Varsayılan font
+        self.ctrlWheel = True  # Varsayılan Ctrl+Wheel ayarı
+
+        with open(self.settings_json, "r") as file:
+            settings = json.load(file)
+            code_editor_settings = settings.get("Code Editor",{})
+
+        self.main_font_size = code_editor_settings.get("default_font_size", self.main_font_size)
+        self.main_default_font = code_editor_settings.get("default_selected_font", self.main_default_font)
+        self.ctrlWheel = code_editor_settings.get("is_wheel_zoom", self.ctrlWheel)
 
         # BACKGROUND COLOR SETTIGS
         self.code_background_color = QColor(45, 45, 45)
@@ -61,17 +72,22 @@ class CodeEditorSettings:
 
         # TOOLBAR settings
         self.setToolbar_area = Qt.TopToolBarArea
-        tb_icon_sizeX= 20
-        tb_icon_sizeY= 20
+        tb_icon_sizeX= 25
+        tb_icon_sizeY= 25
         self.toolbar_icon_size = QSize(tb_icon_sizeX,tb_icon_sizeY)
 
         # COMPLETER SETTINGS
-        self.ENABLE_FUZZY_COMPLETION = True # Fuzzy filter ON/OFF
-        self.ENABLE_COMPLETER = True  # Completer varsayılan olarak açık
-        self.ENABLE_INLINE_GHOSTING = True # Inline suggestion ON/OFF
+        self.ENABLE_COMPLETER = True
+        self.ENABLE_FUZZY_COMPLETION = True
+        self.ENABLE_INLINE_GHOSTING = True
         self.GHOSTING_OPACITY = 100
-        self.GHOSTING_COLOR = QColor(175, 175, 175, self.GHOSTING_OPACITY) # Inline Color settings.
-        self.CREATE_NODE_COMPLETER = True # Sadece createNode ile çalışır.
+        self.GHOSTING_COLOR = QColor(175, 175, 175, self.GHOSTING_OPACITY)
+        self.CREATE_NODE_COMPLETER = True  # Sadece createNode ile çalışır.
+
+        self.ENABLE_COMPLETER = code_editor_settings.get("disable_smart_compilation", self.ENABLE_COMPLETER)
+        self.ENABLE_FUZZY_COMPLETION = code_editor_settings.get("disable_fuzzy_compilation", self.ENABLE_FUZZY_COMPLETION)
+        self.ENABLE_INLINE_GHOSTING = code_editor_settings.get("disable_suggestion", self.ENABLE_INLINE_GHOSTING)
+        self.CREATE_NODE_COMPLETER =  code_editor_settings.get("disable_node_completer", self.CREATE_NODE_COMPLETER)
 
         # TEMP UI SETTINGS DONT TOUCH
         self.OUTLINER_DOCK_POS = Qt.LeftDockWidgetArea
@@ -104,13 +120,7 @@ class CodeEditorSettings:
             self.CONSOLE_VISIBLE = True
             self.NUKEAI_VISIBLE = True
 
-
-        # JSON dosyasını oku
-        with open(settings_path) as file:
-            data = json.load(file)
-
-        interface_mode = data.get("General", {}).get("default_interface_mode", "")
-
+        interface_mode = settings.get("General", {}).get("default_interface_mode", "")
         if interface_mode == "Mumen Rider (Professional)":
             set_default_mode()
 

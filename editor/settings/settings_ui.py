@@ -1,6 +1,9 @@
 import subprocess
 import json
 import sys
+from functools import partial
+from pygments.styles import get_all_styles
+import psutil
 import requests
 from PySide2.QtWidgets import (
     QApplication, QMainWindow, QListWidget, QStackedWidget, QWidget,
@@ -17,6 +20,55 @@ import importlib
 import editor.settings.settings_ux
 from editor.settings import settings_ux
 importlib.reload(editor.settings.settings_ux)
+
+class ProcessManager(QThread):
+    """Handles process execution with memory and timeout constraints."""
+    process_error = Signal(str)
+    process_completed = Signal(str)
+
+    def __init__(self, memory_limit, timeout_limit, command):
+        super().__init__()
+        self.memory_limit = memory_limit  # MB
+        self.timeout_limit = timeout_limit  # Seconds
+        self.command = command  # Command to execute
+        self._is_running = True
+
+    def run(self):
+        """Run the process and monitor its memory and timeout constraints."""
+        try:
+            process = subprocess.Popen(self.command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            start_time = time.time()
+
+            while self._is_running:
+                # Check for timeout
+                elapsed_time = time.time() - start_time
+                if elapsed_time > self.timeout_limit:
+                    process.terminate()
+                    self.process_error.emit(f"Process timed out after {self.timeout_limit} seconds.")
+                    return
+
+                # Check memory usage
+                proc = psutil.Process(process.pid)
+                memory_usage = proc.memory_info().rss / (1024 * 1024)  # Convert to MB
+                if memory_usage > self.memory_limit:
+                    process.terminate()
+                    self.process_error.emit(f"Memory limit exceeded: {memory_usage:.2f} MB (limit: {self.memory_limit} MB)")
+                    return
+
+                # Check if process is still running
+                if process.poll() is not None:
+                    stdout, stderr = process.communicate()
+                    self.process_completed.emit(stdout.decode('utf-8') if stdout else stderr.decode('utf-8'))
+                    return
+
+                time.sleep(0.5)  # Poll interval
+        except Exception as e:
+            self.process_error.emit(f"Unexpected error: {str(e)}")
+
+    def stop(self):
+        """Stop the running process."""
+        self._is_running = False
+
 class ModuleInstallerThread(QThread):
     progress_updated = Signal(int, str)  # Signal for progress bar
     download_info = Signal(str)  # Signal for detailed download info
@@ -252,11 +304,230 @@ class SettingsWindow(QMainWindow):
         last_project_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(last_project_group)
 
+        # Syntax Color Schema Group
+        syntax_color_group = QGroupBox("Syntax Color Schema")
+        syntax_color_layout = QVBoxLayout()
+
+        # Add horizontal layout for button and dropdown
+        manage_syntax_layout = QHBoxLayout()
+
+        # Check if Pygments module exists
+
+        PYGMENTS_MODULE_PATH = os.path.join(os.path.dirname(__file__), "modules")
+        pygments_available = os.path.exists(PYGMENTS_MODULE_PATH)
+
+        # Install Button
+        manage_syntax_button = QPushButton("Install Color Module")
+        manage_syntax_button.clicked.connect(self.install_pygement_module)
+        manage_syntax_button.setObjectName("install_color_module")
+        manage_syntax_button.setEnabled(not pygments_available)  # Disable if module exists
+        manage_syntax_button.setFixedWidth(150)  # Set button width
+        manage_syntax_layout.addWidget(manage_syntax_button)
+
+        # Dropdown for Pygments stylesf
+        syntax_style_dropdown = QComboBox()
+        syntax_style_dropdown.setObjectName("syntax_style_dropdown")
+        SUPPORTED_STYLES = [
+            "monokai",
+            "lightbulb",
+            "github-dark",
+            "rrt",
+            "zenburn",
+            "material",
+            "one-dark",
+            "dracula",
+            "nord-darker",
+            "gruvbox-dark",
+            "stata-dark",
+            "native",
+            "fruity",
+            "pycharm"
+        ]
+        syntax_style_dropdown.addItems(sorted(SUPPORTED_STYLES))
+        syntax_style_dropdown.setCurrentText("monokai")
+        syntax_style_dropdown.setToolTip("Select a syntax highlighting style.")
+        syntax_style_dropdown.setEnabled(pygments_available)  # Disable if module does not exist
+        syntax_style_dropdown.setFixedWidth(200)  # Set dropdown width
+        manage_syntax_layout.addWidget(syntax_style_dropdown)
+
+        # Align the layout to the left
+        manage_syntax_layout.setAlignment(Qt.AlignLeft)
+
+        # Add manage layout to main group layout
+        syntax_color_layout.addLayout(manage_syntax_layout)
+
+        # Add note label
+        syntax_color_note = QLabel("Click to customize syntax highlighting color schemas.")
+        syntax_color_note.setStyleSheet("color: Grey;")
+        syntax_color_note.setWordWrap(True)
+        syntax_color_layout.addWidget(syntax_color_note)
+
+        # Set layout for the group box
+        syntax_color_group.setLayout(syntax_color_layout)
+        syntax_color_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        layout.addWidget(syntax_color_group)
+
         # Add spacer for pushing elements up in the window
         layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
+        # Set final layout
         panel.setLayout(layout)
         return panel
+
+    def install_pygement_module(self):
+        install_path = os.path.join(os.path.dirname(__file__), "modules")
+        print("pygment module path:", install_path)
+        required_modules = ["Pygments"]
+
+        user_home = os.path.expanduser("~")
+        nuke_dir = os.path.join(user_home, ".nuke")
+        init_path = os.path.join(nuke_dir, "init.py")
+        if not os.path.exists(install_path):
+            os.makedirs(install_path)
+
+        python_path = None  # Başlangıçta None olarak ayarla
+        if "PYTHON_HOME" in os.environ:
+            python_path = os.path.join(os.environ["PYTHON_HOME"], "python.exe")
+        else:
+            user_home = os.path.expanduser("~")
+
+            possible_paths = [
+                # Dinamik Windows Yolları
+                os.path.join(user_home, "AppData", "Local", "Programs", "Python", "Python311", "python.exe"),
+                os.path.join(user_home, "AppData", "Local", "Programs", "Python", "Python310", "python.exe"),
+                os.path.join(user_home, "AppData", "Local", "Programs", "Python", "Python39", "python.exe"),
+                os.path.join(user_home, "AppData", "Local", "Programs", "Python", "Python38", "python.exe"),
+                os.path.join(user_home, "AppData", "Local", "Programs", "Python", "Python37", "python.exe"),
+                os.path.join(user_home, "AppData", "Local", "Microsoft", "WindowsApps", "python.exe"),
+                os.path.join(user_home, "anaconda3", "python.exe"),
+                os.path.join(user_home, "miniconda3", "python.exe"),
+                os.path.join(user_home, "AppData", "Local", "Continuum", "anaconda3", "python.exe"),
+                os.path.join(user_home, "AppData", "Local", "Continuum", "miniconda3", "python.exe"),
+
+                # Sabit Windows Yolları
+                r"C:\Python311\python.exe",
+                r"C:\Python310\python.exe",
+                r"C:\Python39\python.exe",
+                r"C:\Python38\python.exe",
+                r"C:\Python37\python.exe",
+                r"C:\Python36\python.exe",
+                r"C:\Program Files\Python311\python.exe",
+                r"C:\Program Files\Python310\python.exe",
+                r"C:\Program Files\Python39\python.exe",
+                r"C:\Program Files\Python38\python.exe",
+                r"C:\Program Files (x86)\Python37\python.exe",
+                r"C:\Program Files (x86)\Python36\python.exe",
+
+                # Linux ve MacOS Yolları
+                "/usr/bin/python3.11",
+                "/usr/bin/python3.10",
+                "/usr/bin/python3.9",
+                "/usr/bin/python3.8",
+                "/usr/bin/python3.7",
+                "/usr/bin/python3.6",
+                "/usr/bin/python3",
+                "/usr/bin/python",
+                "/usr/local/bin/python3.11",
+                "/usr/local/bin/python3.10",
+                "/usr/local/bin/python3.9",
+                "/usr/local/bin/python3.8",
+                "/usr/local/bin/python3.7",
+                "/usr/local/bin/python3",
+                "/usr/local/bin/python",
+                "/opt/python3.11/bin/python3",
+                "/opt/python3.10/bin/python3",
+                "/opt/python3.9/bin/python3",
+                "/opt/python3.8/bin/python3",
+                "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
+                "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3",
+                "/Library/Frameworks/Python.framework/Versions/3.9/bin/python3",
+                "/Library/Frameworks/Python.framework/Versions/3.8/bin/python3",
+
+                # Virtualenv veya Conda Sanal Ortamları
+                os.path.join(os.environ.get("VIRTUAL_ENV", ""), "bin", "python"),
+                os.path.join(os.environ.get("CONDA_PREFIX", ""), "bin", "python"),
+
+                # Pyenv Python Yolları
+                os.path.join(user_home, ".pyenv", "shims", "python"),
+                os.path.join(user_home, ".pyenv", "versions", "3.11.0", "bin", "python"),
+                os.path.join(user_home, ".pyenv", "versions", "3.10.0", "bin", "python"),
+                os.path.join(user_home, ".pyenv", "versions", "3.9.0", "bin", "python"),
+                os.path.join(user_home, ".pyenv", "versions", "3.8.0", "bin", "python"),
+                os.path.join(user_home, ".pyenv", "versions", "3.7.0", "bin", "python"),
+
+                # Custom Paths
+                r"D:\Python311\python.exe",
+                r"D:\Python310\python.exe",
+                r"D:\Python39\python.exe"
+            ]
+
+            for path in possible_paths:
+                if os.path.exists(path):
+                    python_path = path  # Doğru yolu atayın
+                    break
+
+        if not python_path:  # Eğer python_path hala None ise hata göster
+            QMessageBox.critical(
+                self,
+                "Python Not Found",
+                "System Python could not be located. Please install Python or specify its path using the PYTHON_HOME environment variable."
+            )
+            return
+        # Progress Dialog oluştur
+        progress = QProgressDialog("Installing Pygments modules...", "Cancel", 0, len(required_modules))
+        progress.setWindowTitle("Installation Progress")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+
+        # Modül kurulum işlemi için thread başlat
+        thread = ModuleInstallerThread(install_path, required_modules, python_path)
+        thread.progress_updated.connect(lambda value, text: (
+            progress.setValue(value),
+            progress.setLabelText(text)
+        ))
+        thread.download_info.connect(lambda info: progress.setLabelText(info))
+
+        def on_completed():
+            try:
+                ide_init_path = os.path.join(os.path.dirname(init_path), "init_ide.py")  # Yeni dosya adı ve konumu
+
+                # init_ide.py dosyasını oluştur veya mevcut dosyayı güncelle
+                if not os.path.exists(ide_init_path):
+                    with open(ide_init_path, "w") as ide_init_file:
+                        ide_init_file.write(f"# Added modules path\n")
+                        ide_init_file.write(f"import sys\n")
+                        ide_init_file.write(f"sys.path.append({repr(install_path)})\n")
+
+                # init.py dosyasını güncelle (import işlemi kontrolü)
+                if os.path.exists(init_path):
+                    with open(init_path, "r+") as init_file:
+                        content = init_file.read()
+                        import_statement = "exec(open(os.path.join(os.path.dirname(__file__), 'init_ide.py')).read())"
+                        if import_statement not in content:
+                            init_file.write(f"\n# Import init_ide.py\n")
+                            init_file.write(f"import os\n")
+                            init_file.write(f"{import_statement}\n")
+
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    "Modules installed and linked successfully."
+                )
+
+            except Exception:
+                QMessageBox.warning(
+                    self,
+                    "Error",
+                    "An error occurred during the installation process."
+                )
+
+            progress.setValue(len(required_modules))
+            self.prompt_restart_nuke()
+
+        thread.completed.connect(on_completed)
+        thread.error_occurred.connect(lambda error: QMessageBox.critical(self, "Installation Error", error))
+        progress.canceled.connect(lambda: thread.terminate())
+        thread.start()
 
     def code_editor_settings(self):
         panel = QWidget()
@@ -290,14 +561,15 @@ class SettingsWindow(QMainWindow):
         font_layout.addRow("Font Size:", font_size_layout)
 
         # Açıklama Metni
-        zoom_explanation = QLabel("The default font size is 11. You can scale the font up and down with Ctrl+NumPad+ and Ctrl+NumPad-. "
+        zoom_explanation = QLabel("The default font size is 14 with consolas. You can scale the font up and down with Ctrl+NumPad+ and Ctrl+NumPad-. "
                                   "The 'Zoom with Mouse Wheel' option allows faster zooming with your mouse wheel.")
+        zoom_explanation.setStyleSheet("color: grey;")
         zoom_explanation.setWordWrap(True)
         font_layout.addRow(zoom_explanation)
 
         # JetBrains Font Install Link
         install_jetbrains_font = QLabel()
-        install_jetbrains_font.setText("<a href='https://www.jetbrains.com/fonts/' style='color:white;'>Install JetBrains Mono font for your system</a>")
+        install_jetbrains_font.setText("<a href='https://www.jetbrains.com/lp/mono/' style='color:white;'>Install JetBrains Mono font for your system</a>")
         install_jetbrains_font.setOpenExternalLinks(True)
         font_layout.addRow(install_jetbrains_font)
 
@@ -308,41 +580,48 @@ class SettingsWindow(QMainWindow):
         extra_settings_group = QGroupBox("Additional Settings")
         extra_layout = QFormLayout()
 
-        # Tab Size Ayarı
-        tab_size_spinbox = QSpinBox()
-        tab_size_spinbox.setMinimumWidth(100)
-        tab_size_spinbox.setMinimumHeight(30)
-        tab_size_spinbox.setObjectName("default_tab_size")
-        tab_size_spinbox.setRange(2, 8)
-        tab_size_layout = QHBoxLayout()
-        tab_size_layout.addWidget(tab_size_spinbox)
-        tab_size_description = QLabel("Defines the number of spaces per tab.")
-        tab_size_layout.addWidget(tab_size_description)
-        extra_layout.addRow("Tab Size:", tab_size_layout)
-
         # Disable Smart Compilation
-        disable_smart_compilation_checkbox = QCheckBox("Disable Smart Compilation")
+        disable_smart_compilation_checkbox = QCheckBox("Enable Smart Compilation")
+        disable_smart_compilation_checkbox.setChecked(True)
         disable_smart_compilation_checkbox.setObjectName("disable_smart_compilation")
         extra_layout.addRow(disable_smart_compilation_checkbox)
 
         # Disable Inline Suggestion
-        disable_inline_suggestion_checkbox = QCheckBox("Disable Inline Suggestion (Ghosting text)")
+        disable_inline_suggestion_checkbox = QCheckBox("Enable Inline Suggestion (Ghosting text)")
+        disable_inline_suggestion_checkbox.setChecked(True)
         disable_inline_suggestion_checkbox.setObjectName("disable_suggestion")
         extra_layout.addRow(disable_inline_suggestion_checkbox)
 
         # Disable Fuzzy Compilation
-        disable_fuzzy_completion_checkbox = QCheckBox("Disable Fuzzy Completion")
+        disable_fuzzy_completion_checkbox = QCheckBox("Enable Fuzzy Completion")
+        disable_fuzzy_completion_checkbox.setChecked(True)
         disable_fuzzy_completion_checkbox.setObjectName("disable_fuzzy_compilation")
         extra_layout.addRow(disable_fuzzy_completion_checkbox)
 
-        # Nuke Completer Settings Grubu
-        nuke_completer_group = QGroupBox("Nuke Completer Settings")
-        nuke_completer_layout = QFormLayout()
-        disable_node_completer_checkbox = QCheckBox("Disable Node Completer")
+        # Disable Node Completer (eski Nuke Completer içeriği)
+        disable_node_completer_checkbox = QCheckBox("Enable Node Completer")
+        disable_node_completer_checkbox.setChecked(True)
         disable_node_completer_checkbox.setObjectName("disable_node_completer")
-        nuke_completer_layout.addRow(disable_node_completer_checkbox)
-        nuke_completer_group.setLayout(nuke_completer_layout)
-        extra_layout.addWidget(nuke_completer_group)
+        extra_layout.addRow(disable_node_completer_checkbox)  # Disable Fuzzy Completion altına ekle
+
+        # Slot fonksiyonunu tanımla
+        def toggle_dependent_checkboxes(state):
+            # Disable diğer checkbox'ları, eğer disable_smart_compilation işaretli değilse
+            is_enabled = state == Qt.Checked
+            disable_inline_suggestion_checkbox.setEnabled(is_enabled)
+            disable_fuzzy_completion_checkbox.setEnabled(is_enabled)
+            disable_node_completer_checkbox.setEnabled(is_enabled)
+
+            disable_inline_suggestion_checkbox.setChecked(False)
+            disable_fuzzy_completion_checkbox.setChecked(False)
+            disable_node_completer_checkbox.setChecked(False)
+
+
+        # `stateChanged` sinyaline slotu bağla
+        disable_smart_compilation_checkbox.stateChanged.connect(toggle_dependent_checkboxes)
+
+        # İlk durumu kontrol et
+        toggle_dependent_checkboxes(disable_smart_compilation_checkbox.checkState())
 
         extra_settings_group.setLayout(extra_layout)
         layout.addWidget(extra_settings_group)
@@ -353,68 +632,102 @@ class SettingsWindow(QMainWindow):
 
         self.preview_editor = QTextEdit()
         self.preview_editor.setReadOnly(True)
+
         self.preview_editor.setText(
-            """def apply_effect(node):
-    node.setInput(0, 'Image')
-    node.knob('color').setValue(0.5)
-    for i in range(10):
-        node.knob('fade').setValue(i * 0.1)
-    print("Effect applied")
-    return node"""
+                """def apply_effect(node):
+        node.setInput(0, 'Image')
+        node.knob('color').setValue(0.5)
+        for i in range(10):
+            node.knob('fade').setValue(i * 0.1)
+        print("Effect applied")
+        return node"""
         )
         layout.addWidget(self.preview_editor)
 
         # Font ve Boyut Seçiminde Değişiklik Olduğunda Önizlemeyi Güncelle
         font_selector.currentFontChanged.connect(lambda font: self.preview_editor.setFont(font))
-        font_size_spinbox.valueChanged.connect(lambda size: self.preview_editor.setFontPointSize(size))
+
+        def update_font_size(size):
+            # QTextEdit'in tüm içeriğini yeni font boyutuna göre güncelle
+            cursor = self.preview_editor.textCursor()
+            cursor.select(cursor.Document)  # Tüm belgeyi seç
+            char_format = cursor.charFormat()  # Mevcut karakter formatını al
+            char_format.setFontPointSize(size)  # Font boyutunu ayarla
+            cursor.setCharFormat(char_format)  # Yeni formatı uygula
+
+        # Spinbox değişikliği için sinyal bağla
+        font_size_spinbox.valueChanged.connect(update_font_size)
 
         panel.setLayout(layout)
         return panel
 
     def environment_settings(self):
+        def copy_to_clipboard(text):
+            clipboard = QApplication.clipboard()
+            clipboard.setText(text)
+
+        def open_path(path):
+            if os.path.exists(path):
+                if os.name == 'nt':  # Windows
+                    os.startfile(path)
+                elif os.name == 'posix':  # macOS and Linux
+                    subprocess.call(["xdg-open", path])
+
         panel = QWidget()
         layout = QVBoxLayout()
 
-        # Memory Settings Group
-        memory_group = QGroupBox("Memory Settings")
-        memory_layout = QFormLayout()
-
-        memory_limit_spinbox = QSpinBox()
-        memory_limit_spinbox.setObjectName("memory_limit_settings")
-        memory_limit_spinbox.setRange(256, 32768)
-        memory_limit_spinbox.setSuffix(" MB")
-        memory_layout.addRow("Memory Limit:", memory_limit_spinbox)
-        memory_limit_spinbox.setMinimumWidth(100)
-        memory_limit_spinbox.setMinimumHeight(30)
-
-        timeout_spinbox = QSpinBox()
-        timeout_spinbox.setObjectName("timeout_limit_settings")
-        timeout_spinbox.setRange(1, 60)
-        timeout_spinbox.setSuffix(" mins")
-        timeout_spinbox.setMinimumWidth(100)
-        timeout_spinbox.setMinimumHeight(30)
-        memory_layout.addRow("Script Timeout:", timeout_spinbox)
-
-        cpu_priority_checkbox = QCheckBox("Set High CPU Priority")
-        cpu_priority_checkbox.setObjectName("cpu_priority_settings")
-        memory_layout.addRow(cpu_priority_checkbox)
-
-        memory_group.setLayout(memory_layout)
-        layout.addWidget(memory_group)
-
         # Nuke Path Settings Group
-        nuke_path_group = QGroupBox("Nuke Path Settings")
+        nuke_path_group = QGroupBox("Nuke Environments")
         nuke_path_layout = QFormLayout()
 
-        nuke_plugin_path_1 = QLineEdit("/path/to/nuke/plugin1")
-        nuke_plugin_path_1.setObjectName("nuke_plugin_path_01")
-        nuke_plugin_path_2 = QLineEdit("/path/to/nuke/plugin2")
-        nuke_plugin_path_2.setObjectName("nuke_plugin_path_02")
-        nuke_path_layout.addRow("Plugin Path 1:", nuke_plugin_path_1)
-        nuke_path_layout.addRow("Plugin Path 2:", nuke_plugin_path_2)
+        # Get all Nuke-related environment paths
+        for key, value in os.environ.items():
+            if "NUKE" in key.upper():
+                row_layout = QHBoxLayout()
+
+                # QLabel for the key
+                key_label = QLabel(key + ":")
+                key_label.setAlignment(Qt.AlignLeft)
+                key_label.setFixedWidth(150)
+
+                # Read-only QLineEdit for the value
+                value_line_edit = QLineEdit(value)
+                value_line_edit.setReadOnly(True)
+                value_line_edit.setObjectName(f"nuke_value_{key}")
+                value_line_edit.setAlignment(Qt.AlignLeft)
+
+                # Copy Button
+                copy_button = QPushButton("C")
+                copy_button.setFixedWidth(30)
+                copy_button.clicked.connect(partial(copy_to_clipboard, value))
+
+                # Explore Button
+                explore_button = QPushButton("E")
+                explore_button.setFixedWidth(30)
+                explore_button.clicked.connect(partial(open_path, value))
+
+                # Add widgets to row layout
+                row_layout.addWidget(key_label)
+                row_layout.addWidget(value_line_edit)
+                row_layout.addWidget(copy_button)
+                row_layout.addWidget(explore_button)
+
+                # Add row layout to form layout
+                nuke_path_layout.addRow(row_layout)
 
         nuke_path_group.setLayout(nuke_path_layout)
         layout.addWidget(nuke_path_group)
+
+        # Add explanatory QLabel
+        explanation_label = QLabel(
+            "Here you can see the current environment paths of your Nuke program. "
+            "I only allow copying the paths or navigating to the file location, "
+            "nothing else."
+        )
+        explanation_label.setWordWrap(True)
+        explanation_label.setAlignment(Qt.AlignCenter)
+        explanation_label.setStyleSheet("color: gray; font-style: italic;")  # Optional styling
+        layout.addWidget(explanation_label)
 
         panel.setLayout(layout)
         return panel
@@ -422,39 +735,63 @@ class SettingsWindow(QMainWindow):
     def licence_settings(self):
         panel = QWidget()
         layout = QVBoxLayout()
+        layout.setSpacing(10)  # Widget'lar arasındaki dikey boşluk
+        layout.setContentsMargins(10, 10, 10, 10)  # Kenar boşlukları
 
         # Lisans Açıklaması
         licence_info = QLabel("Please enter your license key or load a license file to activate the product.")
+        licence_info.hide()
         licence_info.setWordWrap(True)
         layout.addWidget(licence_info)
 
-        # .lic Dosyasını Yükleme
-        load_lic_button = QPushButton("Load .lic File")
-        load_lic_button.clicked.connect(self.load_licence_file)
-        layout.addWidget(load_lic_button)
+        # Lisans Anahtarı Girişi ve .lic Dosyası Yükleme
+        licence_key_group = QGroupBox("Enter Licence Key")
+        licence_key_layout = QVBoxLayout()
+        licence_key_layout.setSpacing(5)
 
-        # Lisans Anahtarı Girişi
-        licence_key_group = QGroupBox("Enter License Key")
-        licence_key_layout = QFormLayout()
+        licence_key_input_layout = QFormLayout()
         licence_key_input = QLineEdit()
-        licence_key_layout.addRow("License Key:", licence_key_input)
+        licence_key_input.setPlaceholderText("Free Licence For Now")
+        licence_key_input.setEnabled(False)
+        licence_key_input_layout.addRow("License Key:", licence_key_input)
+        licence_key_layout.addLayout(licence_key_input_layout)
+
+        load_lic_button = QPushButton("Load .lic File")
+        load_lic_button.setEnabled(False)
+        load_lic_button.clicked.connect(self.load_licence_file)
+        licence_key_layout.addWidget(load_lic_button)
+
         licence_key_group.setLayout(licence_key_layout)
         layout.addWidget(licence_key_group)
 
-        # Mevcut Lisans Durumu
-        licence_status = QLabel("Current License Status: Not Activated")
-        layout.addWidget(licence_status)
+        # Mevcut Lisans Durumu ve Ücretsiz Kullanım Şartları
+        licence_status_group = QGroupBox("Current License Status")
+        licence_status_layout = QVBoxLayout()
+        licence_status_layout.setSpacing(5)
+
+        licence_status = QLabel("Current License Status: Universal Free License")
+        licence_status_layout.addWidget(licence_status)
+
+        free_use_terms = QLabel(
+            "Free usage is granted under the following conditions:\n"
+            "- This software is distributed under the General Public License (GPL).\n"
+            "- Attribution must be provided for any distributed or modified versions.\n"
+            "- No warranty is provided for this Plug-in.\n"
+        )
+        free_use_terms.setWordWrap(True)
+        licence_status_layout.addWidget(free_use_terms)
+        licence_status_group.setLayout(licence_status_layout)
+        layout.addWidget(licence_status_group)
 
         # Documentation Grup
         documentation_group = QGroupBox("Documentation")
         doc_layout = QVBoxLayout()
+        doc_layout.setSpacing(5)
+
         doc_links = [
-            "<a href='https://nuke.docs.example.com' style='color:white;'>Nuke Documentation</a>",
-            "<a href='https://nuke.support.example.com' style='color:white;'>Nuke Support</a>",
             "<a href='https://nuke.community.example.com' style='color:white;'>Nuke Community</a>",
             "<a href='https://nuke.community.example.com' style='color:white;'>Code Editor Document</a>",
-            "<a href='https://nuke.community.example.com' style='color:white;'>Licence Problems?</a>",
-
+            "<a href='https://nuke.community.example.com' style='color:white;'>More About Licenses</a>",
         ]
         for link in doc_links:
             doc_label = QLabel(link)
@@ -462,6 +799,9 @@ class SettingsWindow(QMainWindow):
             doc_layout.addWidget(doc_label)
         documentation_group.setLayout(doc_layout)
         layout.addWidget(documentation_group)
+
+        # Stretch at the bottom
+        layout.addStretch()  # Widget'ların yukarı sıkışmasını sağlamak için altta boşluk bırak
 
         panel.setLayout(layout)
         return panel
@@ -745,6 +1085,7 @@ class SettingsWindow(QMainWindow):
         """
         # Hedef dizini belirle
         install_path = os.path.join(os.path.dirname(__file__), "modules")
+        print(install_path,"install path github")
         required_modules = ["gitdb", "GitPython"]
 
         # .nuke klasörünü bul
@@ -834,10 +1175,6 @@ class SettingsWindow(QMainWindow):
                 r"D:\Python310\python.exe",
                 r"D:\Python39\python.exe"
             ]
-
-            # Çıktıyı kontrol et
-            for path in possible_paths:
-                print(f"Checking: {path}")
 
             for path in possible_paths:
                 if os.path.exists(path):
@@ -1294,7 +1631,6 @@ class SettingsWindow(QMainWindow):
             json.dump(settings_data, file, indent=4, ensure_ascii=False)
 
         print(f"Settings saved to {self.SETTINGS_FILE}")
-
 
 def launch_settings():
     app = QApplication.instance()

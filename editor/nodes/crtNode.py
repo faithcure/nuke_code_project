@@ -32,12 +32,9 @@ class RightAlignedDelegate(QStyledItemDelegate):
 class createNodeCompleter(QObject):
     def __init__(self, editor: QPlainTextEdit):
         super().__init__()
+
         self.editor = editor
         self.createNodeRegex = r"\bnuke\.createNode\(\s*['\"]?"  # nuke.createNode() ifadesi için REGEX
-
-        # CREATE_NODE_COMPLETER ayarı aktif mi kontrol et
-        if not CodeEditorSettings().CREATE_NODE_COMPLETER:
-            return  # Ayar kapalıysa devam etmeyin
 
         # JSON'dan tam node listesini yükle ve kategori renklerini tanımla
         self.fullNodeList = self.load_list_nodes()
@@ -53,12 +50,18 @@ class createNodeCompleter(QObject):
         # Completer ayarları
         self.completerModel = QStringListModel()
         self.completerModel.setStringList(self.fullNodeList)
-        self.completer = QCompleter(self.completerModel, self.editor)
+        if not CodeEditorSettings().CREATE_NODE_COMPLETER:
+            self.completer = None
+            return  # Eğer ayar kapalıysa, sınıfı pasif hale getir
+        else:
+            self.completer = QCompleter(self.completerModel, self.editor)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.setCompletionMode(QCompleter.PopupCompletion)
-        self.completer.popup().setFont(QFont("Consolas", 13))
+        self.completer.popup().setFont(QFont(CodeEditorSettings().main_default_font, CodeEditorSettings().main_font_size))
         self.completer.setWidget(editor)
         self.completer.activated.connect(self.insert_selected_to_cursor)
+        # `CREATE_NODE_COMPLETER` ayarını kontrol et
+
 
         # Sağa yaslı kategori ve renkli item görünümü için delegate ayarlama
         delegate = RightAlignedDelegate(self.category_colors, self.completer.popup())

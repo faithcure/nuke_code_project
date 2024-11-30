@@ -2,7 +2,6 @@ import sys
 import traceback
 import io
 import os
-import nuke
 from PySide2.QtWidgets import QTextEdit
 from PySide2.QtGui import QFontDatabase, QFont
 from editor.core import PathFromOS

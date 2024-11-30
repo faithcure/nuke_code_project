@@ -13,19 +13,23 @@ import editor.inline_ghosting
 import nodes.crtNode
 import editor.dialogs.replaceDialogs
 from editor.core import CodeEditorSettings
-from editor.core import PathFromOS
 import settings.settings_ui
+from editor.completer import Completer
+from PySide2.QtCore import Qt
+from PySide2.QtGui import QTextCursor
+from editor.inline_ghosting import InlineGhosting
+from init_ide import settings_path
+from nodes.crtNode import createNodeCompleter
+from editor.dialogs.replaceDialogs import ReplaceDialogs
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 importlib.reload(editor.completer)
 importlib.reload(editor.inline_ghosting)
 importlib.reload(nodes.crtNode)
 importlib.reload(editor.dialogs.replaceDialogs)
 importlib.reload(settings.settings_ui)
-from editor.completer import Completer
-from PySide2.QtCore import Qt
-from PySide2.QtGui import QTextCursor
-from editor.inline_ghosting import InlineGhosting
-from nodes.crtNode import createNodeCompleter
-from editor.dialogs.replaceDialogs import ReplaceDialogs
+from pygments.style import Style
+from pygments.token import Keyword, Name, Comment, String, Error, Number, Operator, Text, Generic, Literal, Punctuation
 
 
 class CodeEditor(InlineGhosting):
@@ -50,7 +54,7 @@ class CodeEditor(InlineGhosting):
         self.cursorPositionChanged.connect(self.update_line_and_character_count)
         self.textChanged.connect(self.handle_text_change)
         self.update_line_number_area_width(0)
-
+        self.highlighter = PygmentsHighlighter(self.document())  # Highlighter'ı bağla
         # `createNodeCompleter` nesnesini oluştur
         self.createNodeCompleter = createNodeCompleter(self)
 
@@ -78,21 +82,14 @@ class CodeEditor(InlineGhosting):
         self.setPalette(palette)
 
     def setup_fonts(self):
-        # core.py'deki font yollarını almak için PathFromOS kullanıyoruz
-        jetbrains_mono_path = os.path.join(PathFromOS().jet_fonts, "JetBrainsMono-Regular.ttf")
+        # JSON'dan font bilgilerini yükle
 
-        # JetBrains Mono fontunu yükleyelim
-        font_id = QFontDatabase.addApplicationFont(jetbrains_mono_path)
+        default_font = CodeEditorSettings().main_default_font  # Ayar dosyasındaki font ismi
+        default_font_size = CodeEditorSettings().main_font_size  # Ayar dosyasındaki font boyutu
 
-        if font_id == -1:
-            print("JetBrains Mono fontu yüklenemedi!")
-        else:
-            font_families = QFontDatabase.applicationFontFamilies(font_id)
-            if font_families:
-                font_family = font_families[0]
-                self.setFont(QFont(font_family, self.font_size))  # Başlangıç font boyutunu ayarla
-            else:
-                print("Font ailesi bulunamadı!")
+        self.setFont(QFont(default_font, default_font_size))  # Fontu ayarla
+        print (default_font, default_font_size, "font info")
+
 
     def wheelEvent(self, event):
         """Adjust font size with CTRL + Wheel"""
@@ -432,86 +429,132 @@ class LineNumberArea(QWidget):
     def paintEvent(self, event):
         self.code_editor.line_number_area_paint_event(event)
 
-class PythonHighlighter(QSyntaxHighlighter):
+
+class PyCharmDarkStyle(Style):
+    """
+    PyCharm Dark theme adapted for Pygments.
+    """
+    default_style = ""
+    background_color = "#1e1f22"  # Background
+    highlight_color = "#26282e"  # Caret row color
+
+    styles = {
+        # Genel Yapılar
+        Text: '#bcbec4',  # Plain text
+        Text.Whitespace: '#6f737a',  # Whitespace
+        Text.Highlight: 'bg:#26282e',  # Highlighted text
+        Error: 'bold bg:#ff5640',  # Errors (bold red background)
+
+        # Yorumlar
+        Comment: 'italic #7a7e85',  # Comments
+        Comment.Multiline: 'italic #7a7e85',  # Multiline comments
+        Comment.Preproc: 'italic #7a7e85',  # Preprocessor comments
+        Comment.Special: 'italic bold #6f737a',  # Special comments like TODO or FIXME
+
+        # Anahtar Kelimeler
+        Keyword: 'bold #cf8e6d',  # Keywords
+        Keyword.Constant: 'bold #cf8e6d',  # Constant keywords (e.g., True, False, None)
+        Keyword.Declaration: 'bold #cf8e6d',  # Declaration keywords (e.g., class, def)
+        Keyword.Namespace: 'bold #cf8e6d',  # Namespace keywords (e.g., import, from)
+        Keyword.Pseudo: 'italic #cf8e6d',  # Pseudo keywords (e.g., self, cls)
+
+        # İsimler ve Fonksiyonlar
+        Name: '#bcbec4',  # General names
+        Name.Builtin: '#c77dbb',  # Built-in names (e.g., print, len)
+        Name.Function: '#57aaf7',  # Function names
+        Name.Class: 'bold #bcbec4',  # Class names
+        Name.Decorator: '#fa7db1',  # Decorators (e.g., @staticmethod)
+        Name.Exception: 'bold #ff5640',  # Exception names (e.g., ValueError)
+        Name.Variable: '#bcbec4',  # General variables
+        Name.Variable.Global: 'italic #bcbec4',  # Global variables
+        Name.Variable.Instance: 'italic #bcbec4',  # Instance variables
+        Name.Attribute: '#A9B7C6',  # Attributes (e.g., object.property)
+        Name.Tag: 'bold #d5b778',  # Tags (e.g., HTML/XML tags)
+
+        # Stringler
+        String: '#A9B7C6',  # Strings
+        String.Interpol: '#A9B7C6',  # Interpolated strings (e.g., f-strings)
+        String.Escape: '#c77dbb',  # String escape sequences
+        String.Doc: 'italic #6A8759',  # Docstring
+
+        # Sayılar ve Operatörler
+        Number: '#2aacb8',  # Numbers
+        Operator: '#bcbec4',  # Operators
+        Operator.Word: 'bold #cf8e6d',  # Operators as words (e.g., and, or, not)
+        Punctuation: '#bcbec4',  # Punctuation (e.g., commas, colons)
+
+        # Generic Yapılar
+        Generic.Deleted: 'bg:#402929',  # Deleted text
+        Generic.Inserted: 'bg:#3d7a49',  # Inserted text
+        Generic.Heading: 'bold #bcbec4',  # Headings
+        Generic.Subheading: 'bold #bcbec4',  # Subheadings
+        Generic.Error: 'bg:#fa6675 #FFFFFF',  # Errors
+        Generic.Emph: 'italic',  # Emphasis
+        Generic.Strong: 'bold',  # Strong emphasis
+        Generic.Prompt: '#bcbec4',  # Prompts
+        Generic.Output: '#bcbec4',  # Output text
+        Generic.Traceback: '#f75464',  # Tracebacks
+
+        # HTML, XML ve JSON için Ek Renkler
+        Name.Tag: 'bold #d5b778',  # Tags
+        Name.Attribute: '#A9B7C6',  # Attributes
+        String.Double: '#A9B7C6',  # Double-quoted strings
+        String.Single: '#A9B7C6',  # Single-quoted strings
+        String.Symbol: '#A9B7C6',  # Symbols within strings
+
+        # CSS ve JavaScript Renkleri
+        Name.Property: '#fa7db1',  # CSS properties
+        Name.Label: '#d5b778',  # Labels in code
+        Name.Constant: '#c77dbb',  # Constants
+        String.Regex: '#57aaf7',  # Regular expressions
+        Keyword.Type: 'italic #c77dbb',  # Type-related keywords (e.g., int, str)
+    }
+
+
+class PygmentsHighlighter(QSyntaxHighlighter):
     def __init__(self, document):
+        # Settings dosyasını yükle
+        style = "monokai"  # Varsayılan stil
+        # Settings.json'dan style'ı oku
+        try:
+            with open(settings_path, "r") as settings_file:
+                settings = json.load(settings_file)
+                style = settings.get("General", {}).get("syntax_style_dropdown", style)
+                print("Code Style: ",style)
+        except FileNotFoundError:
+            print(f"Settings file not found at {settings_path}. Using default style: {style}.")
+        except json.JSONDecodeError:
+            print(f"Settings file is not a valid JSON. Using default style: {style}.")
         super().__init__(document)
-        self.highlighting_rules = []
-        self.load_syntax_colors()
 
-    def load_syntax_colors(self):
-        # JSON dosyasını yükle
-        with open(os.path.join(PathFromOS().json_path, "syntax_color.json"), 'r') as file:
-            syntax_data = json.load(file)
-        colors = syntax_data["colors"]
+        # Formatter ve lexer ayarla
+        self.formatter = HtmlFormatter(style=style)
+        self.lexer = PythonLexer()
+        self.token_styles = self._generate_token_styles()
 
-        # Anahtar kelimeler için renklendirme kuralı
-        self.add_highlighting_rule(syntax_data["keywords"], colors["keywords"])
+    def _generate_token_styles(self):
+        """Pygments token stillerini PyQt formatına çevir."""
+        token_styles = {}
+        for token, style in self.formatter.style:
+            text_format = QTextCharFormat()
 
-        # Diğer kategoriler için kurallar
-        self.add_highlighting_rule(syntax_data["built_in_functions"], colors["built_in_functions"])
-        self.add_highlighting_rule(syntax_data["built_in_constants"], colors["built_in_constants"])
-        self.add_highlighting_rule(syntax_data["built_in_types"], colors["built_in_types"])
-        self.add_highlighting_rule(syntax_data["special_methods"], colors["special_methods"], special_method=True)
-        self.add_highlighting_rule(syntax_data["decorators_gold"], colors["decorators_gold"])
-        self.add_highlighting_rule(syntax_data["exceptions"], colors["exceptions"])
-        self.add_highlighting_rule(syntax_data["modules"], colors["modules"])
-        self.add_highlighting_rule(syntax_data["nukescripts"], colors["nukescripts"])
-        self.add_highlighting_rule(syntax_data["coroutines"], colors["coroutines"])
-        self.add_highlighting_rule(syntax_data["context_managers"], colors["context_managers"])
-        self.add_highlighting_rule(syntax_data["type_hints"], colors["type_hints"])
+            if style['color']:
+                text_format.setForeground(QColor(f"#{style['color']}"))
+            if style['bold']:
+                text_format.setFontWeight(QFont.Bold)
+            if style['italic']:
+                text_format.setFontItalic(True)
 
-        # Fonksiyon isimleri için renklendirme kuralı
-        self.add_function_name_rule(colors["function_names"])  # Fonksiyon adı için renk
-
-        # Yorumlar, docstringler, stringler ve sayılar için kurallar
-        self.add_regex_rule(QRegExp("#[^\n]*"), colors["comments"])  # Yorumlar
-        self.add_regex_rule(QRegExp("\"\"\".*\"\"\"", Qt.CaseInsensitive), colors["docstrings"])  # Docstring
-        self.add_regex_rule(QRegExp("\'\'\'.*\'\'\'", Qt.CaseInsensitive), colors["docstrings"])  # Docstring
-        self.add_regex_rule(QRegExp("\".*\""), colors["strings"])  # Stringler
-        self.add_regex_rule(QRegExp("\'.*\'"), colors["strings"])  # Stringler
-        self.add_regex_rule(QRegExp("\\b[0-9]+\\b"), colors["numbers"])  # Sayılar
-
-        # `@` ile başlayan dekoratörler için renklendirme kuralı (altın sarısı)
-        self.add_regex_rule(QRegExp(r"@\w+"), colors["decorators_gold"])  # Altın sarısı dekoratörler
-
-    def add_highlighting_rule(self, items, color, special_method=False):
-        """Her kategori için renklendirme kuralını ekler"""
-        format = QTextCharFormat()
-        format.setForeground(QColor(color))
-
-        for item in items:
-            pattern = QRegExp(f"\\b{item}\\b")
-            self.highlighting_rules.append((pattern, format))
-
-    def add_regex_rule(self, pattern, color):
-        """Regex tabanlı renklendirme kuralı ekler"""
-        format = QTextCharFormat()
-        format.setForeground(QColor(color))
-        self.highlighting_rules.append((pattern, format))
-
-    def add_function_name_rule(self, color):
-        """Fonksiyon adları için renklendirme kuralı ekler"""
-        format = QTextCharFormat()
-        format.setForeground(QColor(color))
-
-        # Fonksiyon adını yakalamak için regex deseni: `def`'den sonra gelen ismi yakalar
-        self.function_name_format = QTextCharFormat()
-        self.function_name_format.setForeground(QColor(color))
+            token_styles[token] = text_format
+        return token_styles
 
     def highlightBlock(self, text):
-        """Her bir metin bloğunu renklendiren fonksiyon"""
-        for pattern, format in self.highlighting_rules:
-            expression = QRegExp(pattern)
-            index = expression.indexIn(text)
-            while index >= 0:
-                length = expression.matchedLength()
-                self.setFormat(index, length, format)
-                index = expression.indexIn(text, index + length)
-
-        # `def` anahtar kelimesinden sonra gelen fonksiyon ismini renklendirme
-        function_pattern = QRegExp(r'\bdef\s+(\w+)')
-        function_index = function_pattern.indexIn(text)
-        if function_index >= 0:
-            function_name = function_pattern.cap(1)  # Fonksiyon ismini yakala
-            function_name_start = function_pattern.pos(1)  # Fonksiyon isminin başladığı pozisyonu al
-            self.setFormat(function_name_start, len(function_name), self.function_name_format)  # Fonksiyon ismini renklendir
+        """Metni token'lara böl ve stilleri uygula."""
+        tokens = self.lexer.get_tokens(text)
+        for token_type, token_value in tokens:
+            if token_type in self.token_styles:
+                start_index = text.find(token_value)
+                while start_index != -1:
+                    length = len(token_value)
+                    self.setFormat(start_index, length, self.token_styles[token_type])
+                    start_index = text.find(token_value, start_index + length)

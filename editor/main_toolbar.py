@@ -26,7 +26,6 @@ class MainToolbar:
         # İkon boyutunu 60x60 piksel olarak ayarlıyoruz
         toolbar.setIconSize(CodeEditorSettings().toolbar_icon_size)
         toolbar.setStyleSheet("QToolBar { spacing: 4px;}")
-        toolbar.setIconSize(QSize(25, 25))
         toolbar.setMovable(True)
         parent.addToolBar(Qt.TopToolBarArea, toolbar)
 

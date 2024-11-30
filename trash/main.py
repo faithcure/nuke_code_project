@@ -1,28 +1,23 @@
-import sys
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 
-from editor.editor_window import EditorApp
+# Örnek Python kodu
+code = """
+# Bu bir yorum
+class Merhaba:
+    def __init__(self, isim):
+        self.isim = isim
 
+    def selamla(self):
+        return f"Merhaba {self.isim}!"
+"""
 
-def ide_start():
-    try:
-        import nuke
-        import nukescripts
-        nuke_integration = True
-        print("Python code editor running successfully.")
-    except ImportError:
-        print("Running from source.")
-        nuke_integration = False
+# Syntax Highlighting işlemi
+highlighted_code = highlight(code, PythonLexer(), HtmlFormatter(full=True, style="monokai"))
 
-    if nuke_integration:
-        window = EditorApp()
-        window.show()
-    else:
-        # Uygulama başlatma işlemi
-        from PySide2.QtWidgets import QApplication
-        app = QApplication(sys.argv)
-        window = EditorApp()
-        window.show()
-        sys.exit(app.exec_())
+# HTML çıktısını kaydet
+with open("highlighted_code.html", "w", encoding="utf-8") as file:
+    file.write(highlighted_code)
 
-
-
+print("Renklendirilmiş kod HTML dosyasına yazıldı.")

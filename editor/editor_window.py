@@ -22,7 +22,7 @@ import settings.github_utils
 import main_toolbar
 from editor.nlink import update_nuke_functions, load_nuke_functions
 from editor.core import PathFromOS, CodeEditorSettings
-from editor.code_editor import CodeEditor,  PythonHighlighter
+from editor.code_editor import CodeEditor
 from PySide2.QtWidgets import QDockWidget, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QWidget
 from PySide2.QtCore import Qt, QRect, QSize
 from PySide2.QtGui import QColor, QTextCharFormat, QFont
@@ -47,6 +47,7 @@ importlib.reload(editor.new_nuke_project)
 importlib.reload(editor.dialogs.searchDialogs)
 importlib.reload(settings.github_utils)
 importlib.reload(main_toolbar)
+from editor.code_editor import PygmentsHighlighter
 
 class EditorApp(QMainWindow):
     def __init__(self):
@@ -131,6 +132,7 @@ class EditorApp(QMainWindow):
         """)
 
         self.tab_widget.setTabsClosable(True)
+
         self.tab_widget.tabCloseRequested.connect(self.close_tab)
         self.tab_widget.currentChanged.connect(self.ensure_tab)
         self.setCentralWidget(self.tab_widget)
@@ -169,40 +171,6 @@ class EditorApp(QMainWindow):
         else:
             super().keyPressEvent(event)
         super().keyPressEvent(event)
-
-    def add_new_tab(self, file_path, initial_content=""):
-        """Yeni bir sekme oluşturur ve dosyayı yükler."""
-        print("add_new_tab yapıldı")
-        editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
-        editor.completer.completion_popup.popup().hide()
-        # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
-        self.highlighter = PythonHighlighter(editor.document())
-
-        # Düzenleyicideki değişiklikler olduğunda HEADER panelini güncelle
-        editor.textChanged.connect(self.update_header_tree)
-
-        # Dosya içeriği eğer mevcutsa yüklüyoruz, yoksa varsayılan içerik ile açıyoruz
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
-                content = file.read()
-                editor.setPlainText(content)
-        else:
-            editor.setPlainText(initial_content)
-
-        # QDockWidget içinde düzenleyiciyi oluştur
-        dock = QDockWidget(os.path.basename(file_path), self)
-        dock.setWidget(editor)
-        dock.setFloating(True)  # Yüzer pencereli olarak ayarla
-        dock.setAllowedAreas(Qt.AllDockWidgetAreas)  # Her yöne taşınabilir
-
-        # Ana pencereye dock widget'ı ekleyin
-        self.addDockWidget(Qt.LeftDockWidgetArea, dock)
-
-        # dock_widgets sözlüğüne yeni dock widget'ı ekleyin
-        self.dock_widgets[file_path] = dock
-
-        # Tab başlığını "*" ile işaretleyin (eğer kaydedilmemişse)
-        editor.textChanged.connect(lambda: self.mark_as_modified(dock, file_path))
 
     def mark_as_modified(self, dock, file_path):
         """Dosya değişiklik yapıldığında başlıkta '*' gösterir."""
@@ -1675,12 +1643,7 @@ class EditorApp(QMainWindow):
     def add_new_tab(self, file_path, initial_content=""):
         """Yeni bir sekme oluşturur ve dosyayı yükler."""
         editor = CodeEditor()  # QPlainTextEdit yerine CodeEditor kullanıyoruz
-        print ("add_new tab 1504 Correct Completer")
-
-        # PythonHighlighter kullanarak sözdizimi renklendirme ekliyoruz
-        self.highlighter = PythonHighlighter(editor.document())
-
-        # Düzenleyicideki değişiklikler olduğunda HEADER panelini güncelle
+        print ("add_new tab 1001")
         editor.textChanged.connect(self.update_header_tree)  # Direkt editor widget'ine bağlama yaptık
 
         # Dosya içeriği eğer mevcutsa yüklüyoruz, yoksa varsayılan içerik ile açıyoruz
@@ -1915,7 +1878,7 @@ class EditorApp(QMainWindow):
     def ensure_tab(self):
         if self.tab_widget.count() == 0:
             # Yeni bir sekme açıyoruz
-            print("add_new_tab 1755")
+            print("add_new_tab 1915")
             self.add_new_tab("untitled.py", initial_content=CodeEditorSettings().temp_codes)
 
             # Yeni tab açıldığında completer'ı gizleyelim
@@ -2420,5 +2383,3 @@ class EditorApp(QMainWindow):
     def show_python_naming_info(self):
         QMessageBox.information(self, "Python Naming Info",
                                 "Python file names must:\n- Start with a letter or underscore\n- Contain only letters, numbers, or underscores\n- Not be a reserved keyword")
-
-from PySide2.QtWidgets import QWidget, QTreeWidget, QTextEdit, QVBoxLayout
