@@ -88,31 +88,24 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 ---
 ## 🤝 Contributions & Development
 
-We warmly welcome contributions and suggestions to improve the **Nuke Python IDE**. Here's how you can contribute and what you should know:
+I warmly welcome your contributions and suggestions to improve the **Nuke Python IDE**. Here's how you can get involved and what you should know:
 
 ### Guidelines for Contributions:
-1. **Free License Inclusion**: 
-   - Any enhancements, features, or fixes submitted and accepted into the project will automatically fall under the existing free license. By contributing, you agree to these terms.
+1. **Free License Inclusion**:  
+   - Any enhancements, features, or fixes you submit and that are accepted into the project will automatically fall under the existing free license. By contributing, you agree to these terms.
 
-2. **Acknowledgment of Contributors**: 
-   - Advanced versions may include features or fixes added by contributors. While contributors will be credited (e.g., by name or GitHub username) in the project documentation or release notes, no financial or licensing claims will be associated.
+2. **Acknowledgment of Contributors**:  
+   - Advanced versions may include features or fixes you add. While I will credit you (e.g., by name or GitHub username) in the project documentation or release notes, no financial or licensing claims will be associated.
 
-3. **Submission Process**: 
-   - Fork the repository, make your changes, and submit a pull request. Ensure your changes are thoroughly tested and documented.
+3. **Submission Process**:  
+   - Fork the repository, make your changes, and submit a pull request. Please ensure your changes are thoroughly tested and well-documented.
 
-4. **Contribution Suggestions**:
-   - Share feature ideas, report bugs, or enhance existing functionalities.
-   - Improve documentation or create tutorial content for the IDE.
+4. **Contribution Suggestions**:  
+   - Share feature ideas, report bugs, or enhance existing functionalities.  
+   - Improve the documentation or create tutorial content for the IDE.
 
-### What We're Looking For:
-- Enhancements to the UI/UX, including dynamic layouts or new customization options.
-- Support for additional Nuke workflows, plugins, or Python scripting functionalities.
-- Advanced error-handling mechanisms to aid developers during script execution.
-- Localization contributions to make the IDE accessible in multiple languages.
+Let’s create something amazing together! 🚀
 
-### Recognition:
-- Outstanding contributors may be highlighted in future updates, community discussions, or release showcases.
-- Contributions to the **"Lite Version"** ensure that the IDE remains robust and beneficial for all users globally.
 
 Let’s build the future of Python scripting in Nuke together! 🚀
 ---
