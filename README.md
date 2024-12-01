@@ -100,8 +100,6 @@ I warmly welcome your contributions and suggestions to improve the **Nuke Python
    - Improve the documentation or create tutorial content for the IDE.
    - You can find in this file for the Developer instructions: Developer Diaries.
 
-Let’s create something amazing together! 🚀
-
 
 Let’s build the future of Python scripting in Nuke together! 🚀
 ---
