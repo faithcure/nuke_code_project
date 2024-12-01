@@ -5,33 +5,68 @@ import os
 from PySide2.QtWidgets import QTextEdit
 from PySide2.QtGui import QFontDatabase, QFont
 from editor.core import PathFromOS
+import logging
 
+try:
+    import nuke
+    import nukescripts
+except ImportError:
+    print("Please open this codes with NUKE_ENV.")
+    nuke = None
+
+class DebugLogger:
+    def __init__(self, log_file="debug_log.txt"):
+        self.logger = logging.getLogger("DebugLogger")
+        self.logger.setLevel(logging.DEBUG)
+        handler = logging.FileHandler(log_file)
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+
+    def log(self, message, level="info"):
+        if level == "debug":
+            self.logger.debug(message)
+        elif level == "warning":
+            self.logger.warning(message)
+        elif level == "error":
+            self.logger.error(message)
+        else:
+            self.logger.info(message)
+def validate_code(code):
+    try:
+        compile(code, "<string>", "exec")
+        return None
+    except SyntaxError as e:
+        return str(e)
 class SysOutputRedirector:
     def __init__(self, output_widget):
         self.output_widget = output_widget
 
     def write(self, message):
-        if message.strip():  # Boş mesajları eklememek için kontrol
+        if message.strip():
             self.output_widget.append_output(message)
 
     def flush(self):
-        pass  # flush metodu sys.stdout ve sys.stderr için gerekli, ancak burada bir işlem yapmıyoruz.
+        pass
 
-def execute_python_code(code, output_widget):
-    """Girilen Python kodunu çalıştır ve çıktıyı Output sekmesine yazdır."""
-    old_stdout = sys.stdout  # Mevcut stdout'u kaydet
-    sys.stdout = io.StringIO()  # Geçici bir StringIO nesnesi stdout olarak ayarlanır
+def execute_python_code(code, output_widget, debug_mode=False):
+    validation_error = validate_code(code)
+    if validation_error:
+        output_widget.append_error_output(f"Syntax Hatası: {validation_error}")
+        return
+
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
 
     try:
-        exec(code, {'__builtins__': __builtins__}, {})  # Kodu çalıştır
-        output = sys.stdout.getvalue()  # Çıktıyı yakalar
-        output_widget.append_output(output)  # Yakalanan çıktıyı Output widget'ına ekler
+        exec(code, {'__builtins__': __builtins__}, {})
+        output = sys.stdout.getvalue()
+        output_widget.append_output(output)
     except Exception as e:
-        # Traceback ile hatayı yakala ve kırmızı renkte göster
-        error_message = traceback.format_exc()  # Traceback'i al
-        output_widget.append_error_output(error_message)  # Hata çıktısını kırmızı olarak ekle
+        error_message = traceback.format_exc()
+        output_widget.append_error_output(error_message)
     finally:
-        sys.stdout = old_stdout  # stdout'u eski haline getir
+        sys.stdout = old_stdout
 
 def execute_nuke_code(code, output_widget):
     """
@@ -57,47 +92,34 @@ def execute_nuke_code(code, output_widget):
 class OutputWidget(QTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        # JetBrains Mono fontunu proje dizininden yüklüyoruz
         self.load_custom_font()
 
     def load_custom_font(self):
-        """JetBrains Mono fontunu belirlenen dizinden yükler."""
-        font_path = os.path.join(PathFromOS().jet_fonts, 'JetBrainsMono-Regular.ttf')  # Font yolunu güncelledik
+        font_path = os.path.join(PathFromOS().jet_fonts, 'JetBrainsMono-Regular.ttf')
         font_id = QFontDatabase.addApplicationFont(font_path)
         if font_id == -1:
             print("Font yüklenemedi.")
         else:
-            self.setFont(QFont("JetBrains Mono"))  # JetBrains Mono fontunu ayarla
+            self.setFont(QFont("JetBrains Mono"))
 
     def append_output(self, message):
-        """Normal çıktı mesajlarını beyaz renkte ve JetBrains Mono fontu ile ekler."""
         formatted_message = f'<pre style="color: white; font-family: \'JetBrains Mono\';">{self.add_padding(message)}</pre>'
         self.append(formatted_message)
-        self.ensureCursorVisible()  # İmleci görünür yap
+        self.ensureCursorVisible()
 
     def append_error_output(self, message):
-        """Hata mesajlarını istediğiniz renkte (#fe8c86) ve JetBrains Mono fontu ile ekler."""
         formatted_error = "".join(
-            f"<pre style='color: #fe8c86; line-height: 1.0; font-family: \"JetBrains Mono\"; margin: 0;'>{self.add_padding(line)}</pre>"
+            f"<pre style='color: #fe8c86; font-family: \"JetBrains Mono\";'>{self.add_padding(line)}</pre>"
             for line in message.split("\n")
         )
         self.append(formatted_error)
-        self.ensureCursorVisible()  # İmleci görünür yap
+        self.ensureCursorVisible()
 
     def append_info_output(self, message):
-        """Bilgi mesajlarını gri renkte ve JetBrains Mono fontu ile ekler."""
         formatted_info = f'<pre style="color: grey; font-family: \'JetBrains Mono\';">{self.add_padding(message)}</pre>'
         self.append(formatted_info)
-        self.ensureCursorVisible()  # İmleci görünür yap
-
-    def append_warning_output(self, message):
-        """Uyarı mesajlarını sarı renkte ve JetBrains Mono fontu ile ekler."""
-        formatted_warning = f'<pre style="color: yellow; font-family: \'JetBrains Mono\';">{self.add_padding(message)}</pre>'
-        self.append(formatted_warning)
-        self.ensureCursorVisible()  # İmleci görünür yap
+        self.ensureCursorVisible()
 
     def add_padding(self, message, spaces=2):
-        """Mesajın başına boşluk (padding) ekler."""
         padding = '&nbsp;' * spaces
         return padding + message

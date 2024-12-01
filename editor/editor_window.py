@@ -58,7 +58,7 @@ class EditorApp(QMainWindow):
 
         #Settings Var
         self.settings = CodeEditorSettings()
-
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
 
         # Window başlık değişkeni
         self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
@@ -338,9 +338,11 @@ class EditorApp(QMainWindow):
                 success_message = '<span style="color: grey;">...End of the line</span>'
                 self.output_widget.append(success_message)
 
+
             except Exception as e:
-                # Hata varsa, düzenli bir şekilde kırmızı renkte göster
                 error_message = traceback.format_exc()
+                user_friendly_message = f"<b style='color: red;'>Problem appears while running: {str(e)}</b>"
+                self.output_widget.append_error_output(user_friendly_message)
                 self.output_widget.append_error_output(error_message)
 
     def update_toolbar_spacer(self, orientation, spacer):
@@ -359,9 +361,10 @@ class EditorApp(QMainWindow):
 
     def find_and_highlight(self, search_term):
         """Kod düzenleyicide arama terimiyle eşleşen kelimeleri vurgular."""
-        current_editor = self.tab_widget.currentWidget()  # Aktif sekmedeki düzenleyiciyi alıyoruz
+        current_editor = self.tab_widget.currentWidget()
         if current_editor is None:
-            return  # Eğer düzenleyici yoksa fonksiyondan çık
+            self.output_widget.append_error_output("Please open ative tab for coding...")
+            return
 
         cursor = current_editor.textCursor()  # Düzenleyicideki imleci al
         document = current_editor.document()  # Metin belgesini al
@@ -606,8 +609,8 @@ class EditorApp(QMainWindow):
 
         # 5. Tools Menüsü
         tools_menu = menubar.addMenu('Tools')
-        live_connection_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'pycharm.png')), 'LCV PyCharm',
-                                         self)
+        live_connection_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'pycharm.png')), 'LCV PyCharm', self)
+        live_connection_action.setEnabled(False)
 
         # GitHub alt menüsü
         github_menu = tools_menu.addMenu(QIcon(os.path.join(PathFromOS().icons_path, 'github.svg')), 'GitHub')

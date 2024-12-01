@@ -36,7 +36,7 @@ class CodeEditorSettings:
         self.settings_json = os.path.join(PathFromOS().settings_db, "settings.json")
         # TEMP CODES
         self.temp_codes = ("# -*- coding: utf-8 -*-\n"
-                           "#import love, StopWars")
+                           "#from love import StopWars")
 
         # GENERAL CODING HELPERS
         self.main_font_size = 14  # Varsayılan font boyutu
