@@ -10,8 +10,9 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 - [📥 Installation](#-installation)
 - [🛠️ Usage](#️-usage)
 - [🖥️ Compatibility](#-compatibility)
-- [🤝 Contributions & Development](#-contributions--development)
+- [🤝 Contributions & Development](#-contributions--diaries)
 - [📄 Licenses](#-licenses)
+- [📄 Developers](#-developer-Diaris)
 
 ---
 
@@ -91,18 +92,12 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 I warmly welcome your contributions and suggestions to improve the **Nuke Python IDE**. Here's how you can get involved and what you should know:
 
 ### Guidelines for Contributions:
-1. **Free License Inclusion**:  
    - Any enhancements, features, or fixes you submit and that are accepted into the project will automatically fall under the existing free license. By contributing, you agree to these terms.
-
-2. **Acknowledgment of Contributors**:  
    - Advanced versions may include features or fixes you add. While I will credit you (e.g., by name or GitHub username) in the project documentation or release notes, no financial or licensing claims will be associated.
-
-3. **Submission Process**:  
    - Fork the repository, make your changes, and submit a pull request. Please ensure your changes are thoroughly tested and well-documented.
-
-4. **Contribution Suggestions**:  
    - Share feature ideas, report bugs, or enhance existing functionalities.  
    - Improve the documentation or create tutorial content for the IDE.
+   - You can find in this file for the Developer instructions: Developer Diaries.
 
 Let’s create something amazing together! 🚀
 
