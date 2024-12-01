@@ -58,10 +58,6 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 - **Search Bar**: Quickly locate specific code snippets or keywords.
 - **Multi-File Tabs**: Open, edit, and organize multiple files in a tabbed interface.
 
-### ⚡ **Standalone Mode**
-- Use the IDE outside Nuke for extended development needs.
-- Fully compatible with external tools like **PyCharm**.
-
 ### 📚 **Learning Resources**
 - Built-in tooltips for Nuke scripting commands.
 - Direct access to the **Nuke Python Developer Guide**.
@@ -75,7 +71,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 ---
 
 ## 🛠️ Usage
-1. Launch the IDE within **Foundry Nuke** or as a standalone application.
+1. Launch the IDE within **Foundry Nuke**.
 2. Open your Python scripts or create new ones from the **File** menu.
 3. Use the **Outliner** to navigate and the **Console** for debugging.
 4. Test your scripts directly in Nuke with real-time execution.
@@ -84,14 +80,18 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 ---
 
 ## 🖥️ Compatibility
-- **Operating Systems**: Windows, macOS, Linux.
+- **Operating Systems**: Windows, macOS, Linux. (Not tested macOS or Linux yet!)
 - **Nuke Versions**: Fully tested on **Nuke 13.0+**.
-- **Python Versions**: Supports Python 3.7 and later.
+- **Python Versions**: Supports Python 3.6 and later.
 
 ---
 
 ## 📄 Licenses
-JetBrains Mono typeface is available under the SIL Open Font License 1.1 license and can be used free of charge for both commercial and non-commercial purposes.
+
+If you choose to install external fonts such as JetBrains Mono or other custom fonts, they are not covered under the internal license. However, these can be freely used under their respective open licenses.
+Operations such as GitHub or PyCharm connections do not have any license binding or restrictions.
+The **Nuke Python IDE** plugin is distributed as a **"Lite Version"**, completely free to use and open for further development. Contributions are welcome!
+eface is available under the SIL Open Font License 1.1 license and can be used free of charge for both commercial and non-commercial purposes.
 
 ---
 
