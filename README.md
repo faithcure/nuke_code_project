@@ -115,4 +115,4 @@ eface is available under the SIL Open Font License 1.1 license and can be used f
 ---
 
 ### 💬 Let's Connect!
-Have feedback or suggestions? Feel free to [open an issue](https://github.com/) or contribute to this project. Your input is invaluable! 💖
+Have feedback or suggestions? Feel free to [open an issue](https://github.com/faithcure/nuke_code_project/issues/new) or contribute to this project. Your input is invaluable! 💖
