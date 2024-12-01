@@ -16,7 +16,6 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 
 ## 🔍 Overview
 
-The **Nuke Python IDE** is a cutting-edge development environment created specifically for **Foundry Nuke**, the industry-standard compositing software for VFX. Whether you're a seasoned VFX professional or a Python enthusiast exploring scripting for the first time, this IDE bridges the gap between development and production.
 
 ### 🌟 Why Nuke Python IDE?
 - Eliminate the need for external IDEs, with a fully integrated coding environment inside Nuke.
