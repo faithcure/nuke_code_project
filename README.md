@@ -12,7 +12,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 - [🖥️ Compatibility](#-compatibility)
 - [🤝 Contributions & Development](#-contributions--diaries)
 - [📄 Licenses](#-licenses)
-- [📄 Developers](#-developer-Diaris)
+- [👨‍💻 Developers](#-developer-Diaris)
 
 ---
 
