@@ -97,7 +97,7 @@ I warmly welcome your contributions and suggestions to improve the **Nuke Python
    - Share feature ideas, report bugs, or enhance existing functionalities.  
    - Improve the documentation or create tutorial content for the IDE.
    - You can find in this file for the Developer instructions: 
-**💡 Developer Guidelines:** Don't forget to read the [Installation Guide](installation.md) for more details.
+**💡 Developer Guidelines:** Don't forget to read the [Installation Guide](Installation-and-Contributing.md) for more details.
 
 
 Let’s build the future of Python scripting in Nuke together! 🚀
