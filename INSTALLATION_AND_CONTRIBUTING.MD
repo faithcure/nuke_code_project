@@ -30,21 +30,16 @@ We welcome contributions in the following areas:
 
 Before contributing, please adhere to the following:
 
-1. **Fork and Clone**  
-   - Fork the repository to your GitHub account.
-   - Clone it locally and set up the project as described in the README.
+1. **Clone from GitHub**  
+   - Clone it locally and set up the project as described in the HERE.
+   - Install folder '(nuke_code_project)' the inside ".nuke" environment.
+   - `menu.py`, `init_ide.py`, `init.py`: Just copy this files in the ".nuke".
+   - if you have `menu.py`, `init.py` please save them.
+   - 
+2. **External Modules**
+   - Weh are using the Pygments and Git modules externally. Please important this. 
+   - If you install extra modules use the `settings/modules` dir.
 
-2. **Create a Branch**  
-   - Create a feature branch for your changes:  
-     `git checkout -b feature/your-feature-name`
-
-3. **Commit Your Changes**  
-   - Use meaningful commit messages:  
-     `git commit -m "Add feature description"`
-
-4. **Submit a Pull Request**  
-   - Push your changes to your fork and create a PR to the main repository.
-   - Provide a clear explanation of your changes.
 
 ---
 
@@ -59,20 +54,3 @@ Here are some key areas we are currently focusing on:
 
 ---
 
-## 🎉 Recognition and Licensing
-
-### Free License Inclusion
-All contributions to the project, if accepted, fall under the current free license. By contributing, you agree to these terms.
-
-### Acknowledgment
-While contributions to the advanced version may be credited in release notes, no financial or licensing claims are associated.
-
----
-
-## 🔗 Helpful Links
-
-- [Report an Issue](https://github.com/your-repo/issues)  
-- [Start a Discussion](https://github.com/your-repo/discussions)  
-- [Fork and Contribute](https://github.com/your-repo/fork)
-
-Let’s build the future of Nuke Python IDE together! 🚀
