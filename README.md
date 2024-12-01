@@ -61,14 +61,12 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 - **Multi-File Tabs**: Open, edit, and organize multiple files in a tabbed interface.
 
 ### 📚 **Learning Resources**
-- Built-in tooltips for Nuke scripting commands.
-- Direct access to the **Nuke Python Developer Guide**.
-- Example scripts and templates for beginners.
-
+> 🚧 **Note**: Tutorials are coming soon.
 ---
 
 ## 📥 Installation
 > 🚧 **Note**: Installation instructions will be available soon as the project progresses for the all users.
+> if you want to install:
 - Please refer to the [🤝 Contributions & Development](#-contributions--development) section.
 
 ---
@@ -98,7 +96,8 @@ I warmly welcome your contributions and suggestions to improve the **Nuke Python
    - Fork the repository, make your changes, and submit a pull request. Please ensure your changes are thoroughly tested and well-documented.
    - Share feature ideas, report bugs, or enhance existing functionalities.  
    - Improve the documentation or create tutorial content for the IDE.
-   - You can find in this file for the Developer instructions: Developer Diaries.
+   - You can find in this file for the Developer instructions: 
+**💡 Developer Guidelines:** Don't forget to read the [Installation Guide](installation.md) for more details.
 
 
 Let’s build the future of Python scripting in Nuke together! 🚀
@@ -113,4 +112,4 @@ eface is available under the SIL Open Font License 1.1 license and can be used f
 ---
 
 ### 💬 Let's Connect!
-Have feedback or suggestions? Feel free to [open an issue](https://github.com/) or contribute to this project. Your input is invaluable! 💖
+Have feedback or suggestions? Feel free to [open an issue](https://github.com/faithcure/nuke_code_project/issues/new) or contribute to this project. Your input is invaluable! 💖
