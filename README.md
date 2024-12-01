@@ -69,6 +69,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 
 ## 📥 Installation
 > 🚧 **Note**: Installation instructions will be available soon as the project progresses for the all users.
+> if you want to install:
 - Please refer to the [🤝 Contributions & Development](#-contributions--development) section.
 
 ---
@@ -98,7 +99,8 @@ I warmly welcome your contributions and suggestions to improve the **Nuke Python
    - Fork the repository, make your changes, and submit a pull request. Please ensure your changes are thoroughly tested and well-documented.
    - Share feature ideas, report bugs, or enhance existing functionalities.  
    - Improve the documentation or create tutorial content for the IDE.
-   - You can find in this file for the Developer instructions: Developer Diaries.
+   - You can find in this file for the Developer instructions: 
+**💡 Developer Guidelines:** Don't forget to read the [Installation Guide](installation.md) for more details.
 
 
 Let’s build the future of Python scripting in Nuke together! 🚀
