@@ -122,6 +122,7 @@ class SettingsWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.status_label = None
         self.setWindowTitle("Settings")
         self.setGeometry(100, 100, 800, 600)

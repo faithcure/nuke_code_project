@@ -18,7 +18,6 @@ dock_default_positions = {
     'output_dock': Qt.BottomDockWidgetArea
 }
 
-
 def set_default_mode(main_window):
     """
     Default Mode:

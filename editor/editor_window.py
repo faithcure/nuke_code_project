@@ -2386,3 +2386,4 @@ class EditorApp(QMainWindow):
     def show_python_naming_info(self):
         QMessageBox.information(self, "Python Naming Info",
                                 "Python file names must:\n- Start with a letter or underscore\n- Contain only letters, numbers, or underscores\n- Not be a reserved keyword")
+
