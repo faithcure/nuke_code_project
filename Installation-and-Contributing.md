@@ -42,11 +42,13 @@ Before contributing, please adhere to the following:
 
 Here are some key areas we are currently focusing on:
 
-- **Improving UI/UX**: Adding dynamic layouts, better customization, and accessibility.
-- **Nuke Workflows**: Enhancing support for plugins and Python scripting.
-- **Error Handling**: Building advanced debugging tools to streamline development.
-- **Localization**: Expanding language support for global users.
-
+- **Dual Window Usage**: Allowing the main window to function both as a Nuke panel and as a standalone window.
+- **Code Editing**: Streamlining and enhancing the process of organizing and modifying scripts.
+- **AI Integration**: Developing and refining AI functionalities for better support and automation.
+- **Simplifying Coding**: Making coding as straightforward as possible for users.
+- **Bug Fixes**: Identifying and resolving issues to improve stability and performance.
+- **Multi-Platform Testing**: Ensuring the IDE works seamlessly across different platforms and environments.
+- **Community Contributions**: Encouraging feedback and collaboration to enhance the project further.
 ---
 # 📂 Project Structure
 
