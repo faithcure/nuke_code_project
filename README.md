@@ -1,4 +1,4 @@
-# ✨ Nuke Python IDE (Under Development 🚧)
+# ✨ Nuke Python IDE (Beta Experimental 🚧)
 
 A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling VFX professionals to script, test, and debug seamlessly within Nuke. This IDE is built to enhance productivity and integrate effortlessly into VFX workflows, combining the power of Python scripting with the capabilities of Nuke.
 
@@ -17,7 +17,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 ---
 
 ## 🔍 Overview
-
+- 
 
 ### 🌟 Why Nuke Python IDE?
 - Eliminate the need for external IDEs, with a fully integrated coding environment inside Nuke.
@@ -68,7 +68,8 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 ---
 
 ## 📥 Installation
-> 🚧 **Note**: Installation instructions will be available soon as the project progresses.
+> 🚧 **Note**: Installation instructions will be available soon as the project progresses for the all users.
+- Please refer to the [🤝 Contributions & Development](#-contributions--development) section.
 
 ---
 
