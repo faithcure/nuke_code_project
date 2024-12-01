@@ -49,6 +49,7 @@ Here are some key areas we are currently focusing on:
 - **Bug Fixes**: Identifying and resolving issues to improve stability and performance.
 - **Multi-Platform Testing**: Ensuring the IDE works seamlessly across different platforms and environments.
 - **Community Contributions**: Encouraging feedback and collaboration to enhance the project further.
+- **THANKS**
 ---
 # 📂 Project Structure
 
