@@ -36,11 +36,6 @@ Before contributing, please adhere to the following:
    - `menu.py`, `init_ide.py`, `init.py`: Just copy this files in the ".nuke".
    > ⚠️ if you have `menu.py`, `init.py` please save them.
  
-2. **External Modules**
-   - We are using the Pygments and Git modules externally. Please important this. 
-   - If you want to install extra modules, use the `settings/modules` dir.
-   > ⚠️ The codes structers are here please watch it before!
-
 ---
 
 ## 🛠️ Development Roadmap
