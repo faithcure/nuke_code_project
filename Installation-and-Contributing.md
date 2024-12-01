@@ -40,7 +40,7 @@ Before contributing, please adhere to the following:
 
 ## 🛠️ Development Roadmap
 
-Here are some key areas we are currently focusing on:
+Here are some key areas I'm currently focusing on:
 
 - **Dual Window Usage**: Allowing the main window to function both as a Nuke panel and as a standalone window.
 - **Code Editing**: Streamlining and enhancing the process of organizing and modifying scripts.
@@ -49,6 +49,7 @@ Here are some key areas we are currently focusing on:
 - **Bug Fixes**: Identifying and resolving issues to improve stability and performance.
 - **Multi-Platform Testing**: Ensuring the IDE works seamlessly across different platforms and environments.
 - **Community Contributions**: Encouraging feedback and collaboration to enhance the project further.
+- **Translate**: While writing the codes, some `comment lines` or `Docstrings` may have been used in `Turkish`. Translating them into `English`.
 - **THANKS**
 ---
 # 📂 Project Structure

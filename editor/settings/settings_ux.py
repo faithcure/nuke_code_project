@@ -21,11 +21,11 @@ dock_default_positions = {
 def set_default_mode(main_window):
     """
     Default Mode:
-    - Tüm dock widget'ları görünür yapar.
-    - Hepsini varsayılan yerlerine yerleştirir.
-    - 'console_dock', 'nuke_ai_dock' ve 'output_dock' widget'larını altta sekmeli yapar.
+    - Makes all dock widgets visible.
+    - Places all dock widgets in their default positions.
+    - Tabs the 'console_dock', 'nuke_ai_dock', and 'output_dock' widgets at the bottom.
     """
-    # Dock'ları kontrol ederek görünür hale getirin ve konumlarını düzenleyin
+    # Check the docks, make them visible, and arrange their positions.
     for dock_name, position in dock_default_positions.items():
         if hasattr(main_window, dock_name):
             dock_widget = getattr(main_window, dock_name)
@@ -46,10 +46,10 @@ def set_default_mode(main_window):
 def set_expanded_mode(main_window):
     """
     Expanded Mode:
-    - Tüm dock widget'ları görünür hale getirir.
-    - Outliner ve Header sol üstte, yan yana yerleştirilir.
-    - Workplace sağ tarafta tam ekran yüksekliğinde olur.
-    - Console, Output ve NukeAI aşağıda sekmesiz ayrı görünür.
+    - Makes all dock widgets visible.
+    - Places Outliner and Header in the top-left corner, side by side.
+    - Positions Workplace on the right side with full screen height.
+    - Displays Console, Output, and NukeAI at the bottom without tabs, separately.
     """
     print("Expanded Mode Activated")
 
@@ -102,8 +102,8 @@ def set_focus_mode(main_window):
 def set_compact_mode(main_window):
     """
     Compact Mode:
-    - Tüm widget'ları alt tarafa sekmeli olarak taşır.
-    - Görünmez widget'lar varsa görünür hale getirir.
+    - Moves all widgets to the bottom as tabs.
+    - Makes any hidden widgets visible.
     """
     print("Compact Mode Activated")
 

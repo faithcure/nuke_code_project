@@ -61,8 +61,8 @@ class EditorApp(QMainWindow):
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
 
         # Window başlık değişkeni
-        self.empty_project_win_title = "Nuke Code Editor: "  # Boş ise bu isim döner
-        self.setWindowTitle("Nuke Code Editor: Empty Project**")  # Open ve New project'den isim çeker
+        self.empty_project_win_title = "Nuke Code Editor (Beta): "  # Default title for an empty project
+        self.setWindowTitle("Nuke Code Editor (Beta): Empty Project**")  # Title will change with Open and New projects
         self.setGeometry(100, 100, 1200, 800)
 
         qr = self.frameGeometry()
@@ -71,34 +71,34 @@ class EditorApp(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-        # Yeni proje ve dosya işlemleri için dizin ve dosya değişkenleri
+        # Variables for new project and file operations
         self.project_dir = None
-        self.current_file_path = None  # Mevcut dosya
+        self.current_file_path = None  # Current file
 
-        # Status bar oluşturma
+        # Create a status bar
         self.status_bar = self.statusBar()  # Status bar oluşturma
         self.status_bar.showMessage("Ready")  # İlk mesajı göster
         self.font_size_label = QLabel(f"Font Size: {self.settings.main_font_size} | ", self)
         self.status_bar.addPermanentWidget(self.font_size_label)
         self.status_bar = self.statusBar()
 
-        # Sağ tarafa replace işlemi için bir label ekleyelim
+        # Add a label for replace operations on the right side
         self.replace_status_label = QLabel()
-        self.status_bar.addPermanentWidget(self.replace_status_label)  # Sağ köşeye ekle
-        self.replace_status_label.setText("Status")  # İlk mesaj
+        self.status_bar.addPermanentWidget(self.replace_status_label)  # Add to the right corner
+        self.replace_status_label.setText("Status")  # Initial message
 
-        # Renkleri kaydetmek için bir dictionary
+        # Dictionary to save colors
         self.item_colors = {}
         self.color_settings_path = os.path.join(os.getcwd(), "assets", "item_colors.json")
         self.settings_path = os.path.join(PathFromOS().settings_db, "settings.json")
 
-        # Sekmeli düzenleyici (Tab Widget) oluşturma
+        # Create a tabbed editor (Tab Widget)
         self.tab_widget = QTabWidget()
         self.python_icon = QIcon(os.path.join(PathFromOS().icons_path, 'python_tab.svg'))
         self.tab_widget.setIconSize(QSize(15, 15))
 
-        # Kapatma butonu ve ikon ayarları
-        self.close_icon = os.path.join(PathFromOS().icons_path, 'new_file.png')  # Doğru yolda olduğundan emin olun
+        # Close button and icon settings
+        self.close_icon = os.path.join(PathFromOS().icons_path, 'new_file.png')  # Ensure the path is correct
         self.setStyleSheet(f"""
             QTabWidget::pane {{
                 border: none;
@@ -137,28 +137,27 @@ class EditorApp(QMainWindow):
         self.tab_widget.currentChanged.connect(self.ensure_tab)
         self.setCentralWidget(self.tab_widget)
 
-        # Üst menüyü oluşturma
+        # Create the top menu
         self.create_menu()
 
-        # Dockable listeler
+        # Dockable lists
         self.create_docks()
 
-        # Başlangıçta boş bir "untitled.py" sekmesi açılıyor
+        # Open a blank "untitled.py" tab at startup
         self.add_new_tab("untitled.py", initial_content= CodeEditorSettings().temp_codes)
 
-        # Program başlarken renkleri yükle
+        # Load colors at startup
         self.load_colors_from_file()
 
-        # Son açılan projeler bu listeye JSON olarak atanır
-        # Recent Projects ile ilgili değişkenler
-        self.recent_projects_list = []  # Projeleri listelemek için boş bir liste
+        # Recent projects are stored as a JSON list
+        self.recent_projects_list = []
         # self.recent_projects_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "./",  "assets", "recent_projects.json")
         self.recent_projects_path = os.path.join(PathFromOS().json_path, "recent_projects.json")
         # Program başlarken recent projects listesini yükleyelim
         self.load_recent_projects()
         self.load_last_project()
-        self.create_bottom_tabs() # Conolse ve Output penceresi
-        # Ctrl+Enter kısayolunu tanımla ve run_code işlevine bağla
+        self.create_bottom_tabs() # Conolse / Output Widgets
+        # Define Ctrl+Enter shortcut and bind to the run_code function
         run_shortcut = QShortcut(QKeySequence("Ctrl+Enter"), self)
         run_shortcut.activated.connect(self.run_code)
         # Ctrl + Shift + R kısayolunu replace_selected_word ile bağla
@@ -173,12 +172,12 @@ class EditorApp(QMainWindow):
         super().keyPressEvent(event)
 
     def mark_as_modified(self, dock, file_path):
-        """Dosya değişiklik yapıldığında başlıkta '*' gösterir."""
+        """Displays '*' in the title when the file is modified."""
         if dock.windowTitle()[-1] != '*':
             dock.setWindowTitle(f"{os.path.basename(file_path)}*")
 
     def create_bottom_tabs(self):
-        """Alt kısma 'Output', 'Console' ve 'NukeAI' sekmelerini ekleyen ve hareket ettirilebilir yapan fonksiyon."""
+        """Function that adds and makes movable the 'Output', 'Console', and 'NukeAI' tabs at the bottom."""
 
         # Output Dock Widget
         self.output_dock = QDockWidget("OUTPUT", self)
@@ -295,24 +294,24 @@ class EditorApp(QMainWindow):
         self.output_widget.clear()  # Output panelini temizler
 
     def run_code(self):
-        # Output widget'ı temizle
+        # Clear Output Widget
         self.output_widget.clear()
 
-        # Gri renkli bilgi mesajlarını ekle
+        # Grey colored messages append Output
         from datetime import datetime
 
-        python_version = platform.python_version()  # Python versiyonu
-        nuke_version = nuke.env['NukeVersionString']  # Nuke versiyonu
-        computer_name = socket.gethostname()  # Bilgisayar ismi
+        python_version = platform.python_version()  # Python Get Version
+        nuke_version = nuke.env['NukeVersionString']  # Nuke Get Version
+        computer_name = socket.gethostname()  # Get PC Name
 
-        # Şu anki tarih ve saat bilgisi
+        # Get current Date and Time
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
 
-        # Aktif sekmenin adını al (Tab ismi)
+        # Get Active Tab Name
         active_tab_name = self.tab_widget.tabText(self.tab_widget.currentIndex())  # Aktif sekmenin ismi
 
-        # Gri bilgi satırı
+        # Ger Information Row Added with PY version, NK version, PC name , Time and Date
         info_message = (
             f'<span style="color: grey;">'
             f'Python: {python_version} | Nuke: {nuke_version} | Active File: {active_tab_name} | Computer: {computer_name} | {formatted_time}'
@@ -320,7 +319,7 @@ class EditorApp(QMainWindow):
         )
         self.output_widget.append(info_message)
 
-        # Aktif olan düzenleyiciyi alıyoruz (QPlainTextEdit veya CodeEditor)
+        # Get Active Tabs (QPlainTextEdit veya CodeEditor)
         current_editor = self.tab_widget.currentWidget()
 
         if isinstance(current_editor, QPlainTextEdit):
@@ -328,16 +327,15 @@ class EditorApp(QMainWindow):
             code = cursor.selectedText().strip() or current_editor.toPlainText()
             try:
                 if "nuke." in code:
-                    # Nuke kodunu çalıştır
+                    # Run Nuke Code
                     execute_nuke_code(code, self.output_widget)
                 else:
-                    # Python kodunu çalıştır
+                    # Run Python Code
                     execute_python_code(code, self.output_widget)
 
-                # Başarı mesajını ekle
+                # Result Added (If ok! Return and of the line)
                 success_message = '<span style="color: grey;">...End of the line</span>'
                 self.output_widget.append(success_message)
-
 
             except Exception as e:
                 error_message = traceback.format_exc()
@@ -346,7 +344,7 @@ class EditorApp(QMainWindow):
                 self.output_widget.append_error_output(error_message)
 
     def update_toolbar_spacer(self, orientation, spacer):
-        """Toolbar'ın yönüne göre spacer widget'inin genişlik/yükseklik ayarlarını değiştirir."""
+        """Changes the width/height settings of the spacer widget according to the orientation of the toolbar."""
         if orientation == Qt.Horizontal:
             # Yatay durumda genişliği genişletiyoruz
             spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
@@ -355,40 +353,40 @@ class EditorApp(QMainWindow):
             spacer.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
     def show_search_dialog(self):
-        """Arama dialogunu açar ve arama işlemi gerçekleştirir."""
+        """Opens the search dialog and performs the search."""
         dialog = SearchDialog(self)  # Ana pencere referansını gönderiyoruz
         dialog.exec_()  # Dialogu modal olarak aç
 
     def find_and_highlight(self, search_term):
-        """Kod düzenleyicide arama terimiyle eşleşen kelimeleri vurgular."""
+        """Highlights words that match the search term in the code editor."""
         current_editor = self.tab_widget.currentWidget()
         if current_editor is None:
             self.output_widget.append_error_output("Please open ative tab for coding...")
             return
 
-        cursor = current_editor.textCursor()  # Düzenleyicideki imleci al
-        document = current_editor.document()  # Metin belgesini al
+        cursor = current_editor.textCursor()  # Get cursor in editor
+        document = current_editor.document()  # Get text document
 
-        # Mevcut tüm vurgulamaları temizle
+        # Clear all existing highlights
         current_editor.setExtraSelections([])
 
-        # Arama sonuçlarını saklayacak bir liste oluştur
+        # Create a list to store search results
         extra_selections = []
 
-        # Metin içinde arama yapmak için QTextCursor kullanıyoruz
-        cursor.beginEditBlock()  # Düzenleyici içinde toplu değişikliklere başla
+        # We use QTextCursor to search within text
+        cursor.beginEditBlock()  # Start bulk changes within the editor
 
-        # Arama işlemi sırasında ilerlemek için imleci en başa alıyoruz
+        # We move the cursor to the beginning to advance during the search process.
         cursor.movePosition(QTextCursor.Start)
 
         highlight_format = QTextCharFormat()
-        highlight_format.setBackground(QColor("yellow"))  # Vurgulama rengini sarı yapıyoruz
+        highlight_format.setBackground(QColor("yellow"))  # We make the highlight color yellow
 
-        # Metin içinde arama yap
+        # Search within text
         while not cursor.isNull() and not cursor.atEnd():
             cursor = document.find(search_term, cursor)
             if not cursor.isNull():
-                # Arama terimi bulunduğunda vurgulama için ekstra seçim yapıyoruz
+                # We make extra selection for highlighting when the search term is found
                 selection = QTextEdit.ExtraSelection()
                 selection.cursor = cursor
                 selection.format = highlight_format
@@ -401,7 +399,7 @@ class EditorApp(QMainWindow):
         current_editor.setExtraSelections(extra_selections)
 
     def populate_outliner_with_functions(self):
-        """OUTLINER'a yalnızca sınıf ve fonksiyonları ekler, nuke.py ve nukescripts.py başlıklarını hariç tutar."""
+        """It adds only classes and functions to OUTLINER, excluding the nuke.py and nukescripts.py headers."""
         # Dosya yollarını belirtiyoruz
         nuke_file_path = PathFromOS().nuke_ref_path
         nukescripts_file_path = PathFromOS().nukescripts_ref_path
@@ -429,7 +427,7 @@ class EditorApp(QMainWindow):
                 # Eğer "Nuke Functions" başlığı yoksa, yeni bir başlık ekleyin
                 parent_item = QTreeWidgetItem(self.outliner_list)
                 parent_item.setText(0, "Nuke Functions")
-                parent_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'folder_tree.svg')))  # Klasör ikonu
+                parent_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'folder_tree.svg')))  # Folder Icon
 
             # Mevcut OUTLINER'a fonksiyonları ekleyin
             for func in nuke_functions:
@@ -674,7 +672,7 @@ class EditorApp(QMainWindow):
         self.apply_font_size()
 
     def zoom_out(self):
-        """Yazı boyutunu küçültür."""
+        """YDecreases the font size."""
         if self.settings.main_font_size > 1:  # En küçük yazı boyutu kontrolü
             self.settings.main_font_size -= 1
         self.apply_font_size()
@@ -836,7 +834,8 @@ class EditorApp(QMainWindow):
                 self.project_desc.setText("Incorrect file name!")
 
         self.project_name_input.textChanged.connect(validate_project_name)
-        # Karakter sayacı
+
+        # Character counter
         char_count_label = QLabel("0/20", self.project_name_input)
         if self.project_name_input.text() == "":
             char_count_label.setText("")
@@ -849,7 +848,7 @@ class EditorApp(QMainWindow):
         char_count_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         char_count_label.setFixedSize(60, 30)
 
-        # Karakter sayacını güncelleyen işlev
+        # Function that updates character counter
         def update_char_count():
             current_length = str(len(self.project_name_input.text()))
             current_length_count = current_length + "/20"
@@ -858,13 +857,13 @@ class EditorApp(QMainWindow):
             char_count_label.move(self.project_name_input.width() - 75,
                                   (self.project_name_input.height() - char_count_label.height()) // 2)
 
-        # `textChanged` sinyali ile sayaç güncellemesi
+        # Counter update with `textChanged` signal
         self.project_name_input.textChanged.connect(update_char_count)
 
         # QLineEdit'ler arasında ve title ile boşluk bırak
         inner_layout.addSpacing(20)
 
-        # Proje dizini giriş alanı ve "Browse" butonu
+        # Project directory entry field and "Browse" button
         self.project_dir_input = QLineEdit()
         self.project_dir_input.setPlaceholderText("Select Project Directory")
         self.project_dir_input.setStyleSheet("""
@@ -877,10 +876,9 @@ class EditorApp(QMainWindow):
             }
         """)
 
-        # Dizin doğrulama işlevi
-        def validate_project_directory():
+        def validate_project_directory(): # Directory validation function
             if not self.project_dir_input.text():
-                # Dizin seçilmezse kırmızı çerçeve
+                # Red frame if no directory is selected
                 self.project_dir_input.setStyleSheet("""
                     QLineEdit {
                         background-color: rgba(255, 255, 255, 0.08);
@@ -891,7 +889,7 @@ class EditorApp(QMainWindow):
                     }
                 """)
             else:
-                # Geçerli giriş olduğunda orijinal stile dön
+                # Return to original style when valid input
                 self.project_dir_input.setStyleSheet("""
                     QLineEdit {
                         background-color: rgba(255, 255, 255, 0.08);
@@ -902,11 +900,11 @@ class EditorApp(QMainWindow):
                     }
                 """)
 
-        # Dizin seçimi için layout
+        # Dir selection layout
         dir_layout = QHBoxLayout()
         dir_layout.addWidget(self.project_dir_input)
 
-        # Browse butonu
+        # Browse Button
         project_dir_button = QPushButton("Browse")
         project_dir_button.setFixedHeight(self.project_dir_input.sizeHint().height())  # QLineEdit ile aynı yükseklik
         project_dir_button.setStyleSheet("""
@@ -924,7 +922,7 @@ class EditorApp(QMainWindow):
         dir_layout.addWidget(project_dir_button)
         inner_layout.addLayout(dir_layout)
 
-        # Bilgilendirme metni
+        # Information Buttons
         self.project_desc = QLabel("Please ensure the correct information!")
         self.project_desc.setStyleSheet("""
             color: #A0A0A0;
@@ -935,11 +933,11 @@ class EditorApp(QMainWindow):
         """)
         inner_layout.addWidget(self.project_desc)
 
-        # OK ve Cancel butonları
+        # OK / Cancel Buttons
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        # OK butonu
+        # OK Button
         ok_button = QPushButton("OK")
         ok_button.setFixedSize(80, 30)
         ok_button.setStyleSheet("""
@@ -957,7 +955,7 @@ class EditorApp(QMainWindow):
         """)
         button_layout.addWidget(ok_button)
 
-        # Cancel butonu
+        # Cancel Button
         cancel_button = QPushButton("Cancel")
         cancel_button.setFixedSize(80, 30)
         cancel_button.setStyleSheet("""
@@ -1070,7 +1068,7 @@ class EditorApp(QMainWindow):
         dialog.close()
 
     def open_nuke_project_dialog(self):
-    # Nuke'e ozel proje üretim sonucu burada workplace'i döndürüyor
+    # Returns the workplace after generating a project specific to Nuke
         dialog = NewNukeProjectDialog(self)
         if dialog.exec_():
             project_name = dialog.project_name_input.text().strip()
@@ -1093,19 +1091,19 @@ class EditorApp(QMainWindow):
         QMessageBox.information(self, "Set Default UI", "UI has been set to default.")
 
     def cut_text(self):
-        """Aktif düzenleyicideki seçili metni keser."""
+        """Cuts the selected text from the active editor."""
         current_editor = self.tab_widget.currentWidget()
         if isinstance(current_editor, CodeEditor):
             current_editor.cut()
 
     def copy_text(self):
-        """Aktif düzenleyicideki seçili metni kopyalar."""
+        """Copies the selected text from the active editor."""
         current_editor = self.tab_widget.currentWidget()
         if isinstance(current_editor, CodeEditor):
             current_editor.copy()
 
     def paste_text(self):
-        """Aktif düzenleyiciye panodaki metni yapıştırır."""
+        """Pastes the text from the clipboard into the active editor."""
         current_editor = self.tab_widget.currentWidget()
         if isinstance(current_editor, CodeEditor):
             current_editor.paste()
@@ -1135,7 +1133,7 @@ class EditorApp(QMainWindow):
                 self.status_bar.showMessage("Please select the text you want to replace.", 5000)
         else:
             # Eğer geçerli düzenleyici CodeEditor değilse hata mesajı göster
-            self.status_bar.showMessage("Lütfen bir düzenleyici sekmesi açın.", 5000)
+            self.status_bar.showMessage("Please open an editor tab.", 5000)
 
     def update_recent_projects_menu(self):
         """Recent Projects menüsünü günceller."""
@@ -1333,18 +1331,18 @@ class EditorApp(QMainWindow):
         menu.exec_(self.workplace_tree.viewport().mapToGlobal(position))
 
     def expand_all_items(self):
-        """Workplace'daki tüm öğeleri genişletir."""
+        """Expands all items in Workplace."""
         self.workplace_tree.expandAll()
 
     def collapse_all_items(self):
-        """Workplace'daki tüm öğeleri daraltır."""
+        """Collapses all items in Workplace."""
         self.workplace_tree.collapseAll()
 
     def explore_file(self, item):
-        # item'dan Qt.UserRole verisini alıyoruz
+        # We get Qt.UserRole data from item
         file_path = item.data(0, Qt.UserRole)
 
-        # file_path'in geçerli olup olmadığını kontrol et
+        # check if file_path is valid
         if file_path and os.path.exists(file_path):
             os.startfile(os.path.dirname(file_path))
         else:
@@ -1815,7 +1813,7 @@ class EditorApp(QMainWindow):
             self.save_all_files()
             event.accept()
         elif response == QMessageBox.Discard:
-            event.accept()  # Kaydetmeden çık
+            event.accept()  # Exit without saving
         elif response == QMessageBox.Cancel:
             event.ignore()  # Çıkışı iptal et
 
@@ -1840,13 +1838,13 @@ class EditorApp(QMainWindow):
             return None
 
         # Kaydedilmemiş dosyalar varsa mesajı oluştur
-        message = "Yapılan son değişiklikleri kaydetmediniz.\nKaydedilmemiş dosyalar:\n"
+        message = "You did not save the last changes made.\nUnsaved files:\n"
         message += "\n".join(f"- {file}" for file in unsaved_files)
 
         # Kaydetme, kaydetmeden çıkma ve iptal seçeneklerini sunalım
         response = QMessageBox.question(
             self,
-            "Kaydedilmemiş Değişiklikler",
+            "Unsaved changes",
             message,
             QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
             QMessageBox.Save
@@ -1892,7 +1890,7 @@ class EditorApp(QMainWindow):
     def close_app(self):
         """Programı kapatır."""
         reply = QMessageBox.question(self, 'Çıkış',
-                                     "Kaydedilmemiş değişiklikler mevcut. Yine de çıkmak istiyor musunuz?",
+                                     "There are unsaved changes. Do you still want to quit?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             QApplication.quit()
@@ -1933,7 +1931,7 @@ class EditorApp(QMainWindow):
         icon_label.mousePressEvent = lambda event: self.toggle_dock_widget(dock_widget, icon_label, expand_icon_path,
                                                                            collapse_icon_path)
 
-        # Başlık metni
+        # Title text
         title_label = QLabel(title)
         title_label.setAlignment(Qt.AlignVCenter)
         font = QFont("Arial", 10, QFont.Bold)
@@ -2003,21 +2001,21 @@ class EditorApp(QMainWindow):
                 border-radius: 8px;
             }
         """)
-        self.search_widget.setVisible(False)  # Başlangıçta gizli olacak
+        self.search_widget.setVisible(False) # It will be hidden initially
 
-        # Arama çubuğunu ekleyelim
+        # Add SearchBar
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search...")
         self.search_bar.setStyleSheet("""
             QLineEdit {
-                background-color: rgba(60, 60, 60, 0.8); /* Yarı saydam arka plan */
+                background-color: rgba(60, 60, 60, 0.8); 
                 border: none;
                 color: #FFFFFF;
                 padding-left: 5px;
-                height: 20px;  /* QLineEdit yüksekliği */
+                height: 20px;  
             }
             QLineEdit::placeholder {
-                color: rgba(255, 255, 255, 0.5); /* Yarı saydam placeholder */
+                color: rgba(255, 255, 255, 0.5);
             }
         """)
 
@@ -2320,7 +2318,7 @@ class EditorApp(QMainWindow):
         QMessageBox.information(self, "Custom Action", f"You selected: {selected_text}")
 
     def filter_outliner(self, text):
-        """OUTLINER içindeki öğeleri arama çubuğundaki metne göre filtreler."""
+        """Filters items in OUTLINER based on text in the search bar"""
         root = self.outliner_list.invisibleRootItem()  # OUTLINER'ın kök öğesi
 
         # Filtre metni boşsa tüm öğeleri göster
@@ -2333,7 +2331,7 @@ class EditorApp(QMainWindow):
                     sub_item.setHidden(False)
             return
 
-        # Arama metnine göre sınıf ve metotları filtrele
+        # Filter classes and methods based on search text
         for i in range(root.childCount()):  # Ana öğeler (sınıflar)
             item = root.child(i)
             match_found = False  # Ana öğeyi gösterip göstermeme durumu

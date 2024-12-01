@@ -353,36 +353,36 @@ class Completer(CustomDelegate):
         try:
             completions.extend(keyword.kwlist)
         except Exception as e:
-            print(f"Python anahtar kelime hatası: {e}")
+            print(f"Python keyword error: {e}")
 
         try:
             completions.extend(dir(types))
         except Exception as e:
-            print(f"Python tür hatası: {e}")
+            print(f"Python type error: {e}")
 
         try:
             for item in dir(object):
                 if item.startswith('__') and item.endswith('__'):
                     completions.append(item)
         except Exception as e:
-            print(f"Özel metod hatası: {e}")
+            print(f"Special method error: {e}")
 
         try:
             async_decorators = ['@staticmethod', '@classmethod', '@property', 'async def', 'await']
             completions.extend(async_decorators)
         except Exception as e:
-            print(f"Dekoratör hatası: {e}")
+            print(f"Decorator error: {e}")
 
         try:
             completions.extend(sys.modules.keys())
         except Exception as e:
-            print(f"Python modül hatası: {e}")
+            print(f"Python module error: {e}")
 
         try:
             exceptions = [exc for exc in dir(builtins) if 'Error' in exc or 'Exception' in exc]
             completions.extend(exceptions)
         except Exception as e:
-            print(f"Python istisna hatası: {e}")
+            print(f"Python exception error: {e}")
 
 
         completions.extend(self.extract_existing_variables())
