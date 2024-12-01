@@ -67,7 +67,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 ## 📥 Installation
 > 🚧 **Note**: Installation instructions will be available soon as the project progresses for the all users.
 > if you want to install:
-- Please refer to the [🤝 Contributions & Development](#-contributions--development) section.
+- Please refer to the [🤝 Contributions & Development](#-contributions--development) section...
 
 ---
 
