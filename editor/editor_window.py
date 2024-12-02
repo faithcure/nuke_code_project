@@ -1070,6 +1070,7 @@ class EditorApp(QMainWindow):
     def open_nuke_project_dialog(self):
     # Returns the workplace after generating a project specific to Nuke
         dialog = NewNukeProjectDialog(self)
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowStaysOnTopHint) # Make dialog Z +1
         if dialog.exec_():
             project_name = dialog.project_name_input.text().strip()
             project_dir = dialog.project_dir_input.text().strip()
