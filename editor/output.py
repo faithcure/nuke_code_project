@@ -70,18 +70,18 @@ def execute_python_code(code, output_widget, debug_mode=False):
 
 def execute_nuke_code(code, output_widget):
     """
-    Verilen Nuke kodunu çalıştırır ve sonucu output_widget'a yönlendirir.
+    Executes the given Nuke code and directs the result to the output_widget.
     """
     sys.stdout = SysOutputRedirector(output_widget)
     sys.stderr = SysOutputRedirector(output_widget)
 
     try:
-        # Nuke kodunu çalıştır
+        # Run Nuke code
         result = nuke.executeInMainThreadWithResult(lambda: exec(code))
         if result is not None:
             print(result)
     except Exception as e:
-        # Hata varsa Traceback ile Output'a yazdır
+        # If an error occurs, write it to the Output with the Traceback.
         error_message = traceback.format_exc()
         output_widget.append_error_output(error_message)
     finally:

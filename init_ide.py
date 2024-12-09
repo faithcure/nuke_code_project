@@ -4,11 +4,14 @@ import json
 import importlib
 from PySide2.QtWidgets import QApplication
 
-# Paths
 project_dir = os.path.expanduser("~/.nuke/nuke_code_project")
 modules_path = os.path.join(project_dir, "editor", "settings", "modules")
 settings_path = os.path.join(project_dir, "editor", "settings", "settings.json")
-sys.path.append(modules_path)  # Modules path added to sys.path
+
+# Ensure the modules directory is in sys.path
+sys.path.append(modules_path)
+
+
 
 def ide_start_reload():
     """
@@ -62,6 +65,7 @@ def add_menu_command():
 
 # Run startup check
 check_startup_settings()
+
 
 # Automatically added modules path
 import sys

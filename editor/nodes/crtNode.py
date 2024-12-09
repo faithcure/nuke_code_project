@@ -167,8 +167,12 @@ class createNodeCompleter(QObject):
 
         else:
             # `nuke.createNode()` ifadesi yoksa, bayrağı sıfırla ve popup'u kapat
-            self.show_all_nodes = False
-            self.completer.popup().hide()
+
+            try:
+                self.show_all_nodes = False
+                self.completer.popup().hide()
+            except:
+                pass
 
     def insert_selected_to_cursor(self, selected_item):
         """Seçili öğeyi imlecin en yakınındaki `nuke.createNode(...)` ifadesini güncelleyerek ekler."""

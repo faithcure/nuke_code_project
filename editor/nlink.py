@@ -3,9 +3,9 @@ import os
 import nuke
 from editor.core import PathFromOS
 
-# Nuke fonksiyonlarını çekme fonksiyonu
+# Function to retrieve Nuke functions.
 def get_nuke_functions():
-    """Nuke fonksiyonlarının isim, tür ve dokümantasyon bilgilerini döndürür."""
+    """Returns the name, type, and documentation information of Nuke functions."""
     nuke_functions = []
     if nuke:
         for func_name in dir(nuke):
@@ -24,33 +24,33 @@ def get_nuke_functions():
                 })
     return nuke_functions
 
-# Nuke fonksiyonlarını JSON dosyasına yazma
+# Write Nuke functions to a JSON file
 def update_nuke_functions():
-    """Nuke'deki fonksiyonları JSON'a yazar."""
+    """Writes functions from Nuke to a JSON file."""
     nuke_functions = get_nuke_functions()
 
-    # JSON dosyasının bulunduğu dizin
+    # Directory where the JSON file will be stored
     json_dir = os.path.join(PathFromOS().assets_path, 'dynamic_data')
 
-    # dynamic_data dizini yoksa oluştur
+    # Create the dynamic_data directory if it doesn't exist
     if not os.path.exists(json_dir):
         os.makedirs(json_dir)
 
     json_path = os.path.join(json_dir, 'nuke_functions.json')
 
-    # Dosyayı yazma modu ile açıyoruz ve güncelliyoruz
+    # Open the file in write mode and update the content
     with open(json_path, 'w') as json_file:
         json.dump(nuke_functions, json_file, indent=4)
 
-# JSON dosyasından Nuke fonksiyonlarını yükleme
+# Load Nuke functions from a JSON file
 def load_nuke_functions():
-    """Nuke fonksiyonlarını JSON dosyasından yükler. Dosya yoksa günceller."""
+    """Loads Nuke functions from a JSON file. Updates the file if it doesn't exist."""
     json_path = os.path.join(PathFromOS().assets_path, 'dynamic_data', 'nuke_functions.json')
 
-    # Eğer JSON dosyası yoksa güncelleme yap
+    # If the JSON file doesn't exist, update it
     if not os.path.exists(json_path):
         update_nuke_functions()
 
-    # JSON dosyasını aç ve içeriği döndür
+    # Open the JSON file and return its content
     with open(json_path, 'r') as json_file:
         return json.load(json_file)

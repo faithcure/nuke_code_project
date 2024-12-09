@@ -73,7 +73,7 @@ def set_expanded_mode(main_window):
     # Alt: Console, Output ve NukeAI ayrı ayrı
     if hasattr(main_window, 'console_dock') and hasattr(main_window, 'output_dock') and hasattr(main_window,
                                                                                                 'nuke_ai_dock'):
-        main_window.ddDockWidget(Qt.BottomDockWidgetArea, main_window.console_dock)
+        main_window.addDockWidget(Qt.BottomDockWidgetArea, main_window.console_dock)
         main_window.addDockWidget(Qt.BottomDockWidgetArea, main_window.output_dock)
         main_window.addDockWidget(Qt.BottomDockWidgetArea, main_window.nuke_ai_dock)
 

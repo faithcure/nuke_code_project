@@ -14,59 +14,74 @@ from editor.core import PathFromOS, CodeEditorSettings
 
 
 class MainToolbar:
+    """
+    MainToolbar is responsible for creating and managing the toolbar in the main application window.
+    It provides a set of actions such as running code, saving files, searching within code, updating functions,
+    and more.
+    """
+
     @staticmethod
     def create_toolbar(parent):
-        """Toolbar'ı oluşturur ve gerekli butonları ekler."""
+        """
+        Creates the main toolbar and adds necessary buttons and actions to it.
+        Args:
+            parent: The parent widget to which the toolbar is attached.
+        """
+        # Create the toolbar and set its properties
         toolbar = parent.addToolBar("MAIN TOOLBAR")
-        parent.addToolBar(CodeEditorSettings().setToolbar_area, toolbar)  # Araç çubuğunu pencerenin sol tarafına yerleştir
+        parent.addToolBar(CodeEditorSettings().setToolbar_area, toolbar)  # Place toolbar on the left side of the window
 
         spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Yatay için genişler, dikey için değil
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Expands horizontally, not vertically
 
-        # İkon boyutunu 60x60 piksel olarak ayarlıyoruz
+        # Set icon size for the toolbar
         toolbar.setIconSize(CodeEditorSettings().toolbar_icon_size)
-        toolbar.setStyleSheet("QToolBar { spacing: 4px;}")
+        toolbar.setStyleSheet("QToolBar { spacing: 4px; }")
         toolbar.setMovable(True)
         parent.addToolBar(Qt.TopToolBarArea, toolbar)
 
-        # 1. RUN Butonu (Kod çalıştırmak için)
+        # 1. RUN Button (To execute code)
         run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.svg')), '', parent)
         run_action.setToolTip("Run Current Code")
         run_action.triggered.connect(parent.run_code)
         toolbar.addAction(run_action)
 
-        # 2. SAVE Butonu (Kod kaydetmek için)
+        # 2. SAVE Button (To save the current file)
         save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.svg')), '', parent)
         save_action.setToolTip("Save Current File")
         save_action.triggered.connect(parent.save_file)
         toolbar.addAction(save_action)
 
-        # 3. ARAMA Butonu (Kod içinde arama yapmak için)
+        # 3. SEARCH Button (To search within the code)
         search_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.svg')), '', parent)
         search_action.setToolTip("Search in Code")
         search_action.triggered.connect(parent.show_search_dialog)
         toolbar.addAction(search_action)
 
-        # 4. Update (NLink)
+        # 4. UPDATE Button (NLink functionality to update functions)
         update_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'update.svg')), 'Update NLink', parent)
         update_action.setToolTip("Update Nuke Functions List (NLink!)")
         update_action.triggered.connect(update_nuke_functions)
         toolbar.addAction(update_action)
         toolbar.addSeparator()
 
-        # 5. Boş widget ekleyerek butonları sağa veya alta iteceğiz (spacer)
+        # 5. Spacer Widget (Pushes buttons to the right or bottom)
         toolbar.addWidget(spacer)
 
-
-        # Menü oluşturma fonksiyonu
+        # Function to create the UI mode switch menu
         def create_expand_menu():
+            """
+            Creates a dropdown menu for switching UI modes.
+            Returns:
+                QMenu: The constructed menu with UI mode options.
+            """
             mode_menu = QMenu(parent)
-            for mode_name, function in settings_ux.ui_modes.items():  # settings_ux içinden ui_modes kullanılıyor
+            for mode_name, function in settings_ux.ui_modes.items():  # Use `ui_modes` from settings_ux
                 action = mode_menu.addAction(mode_name)
                 action.triggered.connect(lambda checked=False, func=function: func(parent))
             return mode_menu
 
-        # Menü ve buton bağlama
+        # Create the menu and link it to a button
         ui_menu = create_expand_menu()
 
         ui_button = QToolButton(toolbar)
@@ -76,27 +91,32 @@ class MainToolbar:
         ui_button.setMenu(ui_menu)
         toolbar.addWidget(ui_button)
 
-        # Dikey ve yatay değişim için adaptasyon
+        # Adjust the layout of the button based on toolbar orientation
         def adjust_expand_layout(orientation):
+            """
+            Adjusts the layout and icon of the UI button based on toolbar orientation.
+            Args:
+                orientation (Qt.Orientation): The orientation of the toolbar.
+            """
             if orientation == Qt.Vertical:
                 ui_button.setIcon(QIcon(os.path.join(PathFromOS().icons_path, 'ux_design.svg')))
             else:
                 ui_button.setIcon(QIcon(os.path.join(PathFromOS().icons_path, 'ux_design.svg')))
 
-        # Sinyal bağlantısı
+        # Connect the orientation change signal to adjust the button layout
         toolbar.orientationChanged.connect(adjust_expand_layout)
 
-        # 6. CLEAR Butonu (Output panelini temizlemek için)
-        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.svg')), '', parent)  # İkon ile boş bir buton
-        clear_action.setToolTip("Clear Output")  # Tooltip ekliyoruz
-        clear_action.triggered.connect(parent.clear_output)  # Fonksiyon bağlama
-        toolbar.addAction(clear_action)  # Butonu toolbara ekle
+        # 6. CLEAR Button (Clears the output panel)
+        clear_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'clear.svg')), '', parent)
+        clear_action.setToolTip("Clear Output")
+        clear_action.triggered.connect(parent.clear_output)
+        toolbar.addAction(clear_action)
 
-        # 7. SETTINGS Butonu (Ayarlar menüsüne erişim)
-        settings_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'settings.png')), '', parent)  # İkon ile boş bir buton
-        settings_action.setToolTip("Settings")  # Tooltip ekliyoruz
-        settings_action.triggered.connect(parent.open_settings)  # Fonksiyon bağlama
-        toolbar.addAction(settings_action)  # Butonu toolbara ekle
+        # 7. SETTINGS Button (Access to settings menu)
+        settings_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'settings.png')), '', parent)
+        settings_action.setToolTip("Settings")
+        settings_action.triggered.connect(parent.open_settings)
+        toolbar.addAction(settings_action)
 
-        # Toolbar yönü değiştiğinde spacer widget'inin genişlik/yükseklik politikasını değiştireceğiz
+        # Adjust the spacer widget based on toolbar orientation
         toolbar.orientationChanged.connect(lambda orientation: parent.update_toolbar_spacer(orientation, spacer))

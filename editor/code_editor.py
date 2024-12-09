@@ -20,17 +20,18 @@ from PySide2.QtGui import QTextCursor
 from editor.inline_ghosting import InlineGhosting
 from init_ide import settings_path
 from nodes.crtNode import createNodeCompleter
-from editor.dialogs.replaceDialogs import ReplaceDialogs
-from pygments.lexers import PythonLexer
-from pygments.formatters import HtmlFormatter
+
 importlib.reload(editor.completer)
 importlib.reload(editor.inline_ghosting)
 importlib.reload(nodes.crtNode)
 importlib.reload(editor.dialogs.replaceDialogs)
 importlib.reload(settings.settings_ui)
+
 from pygments.style import Style
 from pygments.token import Keyword, Name, Comment, String, Error, Number, Operator, Text, Generic, Literal, Punctuation
-
+from editor.dialogs.replaceDialogs import ReplaceDialogs
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 
 class CodeEditor(InlineGhosting):
     def __init__(self, editor_window=None, *args):

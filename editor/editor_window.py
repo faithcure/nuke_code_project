@@ -50,21 +50,32 @@ importlib.reload(main_toolbar)
 from editor.code_editor import PygmentsHighlighter
 
 class EditorApp(QMainWindow):
+    """
+    Main application window for the Nuke Code Editor.
+
+    Features:
+    - Provides a custom integrated development environment for Python and Nuke scripting.
+    - Includes toolbar, status bar, dock widgets, and tab-based editor functionalities.
+    - Supports creating, opening, editing, and saving Python and Nuke script files.
+    - Includes additional features such as a workspace explorer, outliner, and customizable UI components.
+    """
+
     def __init__(self):
         super().__init__()
 
-        # Main Toolbar
+        # Initialize the main toolbar
         MainToolbar.create_toolbar(self)
 
-        #Settings Var
+        # Load settings
         self.settings = CodeEditorSettings()
-        self.setWindowFlags(Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(Qt.WindowStaysOnTopHint)
 
-        # Window başlık değişkeni
+        # Window title and initial properties
         self.empty_project_win_title = "Nuke Code Editor (Beta): "  # Default title for an empty project
         self.setWindowTitle("Nuke Code Editor (Beta): Empty Project**")  # Title will change with Open and New projects
         self.setGeometry(100, 100, 1200, 800)
 
+        # Center the window on the screen
         qr = self.frameGeometry()
         screen = QGuiApplication.primaryScreen()
         cp = screen.availableGeometry().center()
@@ -72,10 +83,10 @@ class EditorApp(QMainWindow):
         self.move(qr.topLeft())
 
         # Variables for new project and file operations
-        self.project_dir = None
+        self.project_dir = None # Current project directory
         self.current_file_path = None  # Current file
 
-        # Create a status bar
+        # Create and configure the status bar
         self.status_bar = self.statusBar()  # Status bar oluşturma
         self.status_bar.showMessage("Ready")  # İlk mesajı göster
         self.font_size_label = QLabel(f"Font Size: {self.settings.main_font_size} | ", self)
@@ -87,8 +98,8 @@ class EditorApp(QMainWindow):
         self.status_bar.addPermanentWidget(self.replace_status_label)  # Add to the right corner
         self.replace_status_label.setText("Status")  # Initial message
 
-        # Dictionary to save colors
-        self.item_colors = {}
+        # Project settings paths and other configurations
+        self.item_colors = {} # Dictionary to manage item-specific colors
         self.color_settings_path = os.path.join(os.getcwd(), "assets", "item_colors.json")
         self.settings_path = os.path.join(PathFromOS().settings_db, "settings.json")
 
@@ -153,7 +164,7 @@ class EditorApp(QMainWindow):
         self.recent_projects_list = []
         # self.recent_projects_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "./",  "assets", "recent_projects.json")
         self.recent_projects_path = os.path.join(PathFromOS().json_path, "recent_projects.json")
-        # Program başlarken recent projects listesini yükleyelim
+        # Load colors and recent projects
         self.load_recent_projects()
         self.load_last_project()
         self.create_bottom_tabs() # Conolse / Output Widgets
@@ -165,6 +176,12 @@ class EditorApp(QMainWindow):
         self.replace_shortcut.activated.connect(self.open_replace_dialog)
 
     def keyPressEvent(self, event):
+        """
+        Captures key press events and handles specific shortcuts.
+
+        Args:
+            event (QKeyEvent): The key event triggered by the user.
+        """
         if event.key() == Qt.Key_R and event.modifiers() == Qt.ControlModifier:
             self.run_code()
         else:
@@ -172,12 +189,20 @@ class EditorApp(QMainWindow):
         super().keyPressEvent(event)
 
     def mark_as_modified(self, dock, file_path):
-        """Displays '*' in the title when the file is modified."""
+        """
+        Marks a file as modified by appending '*' to the title.
+
+        Args:
+            dock (QDockWidget): The dock widget containing the file.
+            file_path (str): Path to the file being modified.
+        """
         if dock.windowTitle()[-1] != '*':
             dock.setWindowTitle(f"{os.path.basename(file_path)}*")
 
     def create_bottom_tabs(self):
-        """Function that adds and makes movable the 'Output', 'Console', and 'NukeAI' tabs at the bottom."""
+        """
+        Creates and configures bottom dock widgets for Output, Console, and NukeAI.
+        """
 
         # Output Dock Widget
         self.output_dock = QDockWidget("OUTPUT", self)
@@ -188,13 +213,10 @@ class EditorApp(QMainWindow):
         self.output_dock.setWidget(self.output_widget)
         self.output_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
         self.output_dock.setFloating(False)
-
-        # Output başlık stil ayarı ve ikon ekleme
         output_icon = QIcon(os.path.join(PathFromOS().icons_path, "play_orange.svg"))
         self.set_custom_dock_title(self.output_dock, "OUTPUT", output_icon)
         self.addDockWidget(self.settings.OUTPUT_DOCK_POS, self.output_dock)
         self.output_dock.setVisible(self.settings.OUTPUT_VISIBLE)
-
 
         # Console Dock Widget
         self.console_dock = QDockWidget("CONSOLE", self)
@@ -203,7 +225,7 @@ class EditorApp(QMainWindow):
         self.console_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
         self.console_dock.setFloating(False)
 
-        # Console başlık stil ayarı ve ikon ekleme
+        # Console Dock Widget Style and Icon Addition
         console_icon = QIcon(os.path.join(PathFromOS().icons_path, "python_tab.svg"))
         self.set_custom_dock_title(self.console_dock, "CONSOLE", console_icon)
         self.addDockWidget(self.settings.CONSOLE_DOCK_POS, self.console_dock)
@@ -214,14 +236,14 @@ class EditorApp(QMainWindow):
         self.nuke_ai_widget = QWidget()
         nuke_ai_layout = QVBoxLayout(self.nuke_ai_widget)
 
-        # NukeAI Yanıt Penceresi (üst kısımda)
+        # NukeAI Response Panel (Top Section)
         self.ai_response = QTextEdit()
         self.ai_response.setReadOnly(True)
         self.ai_response.setFont(title_font)
         self.ai_response.setStyleSheet("border: none;")  # Çerçevesiz yapıyoruz
         nuke_ai_layout.addWidget(self.ai_response)
 
-        # NukeAI Girdi ve Buton (alt kısımda yan yana)
+        # NukeAI Input and Button (Bottom Section Side-by-Side)
         input_layout = QHBoxLayout()
         self.ai_input = QLineEdit()
         self.ai_input.setPlaceholderText("Komutunuzu buraya girin (örneğin: Blur nodu oluştur)")
@@ -243,8 +265,6 @@ class EditorApp(QMainWindow):
         nuke_ai_layout.addLayout(input_layout)
         self.nuke_ai_dock.setWidget(self.nuke_ai_widget)
         self.nuke_ai_dock.setAllowedAreas(Qt.AllDockWidgetAreas)
-
-        # NukeAI sekmesine özel başlık stili ve ikon ekleme
         nuke_ai_icon = QIcon(os.path.join(PathFromOS().icons_path, "ai_icon.svg"))
         self.set_custom_dock_title(self.nuke_ai_dock, "NUKEAI", nuke_ai_icon)
         self.addDockWidget(self.settings.NUKEAI_DOCK_POS, self.nuke_ai_dock)
@@ -256,62 +276,111 @@ class EditorApp(QMainWindow):
         self.output_dock.raise_()  # Output sekmesini öne alıyoruz
 
     def process_ai_request(self):
-        """NukeAI sekmesinde, kullanıcı komutunu işleyip yanıt döner."""
+        """
+        Processes the user's command or prompt entered in the NukeAI input panel.
+
+        This function is responsible for:
+        - Retrieving the user input from the text field.
+        - Generating a placeholder response to simulate AI processing.
+        - Displaying the response in the NukeAI response panel.
+        - Clearing the input field after processing.
+
+        Steps:
+        1. Get the input text from the `QLineEdit`.
+        2. Generate a formatted response string as feedback to the user.
+        3. Update the response panel with the simulated response.
+        4. Clear the input field to prepare for the next command.
+
+        Example Usage:
+        - User enters "Create Blur Node" in the input field.
+        - Response: "AI Response: 'Create Blur Node' is being processed."
+
+        """
+        # Retrieve the user input from the text field
         prompt = self.ai_input.text()
-        response = f"AI yanıtı: '{prompt}' komutunu işliyorum."  # Test yanıtı
+
+        # Simulate a response for the input
+        response = f"AI Response: '{prompt}' is being processed."
+
+        # Display the response in the NukeAI response panel
         self.ai_response.setText(response)
+
+        # Clear the input field
         self.ai_input.clear()
 
     def set_custom_dock_title(self, dock_widget, title, icon):
-        """Dock widget başlıklarına özel stil ve ikon ekleyen fonksiyon."""
+        """
+        Sets a custom style and icon for the title bar of a dock widget.
+        This function customizes the appearance of the dock widget's title bar by:
+        - Replacing the default title bar with a QWidget.
+        - Adding an icon and a title label to the title bar.
+        - Applying specific font styles to the title.
+        - Aligning the content to the left while adding stretchable space for better layout.
 
-        # Özel başlık widget'ı oluştur
+        Parameters:
+        - dock_widget (QDockWidget): The dock widget whose title bar is being customized.
+        - title (str): The text to display in the title bar.
+        - icon (QIcon): The icon to display next to the title.
+        """
+        # Create a custom title bar widget
         title_bar = QWidget()
         title_layout = QHBoxLayout(title_bar)
-        title_layout.setContentsMargins(0, 0, 0, 0)  # İç kenar boşluklarını kaldır
-        title_layout.setAlignment(Qt.AlignLeft)  # Başlığı sola yasla
+        title_layout.setContentsMargins(0, 0, 0, 0)  # Remove inner margins
+        title_layout.setAlignment(Qt.AlignLeft)  # Align content to the left
 
-        # İkonu ekle
+        # Add the icon
         icon_label = QLabel()
-        icon_label.setPixmap(icon.pixmap(16, 16))  # İkonu 16x16 boyutunda ayarla
+        icon_label.setPixmap(icon.pixmap(16, 16))  # Set the icon size to 16x16
         title_layout.addWidget(icon_label)
 
-        # Başlık metnini ekle
-        title_label = QLabel(title.upper())  # Büyük harflerle başlık
+        # Add the title text
+        title_label = QLabel(title.upper())  # Convert the title text to uppercase
         title_font = QFont("Arial", 10)
-        title_font.setBold(True)  # Kalın font
+        title_font.setBold(True)  # Make the font bold
         title_label.setFont(title_font)
         title_layout.addWidget(title_label)
 
-        # Stretch ekleyerek başlığı sola yaslıyoruz
+        # Add stretchable space to align the content properly
         title_layout.addStretch()
 
-        # Özel başlık widget'ını dock widget başlığı olarak ayarla
+        # Set the custom title bar widget for the dock widget
         dock_widget.setTitleBarWidget(title_bar)
 
     def clear_output(self):
-        """Output panelindeki tüm çıktıyı temizler."""
-        self.output_widget.clear()  # Output panelini temizler
+        """
+        Clears all content from the output panel.
+
+        This resets the display area of the output widget, removing any text or messages.
+        """
+        self.output_widget.clear()  # Clear the output panel
 
     def run_code(self):
-        # Clear Output Widget
+        """
+        Executes the code in the current active tab and displays the results or errors in the output panel.
+
+        - Clears the output panel before execution.
+        - Displays environment info like Python version, Nuke version, computer name, and timestamp.
+        - Executes the selected or full content of the active editor tab.
+        - Handles both Python and Nuke-specific code execution.
+        - Outputs success or error messages back to the output panel.
+        """
+        # Clear the Output Widget
         self.output_widget.clear()
 
-        # Grey colored messages append Output
         from datetime import datetime
 
-        python_version = platform.python_version()  # Python Get Version
-        nuke_version = nuke.env['NukeVersionString']  # Nuke Get Version
-        computer_name = socket.gethostname()  # Get PC Name
+        python_version = platform.python_version()  # Get Python version
+        nuke_version = nuke.env['NukeVersionString']  # Get Nuke version
+        computer_name = socket.gethostname()  # Get the computer name
 
-        # Get current Date and Time
+        # Get the current date and time
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
 
-        # Get Active Tab Name
-        active_tab_name = self.tab_widget.tabText(self.tab_widget.currentIndex())  # Aktif sekmenin ismi
+        # Get the name of the active tab
+        active_tab_name = self.tab_widget.tabText(self.tab_widget.currentIndex())
 
-        # Ger Information Row Added with PY version, NK version, PC name , Time and Date
+        # Display system and environment info in the output
         info_message = (
             f'<span style="color: grey;">'
             f'Python: {python_version} | Nuke: {nuke_version} | Active File: {active_tab_name} | Computer: {computer_name} | {formatted_time}'
@@ -319,7 +388,7 @@ class EditorApp(QMainWindow):
         )
         self.output_widget.append(info_message)
 
-        # Get Active Tabs (QPlainTextEdit veya CodeEditor)
+        # Execute the code from the active editor
         current_editor = self.tab_widget.currentWidget()
 
         if isinstance(current_editor, QPlainTextEdit):
@@ -327,95 +396,152 @@ class EditorApp(QMainWindow):
             code = cursor.selectedText().strip() or current_editor.toPlainText()
             try:
                 if "nuke." in code:
-                    # Run Nuke Code
+                    # Execute Nuke-specific code
                     execute_nuke_code(code, self.output_widget)
                 else:
-                    # Run Python Code
+                    # Execute standard Python code
                     execute_python_code(code, self.output_widget)
 
-                # Result Added (If ok! Return and of the line)
+                # Add a success message
                 success_message = '<span style="color: grey;">...End of the line</span>'
                 self.output_widget.append(success_message)
 
             except Exception as e:
+                # Handle and display errors
                 error_message = traceback.format_exc()
-                user_friendly_message = f"<b style='color: red;'>Problem appears while running: {str(e)}</b>"
+                user_friendly_message = f"<b style='color: red;'>Problem encountered while running: {str(e)}</b>"
                 self.output_widget.append_error_output(user_friendly_message)
                 self.output_widget.append_error_output(error_message)
 
-    def update_toolbar_spacer(self, orientation, spacer):
-        """Changes the width/height settings of the spacer widget according to the orientation of the toolbar."""
+    def update_toolbar_spacer(self, orientation: Qt.Orientation, spacer: QWidget):
+        """
+        Adjusts the spacer's size policy based on the toolbar's orientation.
+
+        Args:
+            orientation (Qt.Orientation): The current orientation of the toolbar (Qt.Horizontal or Qt.Vertical).
+            spacer (QWidget): The spacer widget to be adjusted.
+
+        Behavior:
+            - Expands width if the toolbar is horizontal.
+            - Expands height if the toolbar is vertical.
+        """
         if orientation == Qt.Horizontal:
-            # Yatay durumda genişliği genişletiyoruz
+            # Expand width for horizontal orientation
             spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         else:
-            # Dikey durumda yüksekliği genişletiyoruz
+            # Expand height for vertical orientation
             spacer.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
     def show_search_dialog(self):
-        """Opens the search dialog and performs the search."""
-        dialog = SearchDialog(self)  # Ana pencere referansını gönderiyoruz
-        dialog.exec_()  # Dialogu modal olarak aç
+        """
+        Opens a modal search dialog and allows the user to search within the current document.
+
+        Behavior:
+            - Instantiates the `SearchDialog` with the main window as its parent.
+            - Displays the dialog in a modal state to block interaction with other windows until closed.
+        """
+        dialog = SearchDialog(self)  # Pass the main window reference
+        dialog.exec_()  # Open the dialog modally
 
     def find_and_highlight(self, search_term):
-        """Highlights words that match the search term in the code editor."""
+        """
+        Highlights occurrences of a given search term in the active code editor.
+
+        Args:
+            search_term (str): The term to search and highlight in the editor.
+
+        Behavior:
+            - Searches for all occurrences of the `search_term` in the current editor.
+            - Applies a yellow background to highlight matching terms.
+            - If no editor is open, displays an error message in the output widget.
+        """
         current_editor = self.tab_widget.currentWidget()
         if current_editor is None:
-            self.output_widget.append_error_output("Please open ative tab for coding...")
+            self.output_widget.append_error_output("Please open an active tab for coding...")
             return
 
-        cursor = current_editor.textCursor()  # Get cursor in editor
-        document = current_editor.document()  # Get text document
+        cursor = current_editor.textCursor()  # Get the editor's cursor
+        document = current_editor.document()  # Get the text document
 
-        # Clear all existing highlights
+        # Clear existing highlights
         current_editor.setExtraSelections([])
 
-        # Create a list to store search results
+        # Store results for highlighting
         extra_selections = []
 
-        # We use QTextCursor to search within text
-        cursor.beginEditBlock()  # Start bulk changes within the editor
+        # Begin bulk changes to the cursor
+        cursor.beginEditBlock()
 
-        # We move the cursor to the beginning to advance during the search process.
+        # Move cursor to the start of the document
         cursor.movePosition(QTextCursor.Start)
 
         highlight_format = QTextCharFormat()
-        highlight_format.setBackground(QColor("yellow"))  # We make the highlight color yellow
+        highlight_format.setBackground(QColor("yellow"))  # Set highlight color to yellow
 
-        # Search within text
+        # Search for all matches of the term
         while not cursor.isNull() and not cursor.atEnd():
             cursor = document.find(search_term, cursor)
             if not cursor.isNull():
-                # We make extra selection for highlighting when the search term is found
+                # Create a selection for the found term
                 selection = QTextEdit.ExtraSelection()
                 selection.cursor = cursor
                 selection.format = highlight_format
                 extra_selections.append(selection)
 
-        # Toplu değişiklikleri bitiriyoruz
+        # End bulk changes
         cursor.endEditBlock()
 
-        # Sonuçları vurgulamak için düzenleyiciye setExtraSelections ile ayarlıyoruz
+        # Apply highlights to the editor
         current_editor.setExtraSelections(extra_selections)
 
     def populate_outliner_with_functions(self):
-        """It adds only classes and functions to OUTLINER, excluding the nuke.py and nukescripts.py headers."""
-        # Dosya yollarını belirtiyoruz
+        """
+        Populates the OUTLINER with classes and functions from specific files,
+        excluding the headers from `nuke.py` and `nukescripts.py`.
+
+        Behavior:
+            - Reads class and function definitions from the `nuke.py` and `nukescripts.py` files.
+            - Adds these definitions to the OUTLINER view.
+        Steps:
+            1. Load file paths from `PathFromOS`.
+            2. Parse the files to extract class and function definitions.
+            3. Add the parsed definitions to the OUTLINER view.
+        Dependencies:
+            - PathFromOS(): Provides paths to `nuke.py` and `nukescripts.py`.
+            - `list_classes_from_file`: Parses files for classes and functions.
+            - `add_classes_and_functions_to_tree`: Adds definitions to the OUTLINER tree.
+        """
+        # Define paths to the Nuke and Nukescripts files
         nuke_file_path = PathFromOS().nuke_ref_path
         nukescripts_file_path = PathFromOS().nukescripts_ref_path
 
-        # Nuke dosyalarındaki sınıf ve fonksiyonları alıyoruz
+        # Extract classes and functions from the files
         nuke_classes = self.list_classes_from_file(nuke_file_path)
         nukescripts_classes = self.list_classes_from_file(nukescripts_file_path)
 
-        # nuke.py ve nukescripts.py başlıkları olmadan sınıf ve metodları doğrudan Outliner'a ekliyoruz
+        # Add parsed definitions directly to the OUTLINER
         self.add_classes_and_functions_to_tree(nuke_classes)
         self.add_classes_and_functions_to_tree(nukescripts_classes)
 
     def add_nuke_functions_to_outliner(self, nuke_functions):
-        """Nuke fonksiyonlarını mevcut OUTLINER öğelerine dokunmadan ekler."""
+        """
+        Adds Nuke-specific functions to the existing OUTLINER without altering other entries.
+        Parameters:
+            nuke_functions (list of dict): A list of dictionaries where each dictionary represents a function
+            with a key `name` for the function name.
+        Behavior:
+            - Searches for an existing "Nuke Functions" category in the OUTLINER.
+            - If not found, creates a new "Nuke Functions" parent category.
+            - Adds each function as a child under "Nuke Functions" with a specific icon.
+            - Ensures only "Nuke Functions" items are expanded for better visibility.
+        Steps:
+            1. Search for "Nuke Functions" in the OUTLINER.
+            2. Create the category if it does not exist.
+            3. Append each function as a child of "Nuke Functions".
+            4. Expand only the "Nuke Functions" category for better organization.
+        """
         if nuke_functions:
-            # "Nuke Functions" başlığını arayın, eğer yoksa ekleyin
+            # Search for "Nuke Functions" header in OUTLINER
             parent_item = None
             for i in range(self.outliner_list.topLevelItemCount()):
                 item = self.outliner_list.topLevelItem(i)
@@ -424,38 +550,55 @@ class EditorApp(QMainWindow):
                     break
 
             if not parent_item:
-                # Eğer "Nuke Functions" başlığı yoksa, yeni bir başlık ekleyin
+                # Create "Nuke Functions" header if not present
                 parent_item = QTreeWidgetItem(self.outliner_list)
                 parent_item.setText(0, "Nuke Functions")
                 parent_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'folder_tree.svg')))  # Folder Icon
 
-            # Mevcut OUTLINER'a fonksiyonları ekleyin
+            # Add each function under "Nuke Functions"
             for func in nuke_functions:
                 func_item = QTreeWidgetItem(parent_item)
-                func_item.setText(0, func["name"])  # `func` dict olduğundan `func["name"]` olarak düzelttik
+                func_item.setText(0, func["name"])  # Extract function name
                 func_item.setIcon(0, QIcon(
-                    os.path.join(PathFromOS().icons_path, 'M_red.svg')))  # Yanına M_red.svg ikonunu ekleyin
+                    os.path.join(PathFromOS().icons_path, 'M_red.svg')))  # Set the function icon
 
-            # Sadece "Nuke Functions" altındaki öğeleri genişletin
+            # Expand only the "Nuke Functions" category
             self.outliner_list.expandItem(parent_item)
 
     def add_classes_and_functions_to_tree(self, classes):
-        """Sınıf ve fonksiyonları doğrudan Outliner'a ekler."""
+        """
+        Adds classes and their methods directly to the OUTLINER.
+        Parameters:
+            classes (list of tuples): A list where each tuple contains:
+                - class_name (str): The name of the class.
+                - methods (list of str): A list of method names belonging to the class.
+        Behavior:
+            - Each class is added as a top-level item in the OUTLINER.
+            - Each method of a class is added as a child of the corresponding class item.
+            - Icons are assigned to both classes and methods for better visual representation.
+            - All items in the OUTLINER are expanded for visibility.
+        Steps:
+            1. Loop through the provided list of classes.
+            2. Add each class as a top-level item with an associated class icon.
+            3. For each class, add its methods as child items with an associated method icon.
+            4. Expand all items in the OUTLINER for improved visibility.
+        """
         for class_name, methods in classes:
-            # Sınıfı Outliner'a ekliyoruz
+            # Add class to OUTLINER
             class_item = QTreeWidgetItem(self.outliner_list)
             class_item.setText(0, class_name)
-            class_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'C_logo.svg')))  # Sınıf ikonunu ayarlayın
+            class_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'C_logo.svg')))  # Assign class icon
 
-            # Her sınıfın metotlarını ekliyoruz
+            # Add methods for the class
             for method in methods:
                 method_item = QTreeWidgetItem(class_item)
                 method_item.setText(0, method)
-                method_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'M_logo.svg')))  # Metot ikonunu ayarlayın
+                method_item.setIcon(0, QIcon(os.path.join(PathFromOS().icons_path, 'M_logo.svg')))  # Assign method icon
 
-        # Outliner içindeki tüm öğeleri genişletiyoruz
+        # Expand all items in the OUTLINER for better visibility
         self.outliner_list.expandAll()
 
+    # DEVAM EDECEK
     def list_classes_from_file(self, file_path):
         """Verilen dosyadaki sınıfları ve metotları bulur, özel metotları filtreler."""
         if not os.path.exists(file_path):

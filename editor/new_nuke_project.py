@@ -13,6 +13,9 @@ from PySide2.QtGui import QSyntaxHighlighter, QTextCharFormat, QTextCursor
 
 
 class LineNumberedTextEdit(QPlainTextEdit):
+    """
+       A custom text editor widget with line numbers.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.lineNumberArea = LineNumberArea(self)
@@ -23,6 +26,9 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.highlightCurrentLine()
 
     def lineNumberAreaWidth(self):
+        """
+        Calculate the required width for the line number area.
+        """
         digits = 1
         max_number = max(1, self.blockCount())
         while max_number >= 10:
@@ -32,9 +38,15 @@ class LineNumberedTextEdit(QPlainTextEdit):
         return space
 
     def updateLineNumberAreaWidth(self, _):
+        """
+        Update the width of the line number area based on the current content.
+        """
         self.setViewportMargins(self.lineNumberAreaWidth(), 0, 0, 0)
 
     def updateLineNumberArea(self, rect, dy):
+        """
+        Update the line number area during scrolling or when the content changes.
+        """
         if dy:
             self.lineNumberArea.scroll(0, dy)
         else:
@@ -43,11 +55,17 @@ class LineNumberedTextEdit(QPlainTextEdit):
             self.updateLineNumberAreaWidth(0)
 
     def resizeEvent(self, event):
+        """
+        Adjust the geometry of the line number area when the widget is resized.
+        """
         super().resizeEvent(event)
         cr = self.contentsRect()
         self.lineNumberArea.setGeometry(QRect(cr.left(), cr.top(), self.lineNumberAreaWidth(), cr.height()))
 
     def highlightCurrentLine(self):
+        """
+        Highlight the currently active line in the editor.
+        """
         extraSelections = []
         if not self.isReadOnly():
             selection = QTextEdit.ExtraSelection()
@@ -60,6 +78,9 @@ class LineNumberedTextEdit(QPlainTextEdit):
         self.setExtraSelections(extraSelections)
 
     def lineNumberAreaPaintEvent(self, event):
+        """
+        Paint the line numbers in the line number area.
+        """
         painter = QPainter(self.lineNumberArea)
         painter.fillRect(event.rect(), Qt.lightGray)
 
@@ -81,6 +102,9 @@ class LineNumberedTextEdit(QPlainTextEdit):
             blockNumber += 1
 
 class LineNumberArea(QFrame):
+    """
+    A widget that displays line numbers for the associated editor.
+    """
     def __init__(self, editor):
         super().__init__(editor)
         self.codeEditor = editor
@@ -92,11 +116,14 @@ class LineNumberArea(QFrame):
         self.codeEditor.lineNumberAreaPaintEvent(event)
 
 class SyntaxHighlighter(QSyntaxHighlighter):
+    """
+    A syntax highlighter for coloring specific keywords in the text.
+    """
     def __init__(self, document):
         super().__init__(document)
         self.highlightingRules = []
 
-        # Renk ve stil kuralları
+        # Define colors and styles for specific keywords
         keywordFormat = QTextCharFormat()
         keywordFormat.setForeground(QColor("#ff79c6"))  # pembe
         keywordFormat.setFontWeight(QFont.Bold)
@@ -129,6 +156,9 @@ class SyntaxHighlighter(QSyntaxHighlighter):
                 self.highlightingRules.append((pattern, keywordFormat))
 
     def highlightBlock(self, text):
+        """
+        Apply syntax highlighting to the given block of text.
+        """
         for pattern, format in self.highlightingRules:
             expression = QRegExp(pattern)
             index = expression.indexIn(text)
@@ -138,27 +168,34 @@ class SyntaxHighlighter(QSyntaxHighlighter):
                 index = expression.indexIn(text, index + length)
 
 class NewNukeProjectDialog(QDialog):
+    """
+    A dialog for creating a new Nuke project with features such as input validation, syntax highlighting,
+    and optional backups of the `.nuke` environment.
+    """
     def __init__(self, editp_window, parent=None, jet_fonts=None):
+        """
+        Initialize the dialog for creating a new Nuke project.
+        """
         super().__init__(parent)
-        self.allowed_pattern = r'^[a-zA-Z0-9_ ]+$'
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.allowed_pattern = r'^[a-zA-Z0-9_ ]+$'  # Allow only alphanumeric characters, spaces, and underscores.
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)  # Make the dialog frameless.
+        self.setAttribute(Qt.WA_TranslucentBackground)  # Add translucent background.
         self.setModal(True)
         dialog_size = QSize(500, 500)
         self.resize(dialog_size)
 
-        # Gölge efekti
+        # Shadow effect for the dialog.
         shadow_effect = QGraphicsDropShadowEffect()
         shadow_effect.setBlurRadius(40)
         shadow_effect.setOffset(0, 12)
         shadow_effect.setColor(QColor(0, 0, 0, 150))
         self.setGraphicsEffect(shadow_effect)
 
-        # Ana layout
+        # Main layout.
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Arka plan çerçevesi
+        # Background frame.
         background_frame = QFrame(self)
         background_frame.setStyleSheet(
             """QFrame {background-color: rgb(50, 50, 50);border: 1px solid rgba(255, 255, 255, 0.1);border-radius: 9px;}""")
@@ -166,21 +203,22 @@ class NewNukeProjectDialog(QDialog):
         self.inner_layout.setContentsMargins(30, 30, 30, 20)
         self.main_layout.addWidget(background_frame)
 
-        # Başlık
+        # Title label.
         title_label = QLabel("Create New Nuke Project", background_frame)
         title_label.setAlignment(Qt.AlignLeft)
         title_label.setStyleSheet(
             """color: #CFCFCF; font-size: 18px; font-weight: bold; font-family: 'Myriad';border: none;background-color: transparent;""")
         self.inner_layout.addWidget(title_label)
         self.inner_layout.addSpacing(35)
-        # Separator çizgisi
+
+        # Separator line.
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
         line.setFrameShadow(QFrame.Sunken)
         line.setStyleSheet("color: rgba(255, 255, 255, 0.2);")
         self.inner_layout.addWidget(line)
 
-        # Proje ismi giriş alanı
+        # Project name input field.
         self.project_name_input = QLineEdit()
         self.project_name_input.textChanged.connect(self.update_init_py_text)
         self.project_name_input.setPlaceholderText("Enter Project Name")
@@ -189,7 +227,7 @@ class NewNukeProjectDialog(QDialog):
             """QLineEdit {background-color: rgba(255, 255, 255, 0.08); color: #E0E0E0; padding: 10px; padding-right: 40px; border: 1px solid #5A5A5A; border-radius: 8px;}""")
         self.inner_layout.addWidget(self.project_name_input)
 
-        # Karakter sayısı göstergesi etiketi
+        # Character count label.
         self.character_count_label = QLabel("0/25")
         self.character_count_label.setStyleSheet("color: #CFCFCF; font-size: 12px; border: 0px;")
         char_layout = QHBoxLayout()
@@ -197,10 +235,10 @@ class NewNukeProjectDialog(QDialog):
         char_layout.addWidget(self.character_count_label)
         self.inner_layout.addLayout(char_layout)
 
-        # Proje adı alanına sınır kontrolü için textChanged sinyal bağlantısı
+        # Connect signal to validate project name input.
         self.project_name_input.textChanged.connect(self.validate_project_name)
 
-        # Proje dizini giriş alanı ve "Browse" butonu
+        # Project directory input and browse button.
         self.project_dir_input = QLineEdit()
         self.project_dir_input.setPlaceholderText("Select Project Directory")
         self.project_dir_input.setText(self.get_default_nuke_directory())
@@ -216,7 +254,7 @@ class NewNukeProjectDialog(QDialog):
         dir_layout.addWidget(browse_button)
         self.inner_layout.addLayout(dir_layout)
 
-        # Çizgi separatorları
+        # Separator lines for sections.
         def add_separator():
             line = QFrame()
             line.setFrameShape(QFrame.HLine)
@@ -225,7 +263,7 @@ class NewNukeProjectDialog(QDialog):
             self.inner_layout.addWidget(line)
 
         add_separator()
-        # 1. Create Menu.py
+        # Checkbox for creating `menu.py`.
         self.create_menu_py_checkbox = QCheckBox("Create Menu.py")
         self.create_menu_py_checkbox.setStyleSheet("color: #CFCFCF;")
         self.create_menu_py_checkbox.stateChanged.connect(self.toggle_menu_py_textbox)
@@ -237,7 +275,8 @@ class NewNukeProjectDialog(QDialog):
         self.menu_py_textbox.setFont(QFont("Consolas"))
         self.inner_layout.addWidget(self.menu_py_textbox)
         self.menu_py_textbox.hide()  # Initially hidden
-        # Add syntax highlighting to menu.py
+
+        # Syntax-highlighted `menu.py` textbox (hidden initially).
         self.highlighter_menu = SyntaxHighlighter(self.menu_py_textbox.document())  # Syntax highlighting added
         self.inner_layout.addWidget(line)
         # 2. Create init.py
@@ -246,6 +285,7 @@ class NewNukeProjectDialog(QDialog):
         self.create_init_py_checkbox.stateChanged.connect(self.toggle_init_py_textbox)
         self.inner_layout.addWidget(self.create_init_py_checkbox)
 
+        # Syntax-highlighted `init.py` textbox (hidden initially).
         self.init_py_textbox = LineNumberedTextEdit()
         self.init_py_textbox.setFont(QFont("Consolas"))
         self.init_py_textbox.setStyleSheet(
@@ -255,7 +295,7 @@ class NewNukeProjectDialog(QDialog):
         # Add syntax highlighting to init.py
         self.highlighter_init = SyntaxHighlighter(self.init_py_textbox.document())  # Syntax highlighting added
 
-        # Çizgi separatoru
+
         add_separator()
 
         # 4. Make backup .nuke folder (be safe)
@@ -275,14 +315,14 @@ class NewNukeProjectDialog(QDialog):
         backup_dir_layout.addWidget(self.backup_dir_input)
         self.browse_backup_button = QPushButton("Backup Location")
         self.browse_backup_button.setFixedHeight(37)
-        self.browse_backup_button.setFixedWidth(150)  # Daha dar genişlik
+        self.browse_backup_button.setFixedWidth(150)
         self.browse_backup_button.setStyleSheet(
             """QPushButton {background-color: #4E4E4E;color: #FFFFFF;border-radius: 8px;padding: 6px 12px;font-size: 12px;} QPushButton:hover {background-color: #6E6E6E;}""")
         self.browse_backup_button.clicked.connect(self.browse_backup_directory)
         backup_dir_layout.addWidget(self.browse_backup_button)
         self.inner_layout.addLayout(backup_dir_layout)
 
-        # Backup ile ilgili açıklama
+        # Explanation for the backup option.
         self.backup_explanation = QLabel(
             "If you have an existing .nuke environment, backing it up \nwill make your work easier.")
         self.backup_explanation.setStyleSheet("color: #CFCFCF; font-size: 12px; stroke: none; border: none;")
@@ -293,7 +333,8 @@ class NewNukeProjectDialog(QDialog):
         vertical_spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.inner_layout.addItem(vertical_spacer)
         add_separator()
-        # Warning area with "I" icon and message
+
+        # Warning area with an icon and message.
         warning_layout = QHBoxLayout()
         warning_icon = QLabel("ℹ ")
         warning_icon.setStyleSheet(" font-size: 40px; font-weight: bold; border: none;")
@@ -309,7 +350,7 @@ class NewNukeProjectDialog(QDialog):
         warning_layout.addWidget(warning_message)
         self.inner_layout.addLayout(warning_layout)
 
-        # OK ve Cancel butonları
+        # OK and Cancel buttons.
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
@@ -332,39 +373,47 @@ class NewNukeProjectDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
 
     def validate_project_name(self):
+        """
+        Validate the project name input to ensure it follows Python variable naming conventions
+        and has a maximum length of 25 characters.
+        """
         text = self.project_name_input.text()
 
-        # Proje adını Python değişken adlandırma kurallarına göre kısıtla
+        # Restrict project name to valid Python variable naming rules.
         if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", text):
             text = re.sub(r"[^A-Za-z0-9_]", "", text)
             text = re.sub(r"^[^A-Za-z_]+", "", text)
             self.project_name_input.setText(text)
 
-        # Karakter sınırını koruma
+        # Enforce character limit.
         if len(text) > 25:
             text = text[:25]
             self.project_name_input.setText(text)
 
-        # Karakter sayısı göstergesini güncelle
+        # Update character count label.
         self.character_count_label.setText(f"{len(text)}/25")
 
     def update_init_py_text(self):
-        """init.py içindeki 'your_plugin_path' ifadesini proje ismiyle günceller."""
+        """
+        Update the content of `init.py` in the text box with the current project name.
+        Highlights the project name in orange.
+        """
         project_name = self.project_name_input.text() or "your_plugin_path"
         formatted_text = f"import nuke\nimport os\nnuke.pluginAddPath('{project_name}')"
 
-        # init_py_textbox içeriğini güncelle ve renklendir
         self.init_py_textbox.clear()
         cursor = QTextCursor(self.init_py_textbox.document())
         cursor.insertText(formatted_text)
 
-        # Proje ismi kısmını turuncu renkte vurgula
+        # Highlight project name.
         format = QTextCharFormat()
         format.setForeground(QColor("#ffb86c"))  # Turuncu renk
         self.highlight_text(cursor, project_name, format)
 
     def highlight_text(self, cursor, text, format):
-        """Metin içinde belirli bir kısmı renklendir."""
+        """
+        Highlight specific text in the document with the given format.
+        """
         cursor.beginEditBlock()
         document = self.init_py_textbox.document()
         pattern = QRegExp(rf"\b{text}\b")
@@ -382,6 +431,10 @@ class NewNukeProjectDialog(QDialog):
         cursor.endEditBlock()
 
     def toggle_menu_py_textbox(self, state):
+        """
+        Toggles the visibility of the `menu.py` editor textbox.
+        Displays a pre-filled template if checked.
+        """
         if state == Qt.Checked:
             self.menu_py_textbox.show()
             self.menu_py_textbox.setPlainText("import nuke\ntoolbar = nuke.menu(\'Nodes\')\ni = toolbar.addMenu('Studio')")
@@ -390,6 +443,10 @@ class NewNukeProjectDialog(QDialog):
             self.menu_py_textbox.clear()
 
     def toggle_init_py_textbox(self, state):
+        """
+        Toggles the visibility of the `init.py` editor textbox.
+        Displays a pre-filled template if checked.
+        """
         if state == Qt.Checked:
             self.init_py_textbox.show()
             self.init_py_textbox.setPlainText("import nuke\nimport os\nnuke.pluginAddPath('your_plugin_path}')")
@@ -398,6 +455,9 @@ class NewNukeProjectDialog(QDialog):
             self.init_py_textbox.clear()
 
     def toggle_backup_location(self, state):
+        """
+        Toggles the visibility of the backup location input fields and explanation.
+        """
         if state == Qt.Checked:
             self.backup_dir_input.show()
             self.browse_backup_button.show()
@@ -409,22 +469,34 @@ class NewNukeProjectDialog(QDialog):
             self.backup_explanation.hide()  # Backup açıklamasını gizle
 
     def get_default_nuke_directory(self):
-        """İşletim sistemine göre .nuke dizinini döndürür."""
+        """
+        Returns the default `.nuke` directory path based on the operating system.
+        """
         home_dir = os.path.expanduser("~")
         return os.path.join(home_dir, ".nuke")
 
     def browse_directory(self):
+        """
+        Opens a file dialog for selecting the project directory and sets the input field.
+        """
         directory = QFileDialog.getExistingDirectory(self, "Select Project Directory")
         if directory:
             self.project_dir_input.setText(directory)
 
     def browse_backup_directory(self):
+        """
+        Opens a file dialog for selecting the backup directory and sets the input field.
+        """
         directory = QFileDialog.getExistingDirectory(self, "Select Backup Directory")
         if directory:
             self.backup_dir_input.setText(directory)
 
-    # editor_window.py içinde create_project fonksiyonunda güncellemeler
     def create_project(self):
+        """
+        Creates the new Nuke project based on user input.
+        Validates the project name and directory, creates directories, and optionally
+        backs up the `.nuke` environment.
+        """
         import datetime
         from PySide2.QtWidgets import QProgressDialog
         from editor.editor_window import EditorApp  # Gerekirse yeniden import edilmesi
@@ -432,7 +504,7 @@ class NewNukeProjectDialog(QDialog):
         project_name = self.project_name_input.text().strip()
         project_dir = self.project_dir_input.text().strip()
 
-        # Proje dizini kontrolü ve stil güncellemesi
+        # Validate project directory
         if not project_dir or not os.path.exists(project_dir):
             self.project_dir_input.setStyleSheet(
                 """QLineEdit {background-color: rgba(255, 150, 150, 0.08); color: #E0E0E0;
@@ -446,7 +518,7 @@ class NewNukeProjectDialog(QDialog):
                 padding: 10px; border: 1px solid #5A5A5A; border-radius: 8px;}"""
             )
 
-        # Proje adı kontrolü ve stil güncellemesi
+        # Validate project name
         if not project_name:
             self.project_name_input.setStyleSheet(
                 """QLineEdit {background-color: rgba(255, 150, 150, 0.08); color: #E0E0E0;
@@ -459,18 +531,18 @@ class NewNukeProjectDialog(QDialog):
                 padding: 10px; padding-right: 40px; border: 1px solid #5A5A5A; border-radius: 8px;}"""
             )
 
-        # Proje dizin yolunu proje adıyla birleştir ve klasörü oluştur
+        # Create project directory
         project_last_path = os.path.join(project_dir, project_name)
         os.makedirs(project_last_path, exist_ok=True)
 
-        # Tarih bilgisi ekleme
+        # Create `__init__.py` file wit the date.
         current_date = datetime.datetime.now().strftime("%Y_%m_%d")
         main_init_file = os.path.join(project_last_path, "__init__.py")
         with open(main_init_file, "w") as init_file:
             init_file.write(f"# This directory is part of the main script. //With opened Python Code Editor.\n")
             init_file.write(f"# Created on: {current_date}")
 
-        # Yedekleme seçeneği kontrolü
+        # Backup `.nuke` folder if selected
         if self.create_backup_folder_checkbox.isChecked():
             backup_dir = self.backup_dir_input.text().strip()
             if not backup_dir or not os.path.exists(backup_dir):
@@ -486,6 +558,7 @@ class NewNukeProjectDialog(QDialog):
                     padding: 10px; border: 1px solid #5A5A5A; border-radius: 8px;}"""
                 )
 
+            # Backup process with progress dialog
             nuke_dir = self.get_default_nuke_directory()
             backup_zip = os.path.join(backup_dir, f"doth_nuke_backup_{current_date}.zip")
             file_count = sum(len(files) for _, _, files in os.walk(nuke_dir))
@@ -505,27 +578,19 @@ class NewNukeProjectDialog(QDialog):
                             return
             progress.close()
 
-        # `menu.py` dosyasını oluştur
+        # Create `menu.py` if checked
         if self.create_menu_py_checkbox.isChecked():
             menu_py_content = self.menu_py_textbox.toPlainText()
             menu_py_path = os.path.join(project_dir, "menu.py")
             with open(menu_py_path, 'w') as menu_file:
                 menu_file.write(menu_py_content)
 
-        # `init.py` dosyasını oluştur
+        # Create `init.py` if checked
         if self.create_init_py_checkbox.isChecked():
             init_py_content = self.init_py_textbox.toPlainText()
             init_py_path = os.path.join(project_dir, "init.py")
             with open(init_py_path, 'w') as init_file:
                 init_file.write(init_py_content)
 
-        # # Mevcut EditorApp örneği ile workspace'i populate et
-        # try:
-        #     editor_app_instance = EditorApp()  # Eğer örnek zaten yoksa burada yeniden başlatılır
-        #     editor_app_instance.populate_workplace(directory=project_last_path)
-        # except AttributeError:
-        #     print("EditorApp örneği oluşturulamadı veya populate_workplace işlevine erişilemiyor.")
-        #     return
-
-        # Tüm koşullar sağlandığında dialog'u kapat ve işlemi onayla
+        # Close dialog and confirm the project creation.
         self.accept()

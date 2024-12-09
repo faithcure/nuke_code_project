@@ -2,7 +2,9 @@ import subprocess
 import json
 import sys
 from functools import partial
+
 from pygments.styles import get_all_styles
+
 import psutil
 import requests
 from PySide2.QtWidgets import (
@@ -20,6 +22,7 @@ import importlib
 import editor.settings.settings_ux
 from editor.settings import settings_ux
 importlib.reload(editor.settings.settings_ux)
+
 
 class ProcessManager(QThread):
     """Handles process execution with memory and timeout constraints."""
@@ -313,7 +316,6 @@ class SettingsWindow(QMainWindow):
         manage_syntax_layout = QHBoxLayout()
 
         # Check if Pygments module exists
-
         PYGMENTS_MODULE_PATH = os.path.join(os.path.dirname(__file__), "modules")
         pygments_available = os.path.exists(PYGMENTS_MODULE_PATH)
 
@@ -325,7 +327,7 @@ class SettingsWindow(QMainWindow):
         manage_syntax_button.setFixedWidth(150)  # Set button width
         manage_syntax_layout.addWidget(manage_syntax_button)
 
-        # Dropdown for Pygments stylesf
+        # Dropdown for Pygments styles
         syntax_style_dropdown = QComboBox()
         syntax_style_dropdown.setObjectName("syntax_style_dropdown")
         SUPPORTED_STYLES = [
@@ -342,7 +344,6 @@ class SettingsWindow(QMainWindow):
             "stata-dark",
             "native",
             "fruity",
-            "pycharm"
         ]
         syntax_style_dropdown.addItems(sorted(SUPPORTED_STYLES))
         syntax_style_dropdown.setCurrentText("monokai")
@@ -377,7 +378,6 @@ class SettingsWindow(QMainWindow):
 
     def install_pygement_module(self):
         install_path = os.path.join(os.path.dirname(__file__), "modules")
-        print("pygment module path:", install_path)
         required_modules = ["Pygments"]
 
         user_home = os.path.expanduser("~")
@@ -386,14 +386,14 @@ class SettingsWindow(QMainWindow):
         if not os.path.exists(install_path):
             os.makedirs(install_path)
 
-        python_path = None  # Başlangıçta None olarak ayarla
+        python_path = None
         if "PYTHON_HOME" in os.environ:
             python_path = os.path.join(os.environ["PYTHON_HOME"], "python.exe")
         else:
             user_home = os.path.expanduser("~")
 
             possible_paths = [
-                # Dinamik Windows Yolları
+                # Dynamic Win Paths
                 os.path.join(user_home, "AppData", "Local", "Programs", "Python", "Python311", "python.exe"),
                 os.path.join(user_home, "AppData", "Local", "Programs", "Python", "Python310", "python.exe"),
                 os.path.join(user_home, "AppData", "Local", "Programs", "Python", "Python39", "python.exe"),
@@ -405,7 +405,7 @@ class SettingsWindow(QMainWindow):
                 os.path.join(user_home, "AppData", "Local", "Continuum", "anaconda3", "python.exe"),
                 os.path.join(user_home, "AppData", "Local", "Continuum", "miniconda3", "python.exe"),
 
-                # Sabit Windows Yolları
+                # Absolute Win paths
                 r"C:\Python311\python.exe",
                 r"C:\Python310\python.exe",
                 r"C:\Python39\python.exe",
@@ -419,7 +419,7 @@ class SettingsWindow(QMainWindow):
                 r"C:\Program Files (x86)\Python37\python.exe",
                 r"C:\Program Files (x86)\Python36\python.exe",
 
-                # Linux ve MacOS Yolları
+                # Linux / MacOS paths
                 "/usr/bin/python3.11",
                 "/usr/bin/python3.10",
                 "/usr/bin/python3.9",
