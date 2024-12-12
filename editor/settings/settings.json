@@ -12,7 +12,7 @@
         "default_font_size": 11,
         "is_wheel_zoom": true,
         "disable_smart_compilation": true,
-        "disable_suggestion": true,
+        "disable_suggestion": false,
         "disable_fuzzy_compilation": true,
         "disable_node_completer": true
     },

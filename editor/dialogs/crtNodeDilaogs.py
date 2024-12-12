@@ -2,7 +2,7 @@ import os
 import nuke
 from PySide2.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QListWidget, QHBoxLayout, QGroupBox, QTableWidget,
-    QTableWidgetItem, QMessageBox, QSpinBox, QDoubleSpinBox, QCheckBox, QMenu, QComboBox
+    QTableWidgetItem, QMessageBox, QSpinBox, QDoubleSpinBox, QCheckBox, QMenu, QComboBox, QTextEdit, QApplication
 )
 from PySide2.QtCore import Qt
 
@@ -107,6 +107,13 @@ def crtNodeDialogsPane():
     button_layout.addWidget(cancel_button)
     main_layout.addLayout(button_layout)
 
+    code_preview = QTextEdit()
+    code_preview.setReadOnly(True)
+    main_layout.addWidget(code_preview)
+
+    copy_button = QPushButton("Copy Code")
+    main_layout.addWidget(copy_button)
+
     def create_node_with_knobs():
         selected_node = node_list_widget.currentItem().text() if node_list_widget.currentItem() else None
         if not selected_node:
@@ -159,10 +166,16 @@ def crtNodeDialogsPane():
                     used_knobs.append(f"{knob_name}: {new_value}")
                     node_code += f"    {node_var_name}[\"{knob_name}\"].setValue({repr(new_value)})\n"
 
+            code_preview.setPlainText(node_code)
             print("Generated Node Code:\n", node_code)
             print("Used Knobs:", ", ".join(used_knobs))
         except Exception as e:
             QMessageBox.critical(dialog, "Error", f"Error creating node: {e}")
+
+    def copy_code_to_clipboard():
+        clipboard = QApplication.clipboard()
+        clipboard.setText(code_preview.toPlainText())
+        QMessageBox.information(dialog, "Copy Code", "Code has been copied to clipboard.")
 
     def on_filter_update():
         search_text = filter_name_input.text().lower()
