@@ -1,11 +1,16 @@
+import importlib
 import os.path
 from PySide2.QtGui import QFont, QTextCursor, QColor
-from PySide2.QtWidgets import QPlainTextEdit, QCompleter, QStyledItemDelegate, QStyleOptionViewItem, QListView
+from PySide2.QtWidgets import QPlainTextEdit, QCompleter, QStyledItemDelegate, QStyleOptionViewItem, QListView, QDialog, \
+    QVBoxLayout, QLabel, QComboBox, QLineEdit, QPushButton, QGroupBox, QHBoxLayout, QListWidget
 from PySide2.QtCore import QStringListModel, Qt, QObject, QModelIndex
+
 from editor.core import PathFromOS
 import json
 import re
 from editor.core import CodeEditorSettings
+
+
 
 class RightAlignedDelegate(QStyledItemDelegate):
     def __init__(self, category_colors, *args, **kwargs):
@@ -216,3 +221,38 @@ class createNodeCompleter(QObject):
         # İmleci yeni eklenen metnin sonuna getir ve tamamlama popup'unu gizle
         self.editor.setTextCursor(cursor)
         self.completer.popup().hide()
+
+class createNodesCode(QObject):
+    def __init__(self):
+        super().__init__()
+
+        self.createNodesMenu = {
+            "Create Node": lambda: self.createNodeMenu(),
+            "Select All Nodes": lambda: self.selectAllNodes(),
+            "Count 'by' Nodes": lambda: self.countByNodes(),
+            "Change 'by' Knob(s)": lambda: self.changeByKnob(),
+            "Expand Menu": lambda: self.expandMenu(),
+        }
+
+    def createNodeMenu(self):
+        """
+        Opens a UI for creating nodes with advanced options.
+        source: dialogs/crtNodeDialogs.py
+        """
+        import editor.dialogs.crtNodeDilaogs
+        importlib.reload(editor.dialogs.crtNodeDilaogs)
+        from editor.dialogs.crtNodeDilaogs import crtNodeDialogsPane
+        crtNodeDialogsPane()
+
+
+    def selectAllNodes(self):
+        print("select all")
+
+    def countByNodes(self):
+        print("count by nodes")
+
+    def changeByKnob(self):
+        print("change by knobs")
+
+    def expandMenu(self):
+        print("Expand Menu")

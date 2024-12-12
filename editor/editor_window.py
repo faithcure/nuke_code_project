@@ -39,7 +39,6 @@ from editor.dialogs.replaceDialogs import ReplaceDialogs  # Döngüsel içe akta
 from editor.dialogs.goToLineDialogs import GoToLineDialog
 # from init_ide import settings_path
 from settings.github_utils import commit_changes, push_to_github, pull_from_github, get_status
-from main_toolbar import MainToolbar
 importlib.reload(editor.core)
 importlib.reload(editor.code_editor)
 importlib.reload(editor.output)
@@ -48,7 +47,7 @@ importlib.reload(editor.dialogs.searchDialogs)
 importlib.reload(settings.github_utils)
 importlib.reload(main_toolbar)
 from editor.code_editor import PygmentsHighlighter
-
+from main_toolbar import MainToolbar
 class EditorApp(QMainWindow):
     """
     Main application window for the Nuke Code Editor.

@@ -6,12 +6,17 @@ from PySide2.QtGui import QIcon
 import editor.core
 import editor.nlink
 import editor.settings.settings_ux as settings_ux
+import nodes.crtNode
+importlib.reload(nodes.crtNode)
 importlib.reload(editor.core)
 importlib.reload(editor.nlink)
 importlib.reload(settings_ux)
 from editor.nlink import update_nuke_functions
 from editor.core import PathFromOS, CodeEditorSettings
+from nodes.crtNode import createNodesCode
 
+pathFromOS = PathFromOS()
+settings = CodeEditorSettings()
 
 class MainToolbar:
     """
@@ -29,40 +34,65 @@ class MainToolbar:
         """
         # Create the toolbar and set its properties
         toolbar = parent.addToolBar("MAIN TOOLBAR")
-        parent.addToolBar(CodeEditorSettings().setToolbar_area, toolbar)  # Place toolbar on the left side of the window
+        parent.addToolBar(settings.setToolbar_area, toolbar)  # Place toolbar on the left side of the window
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # Expands horizontally, not vertically
 
         # Set icon size for the toolbar
-        toolbar.setIconSize(CodeEditorSettings().toolbar_icon_size)
+        toolbar.setIconSize(settings.toolbar_icon_size)
         toolbar.setStyleSheet("QToolBar { spacing: 4px; }")
         toolbar.setMovable(True)
         parent.addToolBar(Qt.TopToolBarArea, toolbar)
 
         # 1. RUN Button (To execute code)
-        run_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'play.svg')), '', parent)
+        run_action = QAction(QIcon(os.path.join(pathFromOS.icons_path, 'play.svg')), '', parent)
         run_action.setToolTip("Run Current Code")
         run_action.triggered.connect(parent.run_code)
         toolbar.addAction(run_action)
 
         # 2. SAVE Button (To save the current file)
-        save_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'save.svg')), '', parent)
+        save_action = QAction(QIcon(os.path.join(pathFromOS.icons_path, 'save.svg')), '', parent)
         save_action.setToolTip("Save Current File")
         save_action.triggered.connect(parent.save_file)
         toolbar.addAction(save_action)
 
         # 3. SEARCH Button (To search within the code)
-        search_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'search.svg')), '', parent)
+        search_action = QAction(QIcon(os.path.join(pathFromOS.icons_path, 'search.svg')), '', parent)
         search_action.setToolTip("Search in Code")
         search_action.triggered.connect(parent.show_search_dialog)
         toolbar.addAction(search_action)
 
         # 4. UPDATE Button (NLink functionality to update functions)
-        update_action = QAction(QIcon(os.path.join(PathFromOS().icons_path, 'update.svg')), 'Update NLink', parent)
+        update_action = QAction(QIcon(os.path.join(pathFromOS.icons_path, 'update.svg')), 'Update NLink', parent)
         update_action.setToolTip("Update Nuke Functions List (NLink!)")
         update_action.triggered.connect(update_nuke_functions)
         toolbar.addAction(update_action)
+
+        # Function to create the Create Node menu
+        def create_node_menu():
+            """
+            Creates a dropdown menu for Create Node options.
+            Returns:
+                QMenu: The constructed menu with node creation options.
+            """
+            node_menu = QMenu(parent)
+            for node_name, function in createNodesCode().createNodesMenu.items():
+                action = node_menu.addAction(node_name)
+                action.triggered.connect(function)
+
+            return node_menu
+
+        # Create the menu and link it to a button
+        node_menu = create_node_menu()
+
+        create_node_button = QToolButton(toolbar)
+        create_node_button.setIcon(QIcon(os.path.join(PathFromOS().icons_path, 'crt_node.svg')))
+        create_node_button.setToolTip("Fast code")
+        create_node_button.setPopupMode(QToolButton.InstantPopup)
+        create_node_button.setMenu(node_menu)
+        toolbar.addWidget(create_node_button)
+
         toolbar.addSeparator()
 
         # 5. Spacer Widget (Pushes buttons to the right or bottom)
@@ -85,7 +115,7 @@ class MainToolbar:
         ui_menu = create_expand_menu()
 
         ui_button = QToolButton(toolbar)
-        ui_button.setIcon(QIcon(os.path.join(PathFromOS().icons_path, 'ux_design.svg')))
+        ui_button.setIcon(QIcon(os.path.join(pathFromOS.icons_path, 'ux_design.svg')))
         ui_button.setToolTip("Switch Toolbar Modes")
         ui_button.setPopupMode(QToolButton.InstantPopup)
         ui_button.setMenu(ui_menu)
@@ -103,6 +133,9 @@ class MainToolbar:
             else:
                 ui_button.setIcon(QIcon(os.path.join(PathFromOS().icons_path, 'ux_design.svg')))
 
+
+
+
         # Connect the orientation change signal to adjust the button layout
         toolbar.orientationChanged.connect(adjust_expand_layout)
 
@@ -117,6 +150,8 @@ class MainToolbar:
         settings_action.setToolTip("Settings")
         settings_action.triggered.connect(parent.open_settings)
         toolbar.addAction(settings_action)
+
+
 
         # Adjust the spacer widget based on toolbar orientation
         toolbar.orientationChanged.connect(lambda orientation: parent.update_toolbar_spacer(orientation, spacer))

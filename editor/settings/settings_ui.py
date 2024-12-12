@@ -1633,6 +1633,7 @@ class SettingsWindow(QMainWindow):
 
         print(f"Settings saved to {self.SETTINGS_FILE}")
 
+
 def launch_settings():
     app = QApplication.instance()
     if not app:
