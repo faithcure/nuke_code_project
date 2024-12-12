@@ -5,7 +5,7 @@
         "default_language": "English",
         "default_theme": "Nuke Default",
         "default_interface_mode": "Mumen Rider (Professional)",
-        "syntax_style_dropdown": "material"
+        "syntax_style_dropdown": "monokai"
     },
     "Code Editor": {
         "default_selected_font": "JetBrains Mono",
@@ -14,19 +14,19 @@
         "disable_smart_compilation": true,
         "disable_suggestion": true,
         "disable_fuzzy_compilation": true,
-        "disable_node_completer": false
+        "disable_node_completer": true
     },
     "Environment": {
         "nuke_value_DESIRED_NUKE_VERSION": "14.1",
-        "nuke_value_NUKEX_I_2024_0111": "18b684334c7282cca369907de9abdde9b19599c8e087778c25d974c2205139044fbf91845ab8e6ae84fd4b8a0747b0ef324c11d33feca986acad089023fb3dfb5d070c7eed069bd5d62b2dc7fe569130ae4ece7b19a13b8a45be89406d138139d9d96403dee2d8fedd8b9ef771b070396f5eb981e402afd45428ab3c39828f4b",
         "nuke_value_NUKE_AF_RENDER": "nuke -r",
         "nuke_value_NUKE_CGRU_PATH": "T:\\DEV\\cgru\\cgru.3.1.0\\plugins\\nuke",
         "nuke_value_NUKE_DIR": "C:\\Program Files\\Nuke14.1v3",
         "nuke_value_NUKE_EXEC": "C:\\Program Files\\Nuke14.1v3\\Nuke14.1.exe",
-        "nuke_value_NUKE_I_2024_0111": "1371d71f8f5cfde1cfc0a11a49a4f2bc5148675d73e4bcfd0708dd6432b9f05932bb8b29da7700c91442ac0a331657e8e797591c31e0ce3f5cddb484d67c77c39e4a1fab6c3b7482db56f27a4fe5d2d2d5dc7963282c527a1437958700966fa115236e84e249bb0da41eda3ea6aa0bf7c8e91f7f5401a9f423caa74be0261dac",
         "nuke_value_NUKE_PATH": "T:/DEV/lib/anima/anima/env/nukeEnv/config;T:/DEV/nuke/nuke14;T:\\DEV\\cgru\\cgru.3.1.0\\plugins\\nuke",
-        "nuke_value_NUKE_TEMP_DIR": "C:/Users/User/AppData/Local/Temp/nuke",
-        "nuke_value_NUKE_VERSION": "14.1"
+        "nuke_value_NUKE_VERSION": "14.1",
+        "nuke_value_NUKE_I_2024_0111": "1371d71f8f5cfde1cfc0a11a49a4f2bc5148675d73e4bcfd0708dd6432b9f05932bb8b29da7700c91442ac0a331657e8e797591c31e0ce3f5cddb484d67c77c39e4a1fab6c3b7482db56f27a4fe5d2d2d5dc7963282c527a1437958700966fa115236e84e249bb0da41eda3ea6aa0bf7c8e91f7f5401a9f423caa74be0261dac",
+        "nuke_value_NUKEX_I_2024_0111": "18b684334c7282cca369907de9abdde9b19599c8e087778c25d974c2205139044fbf91845ab8e6ae84fd4b8a0747b0ef324c11d33feca986acad089023fb3dfb5d070c7eed069bd5d62b2dc7fe569130ae4ece7b19a13b8a45be89406d138139d9d96403dee2d8fedd8b9ef771b070396f5eb981e402afd45428ab3c39828f4b",
+        "nuke_value_NUKE_TEMP_DIR": "C:/Users/User/AppData/Local/Temp/nuke"
     },
     "Licence": {},
     "Github": {
