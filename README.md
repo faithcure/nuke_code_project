@@ -17,8 +17,11 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 ---
 
 ## 🔍 Overview
-- 
 ![Nuke Python IDE UI](https://github.com/faithcure/nuke_code_project/blob/master/nuke_python_ide.jpg)
+![Nuke Python IDE SETTINGS_UI](https://github.com/faithcure/nuke_code_project/blob/master/settings_01.jpg)
+![Nuke Python IDE SETTINGS_UI](https://github.com/faithcure/nuke_code_project/blob/master/settings_02.jpg)
+![Nuke Python IDE SETTINGS_UI](https://github.com/faithcure/nuke_code_project/blob/master/settings_03.jpg)
+
 ### 🌟 Why Nuke Python IDE?
 - Eliminate the need for external IDEs, with a fully integrated coding environment inside Nuke.
 - Write, debug, and test your scripts directly within the Nuke ecosystem.
