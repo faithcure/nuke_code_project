@@ -17,127 +17,21 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 ---
 
 ## 🔍 Overview
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Gallery</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #121212;
-            color: #fff;
-        }
+<p align="center">
+  <a href="https://github.com/faithcure/nuke_code_project/blob/master/nuke_python_ide.jpg" target="_blank">
+    <img src="https://github.com/faithcure/nuke_code_project/blob/master/nuke_python_ide.jpg" alt="Nuke Python IDE UI" width="200"/>
+  </a>
+  <a href="https://github.com/faithcure/nuke_code_project/blob/master/settings_01.jpg" target="_blank">
+    <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_01.jpg" alt="Settings UI 1" width="200"/>
+  </a>
+  <a href="https://github.com/faithcure/nuke_code_project/blob/master/settings_02.jpg" target="_blank">
+    <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_02.jpg" alt="Settings UI 2" width="200"/>
+  </a>
+  <a href="https://github.com/faithcure/nuke_code_project/blob/master/settings_03.jpg" target="_blank">
+    <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_03.jpg" alt="Settings UI 3" width="200"/>
+  </a>
+</p>
 
-        .gallery {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            padding: 20px;
-        }
-
-        .gallery img {
-            width: 200px;
-            height: auto;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-            cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .gallery img:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 16px rgba(255, 255, 255, 0.3);
-        }
-
-        /* Lightbox styles */
-        .lightbox {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .lightbox img {
-            max-width: 90%;
-            max-height: 80%;
-            border-radius: 10px;
-        }
-
-        .lightbox:target {
-            display: flex;
-        }
-
-        .lightbox .close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 30px;
-            color: #fff;
-            text-decoration: none;
-            font-weight: bold;
-            transition: color 0.3s ease;
-        }
-
-        .lightbox .close:hover {
-            color: #f00;
-        }
-    </style>
-</head>
-<body>
-
-<h1 style="text-align: center; padding: 20px;">Nuke Python IDE - Image Gallery</h1>
-<div class="gallery">
-    <a href="#lightbox1">
-        <img src="https://github.com/faithcure/nuke_code_project/blob/master/nuke_python_ide.jpg" alt="Nuke Python IDE UI">
-    </a>
-    <a href="#lightbox2">
-        <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_01.jpg" alt="Settings UI 1">
-    </a>
-    <a href="#lightbox3">
-        <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_02.jpg" alt="Settings UI 2">
-    </a>
-    <a href="#lightbox4">
-        <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_03.jpg" alt="Settings UI 3">
-    </a>
-</div>
-
-<!-- Lightbox 1 -->
-<div id="lightbox1" class="lightbox">
-    <a href="#" class="close">&times;</a>
-    <img src="https://github.com/faithcure/nuke_code_project/blob/master/nuke_python_ide.jpg" alt="Nuke Python IDE UI">
-</div>
-
-<!-- Lightbox 2 -->
-<div id="lightbox2" class="lightbox">
-    <a href="#" class="close">&times;</a>
-    <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_01.jpg" alt="Settings UI 1">
-</div>
-
-<!-- Lightbox 3 -->
-<div id="lightbox3" class="lightbox">
-    <a href="#" class="close">&times;</a>
-    <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_02.jpg" alt="Settings UI 2">
-</div>
-
-<!-- Lightbox 4 -->
-<div id="lightbox4" class="lightbox">
-    <a href="#" class="close">&times;</a>
-    <img src="https://github.com/faithcure/nuke_code_project/blob/master/settings_03.jpg" alt="Settings UI 3">
-</div>
-
-</body>
-</html>
 
 ### 🌟 Why Nuke Python IDE?
 - Eliminate the need for external IDEs, with a fully integrated coding environment inside Nuke.
