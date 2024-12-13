@@ -9,7 +9,7 @@ from editor.core import PathFromOS
 import json
 import re
 from editor.core import CodeEditorSettings
-
+from editor.dialogs.crtNodeDialogs import show_nuke_node_creator
 
 
 class RightAlignedDelegate(QStyledItemDelegate):
@@ -239,11 +239,10 @@ class createNodesCode(QObject):
         Opens a UI for creating nodes with advanced options.
         source: dialogs/crtNodeDialogs.py
         """
-        import editor.dialogs.crtNodeDilaogs
-        importlib.reload(editor.dialogs.crtNodeDilaogs)
-        from editor.dialogs.crtNodeDilaogs import crtNodeDialogsPane
-        crtNodeDialogsPane()
-
+        import editor.dialogs.crtNodeDialogs
+        importlib.reload(editor.dialogs.crtNodeDialogs)
+        from editor.dialogs.crtNodeDialogs import NukeNodeCreatorDialog
+        show_nuke_node_creator()
 
     def selectAllNodes(self):
         print("select all")
