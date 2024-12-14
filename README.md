@@ -83,7 +83,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 - **Clipboard Integration**: Copy generated code directly to clipboard for quick script integration.
 - **Real-time Preview**: Live code preview as you modify node settings.
 
-### 🎨 **Panel Builder Integration (Under Construction) **
+### 🎨 **Panel Builder Integration (Under Construction JUST UI) **
 - **Visual UI Designer**: Design custom panels and interfaces with a drag-and-drop interface.
 - **Knob Library**: Comprehensive collection of Nuke-specific UI elements (knobs) including:
   - Basic inputs (String, Integer, Float, Checkbox)
@@ -102,7 +102,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
   - Automatic Python code generation for panel creation
   - Clean, organized code output ready for implementation
   - Direct clipboard integration for quick export
-  - 
+  
 ### 📚 **Learning Resources**
 > 🚧 **Note**: Tutorials are coming soon.
 ---
