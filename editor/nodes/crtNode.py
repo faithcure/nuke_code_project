@@ -9,7 +9,6 @@ from editor.core import PathFromOS
 import json
 import re
 from editor.core import CodeEditorSettings
-from editor.dialogs.crtNodeDialogs import show_nuke_node_creator
 
 
 class RightAlignedDelegate(QStyledItemDelegate):
@@ -228,7 +227,7 @@ class createNodesCode(QObject):
 
         self.createNodesMenu = {
             "Create Node": lambda: self.createNodeMenu(),
-            "Select All Nodes": lambda: self.selectAllNodes(),
+            "Panel UI Wizard": lambda: self.macroBuilder(),
             "Count 'by' Nodes": lambda: self.countByNodes(),
             "Change 'by' Knob(s)": lambda: self.changeByKnob(),
             "Expand Menu": lambda: self.expandMenu(),
@@ -241,11 +240,18 @@ class createNodesCode(QObject):
         """
         import editor.dialogs.crtNodeDialogs
         importlib.reload(editor.dialogs.crtNodeDialogs)
-        from editor.dialogs.crtNodeDialogs import NukeNodeCreatorDialog
+        from editor.dialogs.crtNodeDialogs import show_nuke_node_creator
         show_nuke_node_creator()
 
-    def selectAllNodes(self):
-        print("select all")
+    def macroBuilder(self):
+        """
+        Shows MacroBuilder dialog. This function creates dialog if it doesn't exist,
+        otherwise brings existing dialog to front.
+        """
+        import editor.dialogs.macroUIDialogs
+        importlib.reload(editor.dialogs.macroUIDialogs)
+        from editor.dialogs.macroUIDialogs import show_panel_builder
+        show_panel_builder()
 
     def countByNodes(self):
         print("count by nodes")

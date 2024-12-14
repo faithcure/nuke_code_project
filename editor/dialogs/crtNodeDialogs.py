@@ -422,7 +422,3 @@ def show_nuke_node_creator():
     dialog = NukeNodeCreatorDialog()
     dialog.exec_()
 
-
-# Example usage:
-if __name__ == "__main__":
-    show_nuke_node_creator()
