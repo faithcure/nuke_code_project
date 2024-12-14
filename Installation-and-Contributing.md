@@ -61,6 +61,8 @@ Below is an overview of the file and folder structure for better understanding:
    ├── editor
       ├── ai                  # Under construction. Need help! :D
       ├── dialogs             # Important dialogs are handled here.
+         ├──icons/            # Just dialog Window Icons.
+            ├── knobs         # Knobs thumbnails.
       ├── nodes               # Nuke feature completer settings.
       ├── settings            
          ├── modules          # External modules are stored here.
@@ -84,6 +86,6 @@ Below is an overview of the file and folder structure for better understanding:
          ├── nodeList.json       # Detailed node list from Nuke. Clicking the update button upgrades this JSON from Nuke (via nlink).
          ├── nuke_functions.json # Detailed functions for AI or suggestions. Upgraded via nlink.
       ├── JetBrains              # Contains JetBrains fonts.
-   ├── trash         # Temporary folder for discarded items.
+   ├── trash         # Temporary folder for discarded items. (Deleted often!)
    ├── ui            # Used for graphical assets like icons, images, etc.  
 
