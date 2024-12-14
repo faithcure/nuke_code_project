@@ -246,9 +246,88 @@ class MacroPanelBuilder(QMainWindow):
 
             for knob_name, icon_key in data["knobs"]:
                 knob_item = QTreeWidgetItem(category_item)
-                knob_item.setText(0, knob_name)
+
+                if knob_name == "String_Knob":
+                    knob_item.setText(0, "Text Field")
+                elif knob_name == "Int_Knob":
+                    knob_item.setText(0, "Integer Field")
+                elif knob_name == "Double_Knob":
+                    knob_item.setText(0, "Float Field")
+                elif knob_name == "Boolean_Knob":
+                    knob_item.setText(0, "Checkbox")
+                elif knob_name == "Password_Knob":
+                    knob_item.setText(0, "Password Field")
+                elif knob_name == "Text_Knob":
+                    knob_item.setText(0, "Multiline Text")
+                elif knob_name == "Multiline_Eval_String_Knob":
+                    knob_item.setText(0, "Multiline Expression")
+                elif knob_name == "Color_Knob":
+                    knob_item.setText(0, "Color Picker")
+                elif knob_name == "AColor_Knob":
+                    knob_item.setText(0, "Advanced Color Picker")
+                elif knob_name == "XY_Knob":
+                    knob_item.setText(0, "XY Coordinate")
+                elif knob_name == "XYZ_Knob":
+                    knob_item.setText(0, "XYZ Coordinate")
+                elif knob_name == "UV_Knob":
+                    knob_item.setText(0, "UV Coordinate")
+                elif knob_name == "WH_Knob":
+                    knob_item.setText(0, "Width/Height")
+                elif knob_name == "Box3_Knob":
+                    knob_item.setText(0, "3D Bounding Box")
+                elif knob_name == "Scale_Knob":
+                    knob_item.setText(0, "Scale")
+                elif knob_name == "Format_Knob":
+                    knob_item.setText(0, "Format")
+                elif knob_name == "Array_Knob":
+                    knob_item.setText(0, "Array")
+                elif knob_name == "BBox_Knob":
+                    knob_item.setText(0, "Bounding Box")
+                elif knob_name == "ColorChip_Knob":
+                    knob_item.setText(0, "Color Chip")
+                elif knob_name == "Channel_Knob":
+                    knob_item.setText(0, "Channel")
+                elif knob_name == "ChannelMask_Knob":
+                    knob_item.setText(0, "Channel Mask")
+                elif knob_name == "Link_Knob":
+                    knob_item.setText(0, "Link")
+                elif knob_name == "PyScript_Knob":
+                    knob_item.setText(0, "Python Script")
+                elif knob_name == "PyCustom_Knob":
+                    knob_item.setText(0, "Python Custom")
+                elif knob_name == "Enumeration_Knob":
+                    knob_item.setText(0, "Dropdown")
+                elif knob_name == "Pulldown_Knob":
+                    knob_item.setText(0, "Pulldown")
+                elif knob_name == "Radio_Knob":
+                    knob_item.setText(0, "Radio Button")
+                elif knob_name == "Button_Knob":
+                    knob_item.setText(0, "Button")
+                else:
+                    knob_item.setText(0, knob_name)
+
                 knob_icon_path = self.get_icon_path(icon_key)
                 knob_item.setIcon(0, QIcon(knob_icon_path))
+                knob_item.setData(1, Qt.UserRole, {"name": knob_item.text(0), "type": icon_key,
+                                                   "icon_path": os.path.join(self.icon_path, "knobs",
+                                                                             f"{knob_name.lower()}_thumb.png")})
+
+        self.knobs_tree.currentItemChanged.connect(self.update_knob_preview)
+    def update_knob_preview(self, current, previous):
+        if current:
+            knob_data = current.data(1, Qt.UserRole)
+            knob_icon = QPixmap(knob_data["icon_path"])
+            if os.path.exists(knob_data["icon_path"]):
+                self.knob_preview_label.setPixmap(
+                    knob_icon.scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            else:
+                self.knob_preview_label.clear()
+            self.knob_preview_name_label.setText(knob_data["name"])
+
+        else:
+            self.knob_preview_label.clear()
+            self.knob_preview_name_label.clear()
+            self.knob_preview_type_label.clear()
 
     def generate_code(self):
         # Kod üretme mantığı buraya gelecek
