@@ -74,6 +74,35 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 - **Search Bar**: Quickly locate specific code snippets or keywords.
 - **Multi-File Tabs**: Open, edit, and organize multiple files in a tabbed interface.
 
+### 🎯 **Create Node Integration (New Feature)** 
+- **Node Creation Wizard**: Generate Nuke nodes with custom configurations through an interface.
+- **Smart Knob Management**: Automatically detect and configure node parameters with type-aware input fields.
+- **Code Generation**: Instantly generate clean, formatted Python code for node creation.
+- **Variable Management**: Automatic variable name suggestions based on node types.
+- **Function Wrapping**: Option to wrap node creation code in reusable Python functions.
+- **Clipboard Integration**: Copy generated code directly to clipboard for quick script integration.
+- **Real-time Preview**: Live code preview as you modify node settings.
+
+### 🎨 **Panel Builder Integration (Under Construction) **
+- **Visual UI Designer**: Design custom panels and interfaces with a drag-and-drop interface.
+- **Knob Library**: Comprehensive collection of Nuke-specific UI elements (knobs) including:
+  - Basic inputs (String, Integer, Float, Checkbox)
+  - Color and transform controls
+  - Array and vector inputs
+  - Button and menu elements
+- **Layout Management**: 
+  - Flexible container layouts (Tab, Group Box, Collapsible Frame)
+  - Basic layouts (Vertical, Horizontal, Grid)
+  - Visual grid system for precise element placement
+- **Property Editor**: 
+  - Real-time property customization for each element
+  - Type-specific settings and configurations
+  - Live preview of knob appearances
+- **Code Generation**:
+  - Automatic Python code generation for panel creation
+  - Clean, organized code output ready for implementation
+  - Direct clipboard integration for quick export
+  - 
 ### 📚 **Learning Resources**
 > 🚧 **Note**: Tutorials are coming soon.
 ---
