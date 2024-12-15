@@ -75,6 +75,11 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 - **Multi-File Tabs**: Open, edit, and organize multiple files in a tabbed interface.
 
 ### 🎯 **Create Node Integration (New Feature)** 
+<p align="center">
+  <a href="https://github.com/faithcure/nuke_code_project/blob/master/node_creator.png" target="_blank">
+    <img src="https://github.com/faithcure/nuke_code_project/blob/master/node_creator.png" alt="Nuke create node integartion" width="200"/>
+  </a>
+</p>
 - **Node Creation Wizard**: Generate Nuke nodes with custom configurations through an interface.
 - **Smart Knob Management**: Automatically detect and configure node parameters with type-aware input fields.
 - **Code Generation**: Instantly generate clean, formatted Python code for node creation.
