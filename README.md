@@ -6,6 +6,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 
 ## 📜 Table of Contents
 - [🔍 Overview](#-overview)
+- [👨‍💻 Videos](#-developer-Diaris)
 - [✨ Features](#-features)
 - [📥 Installation](#-installation)
 - [🛠️ Usage](#️-usage)
@@ -44,6 +45,8 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 - **Developers**: Build and test Nuke plugins with real-time feedback.
 
 ---
+## 🎥 Videos 
+[![Teaser for this Plugin](https://img.youtube.com/vi/abc123xyz/maxresdefault.jpg)](https://www.youtube.com/watch?v=abc123xyz)
 
 ## 💡 Features
 
