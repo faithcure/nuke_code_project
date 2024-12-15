@@ -97,6 +97,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
     <img src="https://github.com/faithcure/nuke_code_project/blob/master/knob_macro.png" alt="Nuke knob macro" width="200"/>
   </a>
 </p>
+
 - **Visual UI Designer**: Design custom panels and interfaces with a drag-and-drop interface.
 - **Knob Library**: Comprehensive collection of Nuke-specific UI elements (knobs) including:
   - Basic inputs (String, Integer, Float, Checkbox)
