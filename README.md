@@ -6,7 +6,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 
 ## 📜 Table of Contents
 - [🔍 Overview](#-overview)
-- [👨‍💻 Videos](#-Videos)
+- [🖥️ Videos](#-Videos)
 - [✨ Features](#-features)
 - [📥 Installation](#-installation)
 - [🛠️ Usage](#️-usage)
