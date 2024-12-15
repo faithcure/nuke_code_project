@@ -46,7 +46,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
 
 ---
 ## 🎥 Videos 
-[![Teaser for this Plugin](https://img.youtube.com/vi/abc123xyz/maxresdefault.jpg)](https://www.youtube.com/watch?v=abc123xyz)
+-
 
 ## 💡 Features
 
