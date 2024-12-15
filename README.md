@@ -83,6 +83,7 @@ A specialized Python IDE tailored for the **Foundry Nuke** environment, enabling
     <img src="https://github.com/faithcure/nuke_code_project/blob/master/node_creator.png" alt="Nuke create node integartion" width="200"/>
   </a>
 </p>
+
 - **Node Creation Wizard**: Generate Nuke nodes with custom configurations through an interface.
 - **Smart Knob Management**: Automatically detect and configure node parameters with type-aware input fields.
 - **Code Generation**: Instantly generate clean, formatted Python code for node creation.
